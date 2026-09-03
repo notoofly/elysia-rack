@@ -1,6 +1,6 @@
 {
   "name": "elysia-rack",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Model-driven CRUD rack for Elysia: REST + QUERY routes, validation, authorization, OpenAPI metadata, and React panel rendering.",
   "type": "module",
   "license": "MIT",
