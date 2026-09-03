@@ -219,6 +219,13 @@ Components must only use semantic utilities (`bg-background`,
 `text-foreground`, `bg-table-row-hover`, …) so themes swap without
 touching React code.
 
+## Release (maintainer)
+
+1. Setup sekali: npmjs.com → package → Settings → Trusted Publisher → GitHub Actions (`notoofly/elysia-rack`, workflow `publish.yml`).
+2. Naikkan `version` di `package.json`.
+3. Buat GitHub Release dengan tag `v<version>` (mis. `v0.1.0`).
+4. Workflow `publish` jalan otomatis: install, typecheck, build aset, test, build, cek tag = versi, `npm publish --provenance`.
+
 ## Scripts
 
 ```bash
