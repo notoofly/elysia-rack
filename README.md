@@ -214,24 +214,24 @@ build before `dev`; CI and `prepublishOnly` already chain it).
 - `theme/components.css` — newspaper component classes + base styles.
 
 Dark mode flips automatically: stored choice (`localStorage`), else
-`prefers-color-scheme`. The `◐ Tema` button in the masthead toggles it.
+`prefers-color-scheme`. The `◐ Theme` button in the masthead toggles it.
 Components must only use semantic utilities (`bg-background`,
 `text-foreground`, `bg-table-row-hover`, …) so themes swap without
 touching React code.
 
 ## Release (maintainer)
 
-1. Setup sekali: npmjs.com → package → Settings → Trusted Publisher → GitHub Actions (`notoofly/elysia-rack`, workflow `publish.yml`).
-2. Naikkan `version` di `package.json`.
-3. Buat GitHub Release dengan tag `v<version>` (mis. `v0.1.0`).
-4. Workflow `publish` jalan otomatis: install, typecheck, build aset, test, build, cek tag = versi, `npm publish --provenance`.
+1. One-time setup: npmjs.com → package → Settings → Trusted Publisher → GitHub Actions (`notoofly/elysia-rack`, workflow `publish.yml`).
+2. Bump `version` in `package.json`.
+3. Create a GitHub Release with tag `v<version>` (e.g. `v0.1.0`).
+4. The `publish` workflow runs automatically: install, typecheck, asset build, test, build, tag-vs-version check, `npm publish --provenance`.
 
 ## Scripts
 
 ```bash
 bun install        # install dependencies
 bun run dev        # run src/playground.ts
-bun test           # unit tests with full coverage (bun:test)
+bun test           # unit tests (bun:test)
 bun run typecheck  # tsc --noEmit
 bun run build      # dist/ (js via bun build + .d.ts via tsc)
 ```

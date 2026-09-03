@@ -155,7 +155,7 @@ export default async function Panel(props: PanelProps) {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const pk = props.primaryKey ?? "id";
   const deletedAt = props.deletedAtField ?? "deletedAt";
-  // Field cerdas dari adapter; fallback ke input teks dari kolom baris.
+  // Smart fields from the adapter; fallback to text inputs from row columns.
   const fieldDefs: FormField[] = props.fields?.length
     ? props.fields
         .filter((f) => !f.autoIncrement && f.name !== deletedAt)

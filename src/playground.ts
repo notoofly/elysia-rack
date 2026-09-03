@@ -114,7 +114,7 @@ const app = new Elysia()
         query: ProductQuery,
       },
 
-      // Contoh string-permission (butuh header x-permissions) atau function:
+      // Example string-permission (needs x-permissions header) or function:
       // delete: "products.delete",
       // delete: async ({ request }) =>
       //   request.headers.get("x-api-key") === "secret",
@@ -168,7 +168,7 @@ const app = new Elysia()
         params: t.Object({ slug: t.String({ minLength: 1 }) }),
       },
 
-      // Read-only: hanya list + detail yang aktif.
+      // Read-only: only list + detail are enabled.
       operations: {
         create: false,
         replace: false,

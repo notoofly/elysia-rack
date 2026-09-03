@@ -54,7 +54,7 @@ function fieldKind(
 function isAutoIncrement(col: any, columnType: string | undefined): boolean {
   if (columnType && /serial/i.test(columnType)) return true;
   if (col.generated !== undefined && col.generated !== null) return true;
-  // SQLite `INTEGER PRIMARY KEY` adalah alias rowid (auto-increment).
+  // SQLite `INTEGER PRIMARY KEY` is a rowid alias (auto-increment).
   if (col.primary && columnType && /sqliteinteger/i.test(columnType))
     return true;
   return false;

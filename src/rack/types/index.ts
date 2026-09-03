@@ -144,8 +144,8 @@ export namespace Rack {
   }
 
   /**
-   * Alias historis untuk signature `rack(path, options)`.
-   * Sama dengan `CrudOptions`.
+   * Historical alias for the `rack(path, options)` signature.
+   * Same as `CrudOptions`.
    */
   export type RackOptions<TModel extends CrudModel = CrudModel> =
     CrudOptions<TModel>;

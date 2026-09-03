@@ -1,5 +1,5 @@
-/* Token semantic fondasi (kompatibel pola shadcn/Tailwind).
-   Tema koran di koran.css menimpa sebagian token tanpa menyentuh komponen. */
+/* Foundation semantic tokens (shadcn/Tailwind compatible).
+   The newspaper theme in koran.css overrides some tokens without touching components. */
 
 :root {
   /* ─────────────────────────────────────────────

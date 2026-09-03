@@ -1,6 +1,6 @@
-/* Mode gelap: toggle manual via class .dark (tersimpan di localStorage).
-   Tanpa pilihan tersimpan, script tema mengikuti prefers-color-scheme
-   dengan menambahkan class yang sesuai saat halaman dimuat. */
+/* Dark mode: manual toggle via the .dark class (persisted in localStorage).
+   Without a stored choice, the theme script follows prefers-color-scheme
+   by adding the matching class on page load. */
 
 .dark {
   /* ─────────────────────────────────────────────

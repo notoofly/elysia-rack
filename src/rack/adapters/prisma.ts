@@ -62,7 +62,7 @@ export const prismaAdapter: CrudAdapter = {
   name: "prisma",
 
   describe(): FieldDescriptor[] {
-    // Prisma delegates tidak mengekspos skema saat runtime.
+    // Prisma delegates expose no runtime schema.
     return [];
   },
 

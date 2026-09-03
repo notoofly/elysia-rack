@@ -1,5 +1,5 @@
-/* Kelas komponen khas koran + fondasi global.
-   Semua warna merujuk token semantic agar ikut mode gelap/terang. */
+/* Newspaper component classes + global foundation.
+   All colors reference semantic tokens to follow dark/light mode. */
 
 @layer base {
   body {
@@ -18,8 +18,8 @@
   }
 }
 
-/* Dialog native: kembalikan centering yang di-reset preflight,
-   batasi ukuran viewport, dan gelapkan backdrop. */
+/* Native dialog: restore the centering reset by preflight,
+   cap the viewport size, and dim the backdrop. */
 dialog {
   margin: auto;
   max-width: min(32rem, calc(100vw - 2rem));
@@ -29,7 +29,7 @@ dialog::backdrop {
   background-color: var(--overlay);
 }
 
-/* Garis ganda: garis tipis + garis tebal di bawahnya */
+/* Double rule: thin line + thick line below it */
 .koran-rule-double {
   border-top: 1px solid var(--header-border);
   position: relative;
@@ -41,7 +41,7 @@ dialog::backdrop {
   margin-top: 2px;
 }
 
-/* Latar kertas dengan semburat cahaya */
+/* Paper background with a soft glow */
 .koran-paper {
   background-color: var(--background);
   background-image: radial-gradient(

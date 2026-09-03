@@ -1,6 +1,6 @@
-/* Tema default: koran.
-   Menimpa token fondasi (tokens.css / dark.css) tanpa menyentuh komponen.
-   Hapus import file ini dari panel.css untuk kembali ke tampilan netral. */
+/* Default theme: newspaper.
+   Overrides the foundation tokens (tokens.css / dark.css) without touching components.
+   Remove this file's import from panel.css to return to the neutral look. */
 
 @theme {
   --font-koran: "Playfair Display", Georgia, "Times New Roman", serif;

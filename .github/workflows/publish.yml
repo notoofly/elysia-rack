@@ -1,12 +1,12 @@
 name: publish
 
-# Cara rilis: naikkan version di package.json, buat GitHub Release
-# dengan tag v<version> (mis. v0.1.0), workflow ini publish ke npm.
-# Setup sekali di npmjs.com: package settings > Trusted Publisher >
+# How to release: bump version in package.json, create a GitHub Release
+# with tag v<version> (e.g. v0.1.0), this workflow publishes to npm.
+# One-time setup at npmjs.com: package settings > Trusted Publisher >
 # GitHub Actions (org/repo: notoofly/elysia-rack, workflow: publish.yml).
-# Alternatif: isi secret NPM_TOKEN dan tambahkan
+# Alternative: fill the NPM_TOKEN secret and add
 #   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-# pada step publish.
+# to the publish step.
 
 on:
   release:

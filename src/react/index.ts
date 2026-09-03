@@ -7,8 +7,8 @@ import { createRenderer } from "./render";
 import { ReactRack } from "./types";
 
 /**
- * Aset panel yang di-build Vite (dist/panel.css, dist/panel-*.js),
- * disajikan di bawah `/__rack/*`.
+ * Vite-built panel assets (dist/panel.css, dist/panel-*.js),
+ * served under `/__rack/*`.
  */
 const PANEL_ASSETS: Record<string, string> = {
   "panel.css": "text/css; charset=utf-8",

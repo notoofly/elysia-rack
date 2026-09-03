@@ -1,5 +1,5 @@
-// Browser-only bundle (dimuat via <script type="module">).
-// Global DOM dideklarasikan manual agar tsconfig tanpa lib DOM tetap lolos.
+// Browser-only bundle (loaded via <script type="module">).
+// DOM globals are declared manually so tsconfig without the DOM lib still passes.
 declare const document: any;
 declare const window: any;
 declare const localStorage: any;
@@ -33,7 +33,7 @@ export function toggleTheme(): void {
   try {
     localStorage.setItem(STORAGE_KEY, dark ? "dark" : "light");
   } catch {
-    // abaikan storage yang tidak tersedia
+    // ignore unavailable storage
   }
 }
 

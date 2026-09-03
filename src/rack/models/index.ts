@@ -7,8 +7,8 @@ import type { CrudPrismaModel } from "./prisma";
 /**
  * ORM model/resource configuration.
  *
- * Union dibuat agar satu resource tidak sengaja
- * memiliki dua ORM sekaligus.
+ * Union so a single resource cannot accidentally
+ * hold two ORMs at once.
  *
  * @example
  * ```ts

@@ -1,6 +1,6 @@
 /**
- * Logika form panel: kumpulkan body dari form dan isi form dari row.
- * Dipakai langsung oleh browser bundle (client/panel.ts).
+ * Panel form logic: collect the body from a form and fill a form from a row.
+ * Used directly by the browser bundle (client/panel.ts).
  */
 
 export function collectFormBody(form: any): {

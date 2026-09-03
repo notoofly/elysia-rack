@@ -1,6 +1,6 @@
-// Browser-only bundle untuk panel interaktif: live QUERY, seleksi,
-// dan actions (create/edit/delete/bulk). Tanpa JS, tautan dan form
-// tetap bekerja via navigasi GET biasa.
+// Browser-only bundle for the interactive panel: live QUERY, selection,
+// and actions (create/edit/delete/bulk). Without JS, links and forms
+// keep working through plain GET navigation.
 declare const document: any;
 declare const window: any;
 
@@ -62,7 +62,7 @@ function uid(): string {
   try {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
   } catch {
-    // abaikan, pakai fallback di bawah
+    // ignore, use the fallback below
   }
   return `k-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
 }
@@ -190,7 +190,7 @@ function paint(root: any, json: ListResponse, sp: URLSearchParams): void {
   try {
     window.history.replaceState(null, "", href(params, {}));
   } catch {
-    // abaikan
+    // ignore
   }
   syncBulk(root);
 }

@@ -1,8 +1,8 @@
 import type { Rack } from "./types";
 
 /**
- * Merge `options.openapi` (resource-level) dengan override per-operasi
- * menjadi hook `detail` Elysia.
+ * Merge resource-level `options.openapi` with per-operation overrides
+ * into an Elysia `detail` hook.
  */
 export function detailFor(
   options: Rack.CrudOptions,
