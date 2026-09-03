@@ -1,0 +1,192 @@
+/* Tema default: koran.
+   Menimpa token fondasi (tokens.css / dark.css) tanpa menyentuh komponen.
+   Hapus import file ini dari panel.css untuk kembali ke tampilan netral. */
+
+@theme {
+  --font-koran: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-koran-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+
+:root {
+  --background: #f5f0e2;
+  --foreground: #1c1610;
+
+  --surface: #f5f0e2;
+  --surface-foreground: #1c1610;
+  --surface-muted: #ece4d0;
+  --surface-muted-foreground: #6f6250;
+
+  --card: #faf6ea;
+  --card-foreground: #1c1610;
+  --card-muted: #ece4d0;
+
+  --popover: #faf6ea;
+  --popover-foreground: #1c1610;
+
+  --primary: #1c1610;
+  --primary-foreground: #f5f0e2;
+
+  --secondary: #e9e0c8;
+  --secondary-foreground: #1c1610;
+
+  --muted: #e9e0c8;
+  --muted-foreground: #6f6250;
+
+  --accent: #e9e0c8;
+  --accent-foreground: #1c1610;
+
+  --border: #d8cdae;
+  --border-muted: #e4dabd;
+
+  --input: #c9bc9c;
+  --input-background: #faf6ea;
+
+  --ring: #6f6250;
+
+  --text: #1c1610;
+  --text-muted: #6f6250;
+  --text-subtle: #a2937a;
+  --text-disabled: #a2937a;
+  --text-inverse: #f5f0e2;
+
+  --selection: #1c1610;
+  --selection-foreground: #f5f0e2;
+
+  --link: #9b1c1c;
+  --link-hover: #7c1616;
+  --link-visited: #9b1c1c;
+
+  --table-background: #faf6ea;
+  --table-header: #ece4d0;
+  --table-row: #faf6ea;
+  --table-row-hover: #f1e9d2;
+  --table-row-selected: #e9e0c8;
+  --table-border: #d8cdae;
+
+  --form-label: #1c1610;
+  --form-description: #6f6250;
+  --form-placeholder: #a2937a;
+
+  --navigation-background: #f5f0e2;
+  --navigation-foreground: #1c1610;
+  --navigation-hover: #e9e0c8;
+  --navigation-active: #e9e0c8;
+  --navigation-active-foreground: #1c1610;
+  --navigation-border: #d8cdae;
+
+  --sidebar: #ece4d0;
+  --sidebar-foreground: #1c1610;
+  --sidebar-primary: #1c1610;
+  --sidebar-primary-foreground: #f5f0e2;
+  --sidebar-accent: #e9e0c8;
+  --sidebar-accent-foreground: #1c1610;
+  --sidebar-muted: #6f6250;
+  --sidebar-border: #d8cdae;
+  --sidebar-ring: #6f6250;
+
+  --header: #f5f0e2;
+  --header-foreground: #1c1610;
+  --header-border: #1c1610;
+
+  --breadcrumb-foreground: #6f6250;
+  --breadcrumb-current: #1c1610;
+  --breadcrumb-separator: #a2937a;
+
+  --badge-background: #e9e0c8;
+  --badge-foreground: #1c1610;
+
+  --code-background: #ece4d0;
+  --code-foreground: #1c1610;
+}
+
+.dark {
+  --background: #181310;
+  --foreground: #ece1c8;
+
+  --surface: #211a13;
+  --surface-foreground: #ece1c8;
+  --surface-muted: #241d15;
+  --surface-muted-foreground: #a49378;
+
+  --card: #211a13;
+  --card-foreground: #ece1c8;
+  --card-muted: #2a2118;
+
+  --popover: #211a13;
+  --popover-foreground: #ece1c8;
+
+  --primary: #ece1c8;
+  --primary-foreground: #181310;
+
+  --secondary: #2a2118;
+  --secondary-foreground: #ece1c8;
+
+  --muted: #2a2118;
+  --muted-foreground: #a49378;
+
+  --accent: #2a2118;
+  --accent-foreground: #ece1c8;
+
+  --border: #3a2f22;
+  --border-muted: #2a2118;
+
+  --input: #4a3d2c;
+  --input-background: #211a13;
+
+  --ring: #a49378;
+
+  --text: #ece1c8;
+  --text-muted: #a49378;
+  --text-subtle: #6f6250;
+  --text-disabled: #6f6250;
+  --text-inverse: #181310;
+
+  --selection: #ece1c8;
+  --selection-foreground: #181310;
+
+  --link: #e06552;
+  --link-hover: #ef8267;
+  --link-visited: #e06552;
+
+  --table-background: #211a13;
+  --table-header: #181310;
+  --table-row: #211a13;
+  --table-row-hover: #2a2118;
+  --table-row-selected: #2a2118;
+  --table-border: #3a2f22;
+
+  --form-label: #ece1c8;
+  --form-description: #a49378;
+  --form-placeholder: #6f6250;
+
+  --navigation-background: #181310;
+  --navigation-foreground: #ece1c8;
+  --navigation-hover: #2a2118;
+  --navigation-active: #2a2118;
+  --navigation-active-foreground: #ece1c8;
+  --navigation-border: #3a2f22;
+
+  --sidebar: #211a13;
+  --sidebar-foreground: #ece1c8;
+  --sidebar-primary: #ece1c8;
+  --sidebar-primary-foreground: #181310;
+  --sidebar-accent: #2a2118;
+  --sidebar-accent-foreground: #ece1c8;
+  --sidebar-muted: #a49378;
+  --sidebar-border: #3a2f22;
+  --sidebar-ring: #a49378;
+
+  --header: #181310;
+  --header-foreground: #ece1c8;
+  --header-border: #ece1c8;
+
+  --breadcrumb-foreground: #a49378;
+  --breadcrumb-current: #ece1c8;
+  --breadcrumb-separator: #6f6250;
+
+  --badge-background: #2a2118;
+  --badge-foreground: #ece1c8;
+
+  --code-background: #2a2118;
+  --code-foreground: #ece1c8;
+}

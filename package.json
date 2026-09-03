@@ -1,0 +1,89 @@
+{
+  "name": "elysia-rack",
+  "version": "0.1.0",
+  "description": "Model-driven CRUD rack for Elysia: REST + QUERY routes, validation, authorization, OpenAPI metadata, and React panel rendering.",
+  "type": "module",
+  "license": "MIT",
+  "author": "notoofly",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/notoofly/elysia-rack.git"
+  },
+  "homepage": "https://github.com/notoofly/elysia-rack#readme",
+  "bugs": {
+    "url": "https://github.com/notoofly/elysia-rack/issues"
+  },
+  "keywords": [
+    "elysia",
+    "bun",
+    "crud",
+    "panel",
+    "admin",
+    "react",
+    "openapi"
+  ],
+  "packageManager": "bun@1.3.10",
+  "engines": {
+    "bun": ">=1.0.0",
+    "node": ">=20.0.0"
+  },
+  "main": "./dist/rack/index.js",
+  "module": "./dist/rack/index.js",
+  "types": "./dist/rack/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/rack/index.d.ts",
+      "default": "./dist/rack/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "dev": "bun run build:assets && bun run src/playground.ts",
+    "test": "bun test --coverage",
+    "typecheck": "tsc --noEmit",
+    "build": "bun run build:assets && bun run build:js && bun run build:dts",
+    "build:assets": "vite build",
+    "build:js": "bun build ./src/rack/index.ts ./src/react/index.ts --outdir ./dist --target node --format esm --splitting --external elysia --external react --external react-dom",
+    "build:dts": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun run typecheck && bun run build"
+  },
+  "peerDependencies": {
+    "elysia": "^1.4.0",
+    "react": ">=18",
+    "react-dom": ">=18",
+    "drizzle-orm": "^0.45.0"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-orm": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/bun": "latest",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
+    "drizzle-orm": "^0.45.2",
+    "elysia": "^1.4.30",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5",
+    "vite": "^8.2.2"
+  }
+}

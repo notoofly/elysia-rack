@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.bun/
+
+# build output (dibangun ulang via `bun run build`)
+dist/
+out/
+*.tgz
+
+# vite / typescript caches
+.vite/
+*.tsbuildinfo
+vite.config.*.timestamp-*.mjs
+
+# test & coverage
+coverage/
+*.lcov
+
+# logs
+logs/
+*.log
+
+# dotenv environment variable files
+.env
+.env*.local
+
+# editors & OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+.DS_Store
+Thumbs.db

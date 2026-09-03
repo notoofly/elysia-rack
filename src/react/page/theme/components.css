@@ -1,0 +1,59 @@
+/* Kelas komponen khas koran + fondasi global.
+   Semua warna merujuk token semantic agar ikut mode gelap/terang. */
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  ::selection {
+    background-color: var(--selection);
+    color: var(--selection-foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Dialog native: kembalikan centering yang di-reset preflight,
+   batasi ukuran viewport, dan gelapkan backdrop. */
+dialog {
+  margin: auto;
+  max-width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+}
+dialog::backdrop {
+  background-color: var(--overlay);
+}
+
+/* Garis ganda: garis tipis + garis tebal di bawahnya */
+.koran-rule-double {
+  border-top: 1px solid var(--header-border);
+  position: relative;
+}
+.koran-rule-double::after {
+  content: "";
+  display: block;
+  border-top: 3px solid var(--header-border);
+  margin-top: 2px;
+}
+
+/* Latar kertas dengan semburat cahaya */
+.koran-paper {
+  background-color: var(--background);
+  background-image: radial-gradient(
+    ellipse at top,
+    rgb(255 255 255 / 0.35),
+    transparent 60%
+  );
+}
+.dark .koran-paper {
+  background-image: radial-gradient(
+    ellipse at top,
+    rgb(255 255 255 / 0.05),
+    transparent 60%
+  );
+}
