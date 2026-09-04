@@ -153,25 +153,25 @@ Conventions:
 
 ## Dashboard
 
-Recommended setup uses `react()`, `dashboard()`, and `rack()`. Each `rack()`
-stores its metadata tree in memory (registry) and `dashboard()` loads it at
-render time via `getRackTree()`.
+`dashboard()` is now a simple *Coming Soon* placeholder. The real navigation lives in `panel` — each `rack()` panel shows a sidebar with the entire tree.
+
+Recommended setup:
 
 ```ts
 import { dashboard, rack } from "elysia-rack";
-import { pages, reactPlugin } from "elysia-rack/react";
+import { reactPlugin } from "elysia-rack/react";
 
 const app = new Elysia()
-  .use(reactPlugin({ pages }))
-  .use(dashboard({ title: "My Panel", path: "/" }))
+  .use(reactPlugin()) // pages are optional — defaults to dashboard + panel
+  .use(dashboard({ title: "My Panel", path: "/" })) // → Coming Soon at /
   .use(rack("/catalog/products", { model, metadata: { id: "products", group: "Catalog", order: 1 } }))
   .use(rack("/catalog/variants", { model, metadata: { id: "variants", group: "Catalog", order: 2, parent: "products" } }));
+// → Panel at /catalog/products now shows sidebar with Catalog > Products > Variants
 ```
 
 ### Tree metadata
 
-`metadata.parent` builds a hierarchy. Children are rendered nested under their
-parent in the sidebar and kept ordered by `order` then label.
+`metadata.parent` builds a hierarchy. Children are rendered nested under their parent in `panel`’s sidebar and kept ordered by `order` then label.
 
 ```ts
 rack("/catalog/products", { metadata: { id: "products", group: "Catalog", order: 1 } });
@@ -180,25 +180,179 @@ rack("/catalog/variants", { metadata: { id: "variants", parent: "products", grou
 
 Helpers: `listRacks()`, `getRack(id)`, `getRackTree()`, `flatRackTree()`, `buildRackTree(racks)`, `clearRacks()` from `elysia-rack`.
 
-The dashboard page itself can also be used manually:
+You can still render the dashboard manually:
 
 ```ts
-import { page, pages, reactPlugin } from "elysia-rack/react";
+import { page, reactPlugin } from "elysia-rack/react";
 
 const app = new Elysia()
-  .use(reactPlugin({ pages }))
+  .use(reactPlugin())
   .use(rack("/catalog/products", { model, metadata: { ... } }))
-  .get("/", ({ query }) =>
-    page("/dashboard", {
-      name: "My Shop",
-      resource: typeof query.resource === "string" ? query.resource : undefined,
-    }),
-  );
+  .get("/", () => page("/dashboard", { name: "My Shop" }));
 ```
 
-The sidebar groups by `metadata.group`, sorts by `order`, skips `hidden`,
-and shows the selected resource's panel inside an `<iframe>`. Links use
-`?resource=<id>` (no JavaScript required).
+`panel` now handles the sidebar + breadcrumb. Each panel loads the full tree via `getRackTree()`, highlights the active resource (`props.resource`), and links via `href: node.path`. No iframe needed.
+
+## Tutorial — make it yours
+
+This guide walks you through `rack()`, `dashboard()` and `react()` the way you would build a real app. Copy, run, tweak.
+
+### 1) `rack()` — describe a resource, get an API + panel
+
+Start with the only required thing: which table/model to use.
+
+```ts
+import { rack } from "elysia-rack";
+
+rack("/catalog/products", {
+  model: { drizzle: { db, table: products } } // or { prisma: { client: prisma, model: prisma.product } }
+});
+```
+
+You already get `GET /`, `QUERY /data`, `POST /`, `PUT/PATCH/DELETE /:id` and a panel. Now make it yours step by step.
+
+**Give it a name and a place in the menu.** `metadata` is what the dashboard reads from memory.
+
+```ts
+rack("/catalog/products", {
+  model: { drizzle: { db, table: products } },
+  metadata: {
+    id: "products",           // unique id, defaults to path
+    label: "Product",         // singular
+    pluralLabel: "Products",  // shown in sidebar
+    group: "Catalog",         // sidebar group
+    order: 1,                 // smaller = higher
+    icon: "📦",
+    parent: "catalog-root",   // nest under another id
+    hidden: false
+  }
+});
+```
+
+**Decide what users can do.** Turn operations on/off. If you disable `create`, the “+ New” button disappears automatically.
+
+```ts
+rack("/catalog/products", {
+  model,
+  operations: { list: true, detail: true, create: true, replace: true, update: true, delete: false }
+});
+```
+
+**Shape the list experience.** Which fields can be searched, filtered, sorted? What’s the default?
+
+```ts
+rack("/catalog/products", {
+  model,
+  query: {
+    searchable: ["name", "sku"],
+    filterable: ["status"],
+    sortable: ["name", "price", "createdAt"],
+    defaultSort: { field: "createdAt", direction: "desc" },
+    pagination: { default: 20, max: 100 }
+  }
+});
+```
+
+**Add safety.** Validation and authorization are per-operation. A string like `"products.delete"` checks the `x-permissions` header; a function gives you the full `Request`.
+
+```ts
+import { t } from "elysia";
+
+rack("/catalog/products", {
+  model,
+  validation: {
+    create: t.Object({ name: t.String({ minLength: 3 }) }),
+    update: t.Partial(t.Object({ name: t.String() })),
+    params: t.Object({ id: t.String() }),
+    query: t.Object({ search: t.Optional(t.String()) })
+  },
+  authorization: {
+    list: true,
+    delete: async ({ request }) => request.headers.get("x-api-key") === "secret"
+    // or: delete: "products.delete"
+  }
+});
+```
+
+**Tweak the small things** when you need them:
+
+```ts
+rack("/catalog/products", {
+  model,
+  page: { enabled: true, path: "/panel" }, // change or disable GET / panel
+  settings: { primaryKey: "slug", softDelete: true, deletedAtField: "deletedAt", returning: true },
+  openapi: { tags: ["Catalog"], description: "Products", operations: { list: { summary: "List products" } } },
+  idempotency: { required: true, header: "Idempotency-Key", ttl: 3600, store: myRedisStore }
+});
+```
+
+That’s the whole `rack()` surface. Start with `model`, then add `metadata` → `query` → `validation/authorization` as your app grows.
+
+### 2) `dashboard()` — one line, now Coming Soon
+
+`dashboard()` mounts `GET /` that renders a *Coming Soon* page. The tree you registered with `rack()` is not shown here — it lives in `panel`.
+
+```ts
+import { dashboard, rack } from "elysia-rack";
+import { reactPlugin } from "elysia-rack/react";
+
+const app = new Elysia()
+  .use(reactPlugin())                         // 1) UI engine — pages optional
+  .use(dashboard({ title: "My Shop", path: "/" })) // 2) Coming Soon at /
+  .use(rack("/catalog/products", { model, metadata: { id: "products", group: "Catalog", order: 1 } }))
+  .use(rack("/catalog/variants", { model, metadata: { id: "variants", parent: "products", group: "Catalog", order: 2 } }));
+// visit /catalog/products → panel shows sidebar with Catalog > Products > Variants
+```
+
+Options — all optional:
+
+- `path` (default `"/"`) — where the dashboard lives
+- `title` (default `"Panel"`) — header in the sidebar
+- `pagePath` (default `"/dashboard"`) — which React page to render
+
+Need it without the helper? The helper is just sugar for:
+
+```ts
+import { page } from "elysia-rack/react";
+.get("/", ({ query }) => page("/dashboard", { name: "My Shop", resource: query.resource as string }))
+```
+
+Helpers to inspect the tree yourself: `listRacks()`, `getRack(id)`, `getRackTree()`, `flatRackTree()`, `buildRackTree(racks)`, `clearRacks()`.
+
+### 3) `react()` — pages and look
+
+`reactPlugin` is the bridge between Elysia and React. `pages` is now optional and mergeable — defaults already include `"/dashboard"` and `"/panel"`, and any custom pages you pass are merged in. You can pass a single registry or an array.
+
+```ts
+import { pages, reactPlugin, page } from "elysia-rack/react";
+
+// Option A: just use defaults
+new Elysia().use(reactPlugin());
+
+// Option B: extend defaults with your own page
+const myPages = { "/hello": () => import("./Hello") };
+new Elysia().use(reactPlugin({ pages: myPages })); // merged with defaults
+
+// Option C: merge multiple registries — array will be merged
+const extra = { "/admin": () => import("./Admin") };
+new Elysia().use(reactPlugin({ pages: [pages, myPages, extra] }));
+
+// With a style override
+new Elysia().use(reactPlugin({
+  pages: myPages, // or [pages, myPages]
+  css: "./my-panel.css", // file path
+  // css: { path: "./my-panel.css" },
+  // css: { content: ":root{--color-primary:red}" },
+  // panelCss: "body{...}" // alias
+})).get("/hello", () => page("/hello", { name: "Ada" }));
+```
+
+What each option does:
+
+- `pages` *(optional, `PageRegistry | PageRegistry[]`)* — registry of lazy page components. If omitted, defaults are used. If you pass one or an array, they are merged with defaults so `"/dashboard"` + `"/panel"` stay available. Later entries win on key collision.
+- `css` / `panelCss` — replace `dist/panel.css` served at `/__rack/panel.css`. If the string points to an existing file it’s used, otherwise it’s treated as raw CSS. Useful for quick theming without forking.
+
+Under the hood `reactPlugin` also serves `/__rack/panel-theme.js` and `/__rack/panel-app.js` and turns any `page()` return value into streamed HTML using `src/react/app.html` (`{{title}}` + `<!--app-->`).
 
 ## HTML template
 
@@ -227,13 +381,15 @@ Override the template by editing `src/react/app.html` (and `dist/app.html` for t
 Override `panel.css` at `react()` config without forking:
 
 ```ts
-import { pages, reactPlugin } from "elysia-rack/react";
+import { reactPlugin } from "elysia-rack/react";
 
-// file path (resolved from cwd/dist), raw string, or object
-reactPlugin({ pages, css: "./my-panel.css" });
-reactPlugin({ pages, css: { path: "./my-panel.css" } });
-reactPlugin({ pages, css: { content: ":root{--color-primary:red}" } });
-reactPlugin({ pages, panelCss: "body{...}" }); // alias
+// file path (resolved from cwd/dist), raw string, or object — pages optional
+reactPlugin({ css: "./my-panel.css" });
+reactPlugin({ css: { path: "./my-panel.css" } });
+reactPlugin({ css: { content: ":root{--color-primary:red}" } });
+reactPlugin({ panelCss: "body{...}" }); // alias
+// with custom pages: reactPlugin({ pages: myPages, css: "./my.css" })
+// or array: reactPlugin({ pages: [pages, myPages], css: "./my.css" })
 ```
 
 If a file path exists it is served; otherwise a raw CSS string is served.

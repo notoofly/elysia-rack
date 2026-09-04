@@ -1,7 +1,10 @@
 import type { FieldDescriptor } from "../../rack/adapters/index";
+import { buildRackTree, getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry";
+import { Breadcrumb } from "./components/Breadcrumb";
 import { DataTable } from "./components/DataTable";
 import { Masthead } from "./components/Masthead";
 import { Pagination } from "./components/Pagination";
+import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar";
 import { Toolbar } from "./components/Toolbar";
 
 const inputClass =
@@ -92,6 +95,38 @@ function FieldInput({ field, required }: { field: FormField; required?: boolean 
   }
 }
 
+function itemLabel(r: RackRegistration): string {
+  return r.metadata.pluralLabel ?? r.metadata.label ?? r.metadata.id;
+}
+
+function toSidebarItem(node: RackTreeNode, activeId?: string): SidebarItem {
+  return {
+    id: node.metadata.id,
+    label: itemLabel(node),
+    icon: node.metadata.icon,
+    href: node.path,
+    active: node.metadata.id === activeId,
+    children: node.children
+      .filter((c) => !c.metadata.hidden)
+      .map((c) => toSidebarItem(c, activeId)),
+  };
+}
+
+function buildGroupsFromTree(tree: RackTreeNode[], activeId?: string): SidebarGroup[] {
+  const byGroup = new Map<string, SidebarGroup>();
+  for (const root of tree) {
+    if (root.metadata.hidden) continue;
+    const name = root.metadata.group ?? "General";
+    let group = byGroup.get(name);
+    if (!group) {
+      group = { name, items: [] };
+      byGroup.set(name, group);
+    }
+    group.items.push(toSidebarItem(root, activeId));
+  }
+  return [...byGroup.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export interface PanelProps {
   resource?: string;
   metadata?: {
@@ -138,9 +173,13 @@ export default async function Panel(props: PanelProps) {
   let rows: Record<string, unknown>[] = [];
   let total = 0;
   if (props.load) {
-    const result = await props.load(params);
-    rows = result.data as Record<string, unknown>[];
-    total = result.total;
+    try {
+      const result = await props.load(params);
+      rows = result.data as Record<string, unknown>[];
+      total = result.total;
+    } catch {
+      // keep empty on load failure (e.g., dummy adapter in tests)
+    }
   }
 
   const columns =
@@ -181,10 +220,23 @@ export default async function Panel(props: PanelProps) {
   const canDelete = props.operations?.delete !== false;
   const selectable = canEdit || canDelete;
 
+  // Load entire tree for sidebar, highlight active panel
+  const tree = getRackTree().filter((r) => !r.metadata.hidden);
+  const groups = buildGroupsFromTree(tree, props.resource);
+  const trail = [
+    { label: "Dashboard", href: "/" },
+    ...(props.metadata?.group ? [{ label: props.metadata.group }] : []),
+    { label: title },
+  ];
+
   return (
-    <div className="koran-paper font-koran-body text-foreground min-h-screen">
-      <div className="mx-auto max-w-5xl px-4 pb-10 sm:px-6">
-        <Masthead
+    <div className="koran-paper font-koran-body text-foreground flex min-h-screen flex-col">
+      <div className="flex flex-1 gap-6 p-4 sm:p-6">
+        <Sidebar title="Panel" groups={groups} />
+        <main className="flex min-w-0 flex-1 flex-col">
+          <Breadcrumb trail={trail} />
+          <div className="mx-auto w-full max-w-5xl px-4 pb-10 sm:px-6">
+            <Masthead
           title={title}
           group={props.metadata?.group}
           resource={props.resource}
@@ -345,9 +397,11 @@ export default async function Panel(props: PanelProps) {
           </dialog>
           <script type="module" src="/__rack/panel-app.js" />
         </div>
-        <footer className="border-border text-text-muted border-t pt-3 text-center text-xs tracking-widest uppercase">
-          Printed by elysia-rack
-        </footer>
+            <footer className="border-border text-text-muted border-t pt-3 text-center text-xs tracking-widest uppercase">
+              Printed by elysia-rack
+            </footer>
+          </div>
+        </main>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 {
   "name": "elysia-rack",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Model-driven CRUD rack for Elysia: REST + QUERY routes, validation, authorization, OpenAPI metadata, and React panel rendering.",
   "type": "module",
   "license": "MIT",
@@ -54,8 +54,9 @@
     "dev": "bun run src/playground.ts",
     "test": "bun test --coverage",
     "typecheck": "tsc --noEmit",
-    "build": "bun run build:js && bun run build:dts && mkdir -p dist && cp src/react/app.html dist/app.html 2>/dev/null || true",
+    "build": "bun run build:js && bun run build:dts && bun run build:client",
     "build:js": "bun build ./src/rack/index.ts ./src/react/index.ts --outdir ./dist --target node --format esm --splitting --external elysia --external react --external react-dom",
+    "build:client": "bun build src/react/page/client/panel.ts --outfile dist/panel-app.js --target browser --format esm && bun build src/react/page/client/theme.ts --outfile dist/panel-theme.js --target browser --format esm && mkdir -p dist && cp src/react/app.html dist/app.html 2>/dev/null || true",
     "build:dts": "tsc -p tsconfig.build.json",
     "prepublishOnly": "bun run typecheck && bun run build"
   },

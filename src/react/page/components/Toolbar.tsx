@@ -19,8 +19,10 @@ export function Toolbar({ searchable, filterable, sortable, params }: ToolbarPro
           Search
           <input
             name="search"
+            data-search-input
             defaultValue={String(params.search ?? "")}
             placeholder={searchable.join(", ")}
+            autoComplete="off"
             className={inputClass}
           />
         </label>

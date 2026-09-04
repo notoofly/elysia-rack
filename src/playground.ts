@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { Elysia, t } from "elysia";
 import { dashboard, rack } from "./rack/index";
-import { pages, reactPlugin } from "./react/index";
+import { reactPlugin } from "./react/index";
 
 // ---------------------------------------------------------------------------
 // Schema (drizzle pg-core, PGlite in-memory)
@@ -102,12 +102,17 @@ const ProductQuery = t.Optional(
 
 const app = new Elysia()
   // Recommended setup: react() -> dashboard() -> rack()
-  // rack() stores tree metadata in memory; dashboard() loads it via getRackTree()
+  // - react() pages are optional (defaults to dashboard + panel) and can be merged:
+  //   reactPlugin() // uses default pages
+  //   reactPlugin({ pages: myPages }) // merged with defaults
+  //   reactPlugin({ pages: [pages, myPages] }) // array will be merged
+  // - rack() stores tree metadata in memory; panel now shows sidebar + breadcrumb
+  // - dashboard() is now Coming Soon
   // Override panel.css via react config (see README: "Panel CSS override"):
-  //   reactPlugin({ pages, css: "./my-panel.css" })
-  //   reactPlugin({ pages, css: { path: "./my-panel.css" } })
-  //   reactPlugin({ pages, css: { content: ":root{--color-primary:red}" } })
-  .use(reactPlugin({ pages }))
+  //   reactPlugin({ css: "./my-panel.css" })
+  //   reactPlugin({ css: { path: "./my-panel.css" } })
+  //   reactPlugin({ css: { content: ":root{--color-primary:red}" } })
+  .use(reactPlugin())
   .use(dashboard({ title: "Elysia Rack", path: "/" }))
   .use(
     rack("/catalog/products", {

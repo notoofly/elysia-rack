@@ -5,6 +5,7 @@ import {
   count,
   desc,
   eq,
+  ilike,
   inArray,
   isNull,
   like,
@@ -108,9 +109,19 @@ function whereFor(
   }
 
   if (query.search && query.search.fields.length > 0) {
+    // SQL: WHERE col LIKE '%query%' (escaped, wrapped with %)
     const pattern = `%${escapeLike(query.search.value)}%`;
     const ors = query.search.fields
-      .map((f) => (table[f] ? like(table[f], pattern) : undefined))
+      .map((f) => {
+        const col = table[f];
+        if (!col) return undefined;
+        // Use ilike for case-insensitive Postgres when available, fallback to like
+        try {
+          return typeof ilike === "function" ? ilike(col, pattern) : like(col, pattern);
+        } catch {
+          return like(col, pattern);
+        }
+      })
       .filter((c) => c !== undefined);
     if (ors.length > 0) conds.push(or(...ors));
   }

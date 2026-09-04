@@ -19,6 +19,14 @@ interface ListResponse {
   query?: ListQuery;
 }
 
+function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T {
+  let id: any;
+  return ((...args: any[]) => {
+    clearTimeout(id);
+    id = setTimeout(() => fn(...(args as any)), wait);
+  }) as T;
+}
+
 function esc(value: unknown): string {
   return String(value ?? "")
     .split("&")
@@ -434,6 +442,31 @@ document.addEventListener("submit", (e: any) => {
     clean.append(el.name, el.value);
   }
   void run(root, clean);
+});
+
+// Debounce search: LIKE '%query%' without waiting for Enter
+const debouncedRunForSearch = debounce((form: any, root: any) => {
+  const clean = new URLSearchParams();
+  const els = form.elements ?? [];
+  for (let i = 0; i < els.length; i++) {
+    const el = els[i];
+    if (!el.name || el.disabled) continue;
+    if ((el.type === "checkbox" || el.type === "radio") && !el.checked) continue;
+    if (el.value === "") continue;
+    clean.append(el.name, el.value);
+  }
+  void run(root, clean);
+}, 350);
+
+document.addEventListener("input", (e: any) => {
+  const t = e.target;
+  if (!t || !t.closest) return;
+  const isSearch = t.getAttribute?.("data-search-input") !== null || t.getAttribute?.("name") === "search";
+  if (!isSearch) return;
+  const form = t.closest("form");
+  const root = t.closest("[data-query-url]") || form?.closest?.("[data-query-url]");
+  if (!form || !root) return;
+  debouncedRunForSearch(form, root);
 });
 
 document.addEventListener("change", (e: any) => {

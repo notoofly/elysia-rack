@@ -17,7 +17,7 @@ export namespace ReactRack {
   export type PanelCssOverride = string | { path?: string; content?: string };
 
   export interface ReactPluginOptions {
-    pages: PageRegistry;
+    pages?: PageRegistry | PageRegistry[];
     /**
      * Override `panel.css` served at `/__rack/panel.css`.
      * - `string`: file path if the file exists, otherwise raw CSS string.

@@ -1,1 +1,498 @@
-function e(e,t={}){let n=new URLSearchParams;for(let[r,i]of Object.entries({...e,...t}))i!=null&&i!==``&&n.set(r,Array.isArray(i)?i.join(`,`):String(i));let r=n.toString();return r?`?${r}`:`?`}function t(e,t){let n=[...new Set([1,t,e-1,e,e+1])].filter(e=>e>=1&&e<=t).sort((e,t)=>e-t),r=[],i=0;for(let e of n)e-i>1&&r.push(`…`),r.push(e),i=e;return r}function n(e){let t={},n=e.elements||[];for(let e=0;e<n.length;e++){let r=n[e];if(r&&r.name&&!r.disabled){if(r.type===`checkbox`){r.checked&&(t[r.name]=!0);continue}if(r.value!==``&&r.value!==void 0&&r.value!==null){if(r.hasAttribute&&r.hasAttribute(`data-json`)){try{t[r.name]=JSON.parse(r.value)}catch{return{error:`Invalid JSON in ${r.name}`}}continue}t[r.name]=r.value}}}return{body:t}}function r(e,t){let n=e.elements||[];for(let e=0;e<n.length;e++){let r=n[e];if(!r||!r.name)continue;let i=t[r.name];if(i!=null){if(r.type===`checkbox`){r.checked=i===!0||i===`true`||i===1;continue}if(r.type===`datetime-local`&&typeof i==`string`){r.value=i.slice(0,16);continue}r.value=typeof i==`object`?JSON.stringify(i):String(i)}}}function i(e){return String(e??``).split(`&`).join(`&amp;`).split(`<`).join(`&lt;`).split(`>`).join(`&gt;`).split(`"`).join(`&quot;`)}function a(e){return e==null?``:typeof e==`object`?JSON.stringify(e):String(e)}function o(e,t){if(e!==`status`||typeof t!=`string`)return null;let n=t.toLowerCase();return n===`active`?`bg-success-muted text-success-muted-foreground`:n===`archived`?`bg-warning-muted text-warning-muted-foreground`:`bg-badge-background text-badge-foreground`}function s(e){let t={};return e.forEach((e,n)=>{t[n]=e}),t}function c(e){let t=e.getAttribute(`data-query-url`)||``;return t.slice(-5)===`/data`?t.slice(0,-5):t||`?`}function l(){try{if(window.crypto?.randomUUID)return window.crypto.randomUUID()}catch{}return`k-${Date.now().toString(36)}-${Math.floor(Math.random()*1e9).toString(36)}`}function u(e,t){let n=e.querySelector(`[data-form-error]`);n&&(n.textContent=t)}function d(e){g(e,new URLSearchParams(window.location.search))}function f(e){return`<td class="border-table-border border-t px-4 py-2 whitespace-nowrap"><div class="border-table-border inline-flex overflow-hidden rounded-md border"><button type="button" data-edit-id="${i(e)}" class="text-link hover:bg-table-row-hover px-2 py-1 text-sm font-semibold">Edit</button><button type="button" data-delete-id="${i(e)}" class="border-table-border text-destructive hover:bg-table-row-hover border-l px-2 py-1 text-sm font-semibold">Delete</button></div></td>`}function p(e,t,n,r,s,c){if(!n.length){e.innerHTML=`<tr><td colspan="${t.length}" class="text-text-muted px-4 py-10 text-center">No records found.</td></tr>`;return}e.innerHTML=n.map(e=>{let n=e[r]==null?``:String(e[r]),l=`<tr class="hover:bg-table-row-hover">`;return s&&(l+=`<td class="border-table-border border-t px-4 py-2"><input type="checkbox" data-select-row value="${i(n)}" aria-label="Select row ${i(n)}"></td>`),l+=t.map(t=>{let n=o(t,e[t]);return`<td class="border-table-border border-t px-4 py-2">${n?`<span class="rounded-full px-2 py-0.5 text-xs font-semibold ${n}">${i(a(e[t]))}</span>`:i(a(e[t]))}</td>`}).join(``),c&&(l+=f(n)),l+`</tr>`}).join(``)}function m(n,r,a,o){let s=`border-border rounded-md border px-3 py-1 text-sm hover:bg-navigation-hover`,c=`border-border text-text-disabled rounded-md border px-3 py-1 text-sm`,l=a>1?`<a class="${s}" data-qlink href="${i(e(r,{page:a-1}))}">← Previous</a>`:`<span class="${c}">← Previous</span>`;for(let n of t(a,o))l+=n===`…`?`<span class="text-text-muted px-1">…</span>`:n===a?`<span class="bg-primary text-primary-foreground rounded-md px-3 py-1 text-sm font-bold">${n}</span>`:`<a class="${s}" data-qlink href="${i(e(r,{page:n}))}">${n}</a>`;l+=a<o?`<a class="${s}" data-qlink href="${i(e(r,{page:a+1}))}">Next →</a>`:`<span class="${c}">Next →</span>`,n.innerHTML=l}function h(t,n,r){let i=s(r),a=[];Array.prototype.forEach.call(t.querySelectorAll(`thead th[data-col]`),e=>{a.push(e.getAttribute(`data-col`))});let o=n.query??{},c=o.page??1,l=o.limit??20,u=n.total??0,d=Math.max(1,Math.ceil(u/l)),f=t.querySelector(`table`),h=!!f?.hasAttribute(`data-selectable`),g=!!f?.hasAttribute(`data-editable`),_=f?.getAttribute(`data-pk`)||`id`,y=t.querySelector(`[data-panel-rows]`);y&&p(y,a,n.data??[],_,h,g);let b=t.querySelector(`[data-panel-count]`);b&&(b.textContent=`Page ${c} of ${d} — ${u===0?0:(c-1)*l+1}–${Math.min(c*l,u)} of ${u} records`);let x=t.querySelector(`[data-panel-pages]`);x&&m(x,i,c,d);let S=o.sort??{};Array.prototype.forEach.call(t.querySelectorAll(`a[data-sort-link]`),t=>{let n=t.getAttribute(`data-sort-link`),r=S.field===n,a=r&&S.direction===`asc`?`desc`:`asc`;t.setAttribute(`href`,e(i,{sort:n,order:a}));let o=t.querySelector(`[data-sort-ind]`);o&&(o.textContent=r?S.direction===`asc`?` ▲`:` ▼`:``)});try{window.history.replaceState(null,``,e(i,{}))}catch{}v(t)}async function g(e,t){let n=e.getAttribute(`data-query-url`)||``,r=t.toString(),i=await fetch(n+(r?`?${r}`:``),{method:`QUERY`,headers:{Accept:`application/json`}});i.ok&&h(e,await i.json(),t)}function _(e){let t=[];return Array.prototype.forEach.call(e.querySelectorAll(`[data-select-row]:checked`),e=>{t.push(e.value)}),t}function v(e){let t=_(e),n=e.querySelector(`[data-bulk-bar]`);n&&(n.style.display=t.length?``:`none`);let r=e.querySelector(`[data-bulk-count]`);r&&(r.textContent=`${t.length} selected`);let i=e.querySelectorAll(`[data-select-row]`),a=e.querySelector(`[data-select-all]`);a&&(a.checked=i.length>0&&t.length===i.length)}async function y(e,t){u(t,``);let r=t.querySelector(`[data-create-json]`);if(r){let n;try{n=JSON.parse(r.value)}catch{u(t,`Invalid JSON body`);return}let i=await fetch(c(e),{method:`POST`,headers:{"Content-Type":`application/json`,"Idempotency-Key":l()},body:JSON.stringify(n)});if(!i.ok){u(t,`Error ${i.status}: ${(await i.text()).slice(0,200)}`);return}}else{let r=n(t);if(r.error){u(t,r.error);return}let i=await fetch(c(e),{method:`POST`,headers:{"Content-Type":`application/json`,"Idempotency-Key":l()},body:JSON.stringify(r.body)});if(!i.ok){u(t,`Error ${i.status}: ${(await i.text()).slice(0,200)}`);return}}let i=t.closest(`dialog`);t.reset(),i&&i.close(),d(e)}async function b(e,t){u(t,``);let r=t.dataset?.id||``;if(!r){u(t,`Missing record id`);return}let i=n(t);if(i.error){u(t,i.error);return}let a=await fetch(`${c(e)}/${encodeURIComponent(r)}`,{method:`PATCH`,headers:{"Content-Type":`application/json`},body:JSON.stringify(i.body)});if(!a.ok){u(t,`Error ${a.status}: ${(await a.text()).slice(0,200)}`);return}let o=t.closest(`dialog`);o&&o.close(),d(e)}async function x(e,t){let n=await fetch(`${c(e)}/data/${encodeURIComponent(t)}`,{method:`QUERY`,headers:{Accept:`application/json`}});if(!n.ok)return;let i=(await n.json()).data??{},a=document.getElementById(`rack-edit`);if(!a)return;let o=a.querySelector(`[data-edit-form]`);if(!o)return;o.dataset.id=t;let s=a.querySelector(`[data-edit-id-label]`);s&&(s.textContent=`#${t}`),r(o,i),u(o,``),a.showModal?.()}async function S(e,t){window.confirm(`Delete record ${t}?`)&&(await fetch(`${c(e)}/${encodeURIComponent(t)}`,{method:`DELETE`})).ok&&d(e)}async function C(e){let t=_(e);if(!t.length||!window.confirm(`Delete ${t.length} records?`))return;let n=c(e);for(let e of t)await fetch(`${n}/${encodeURIComponent(e)}`,{method:`DELETE`});d(e)}async function w(e){let t=e.querySelector(`[data-bulk-field]`),n=e.querySelector(`[data-bulk-value]`),r=_(e);if(!t?.value||!n||!r.length)return;let i=c(e),a=JSON.stringify({[t.value]:n.value});for(let e of r)await fetch(`${i}/${encodeURIComponent(e)}`,{method:`PATCH`,headers:{"Content-Type":`application/json`},body:a});n.value=``,d(e)}document.addEventListener(`click`,e=>{let t=e.target;if(!t?.closest)return;let n=t.closest(`[data-query-url]`);if(!n)return;let r=t.closest(`[data-close]`);if(r){r.closest(`dialog`)?.close();return}if(t.closest(`[data-open-create]`)){let e=document.getElementById(`rack-create`);if(e){let t=e.querySelector(`[data-create-form]`);t&&(t.reset(),u(t,``)),e.showModal?.()}return}let i=t.closest(`[data-edit-id]`);if(i){x(n,i.getAttribute(`data-edit-id`));return}let a=t.closest(`[data-delete-id]`);if(a){S(n,a.getAttribute(`data-delete-id`));return}if(t.closest(`[data-bulk-delete]`)){C(n);return}if(t.closest(`[data-bulk-apply]`)){w(n);return}if(t.closest(`[data-bulk-clear]`)){Array.prototype.forEach.call(n.querySelectorAll(`[data-select-row],[data-select-all]`),e=>{e.checked=!1}),v(n);return}let o=t.closest(`a[data-qlink]`);o&&(e.preventDefault(),g(n,new URLSearchParams(o.getAttribute(`href`).replace(/^\?/,``))))}),document.addEventListener(`submit`,e=>{let t=e.target;if(!t||t.tagName!==`FORM`)return;let n=t.closest?.(`[data-query-url]`);if(!n)return;if(t.hasAttribute(`data-create-form`)){e.preventDefault(),y(n,t);return}if(t.hasAttribute(`data-edit-form`)){e.preventDefault(),b(n,t);return}e.preventDefault();let r=new URLSearchParams,i=t.elements??[];for(let e=0;e<i.length;e++){let t=i[e];t.name&&!t.disabled&&(t.type!==`checkbox`&&t.type!==`radio`||t.checked)&&t.value!==``&&r.append(t.name,t.value)}g(n,r)}),document.addEventListener(`change`,e=>{let t=e.target;if(!t?.closest)return;let n=t.closest(`[data-query-url]`);if(!n)return;let r=t.hasAttribute(`data-select-all`);(r||t.hasAttribute(`data-select-row`))&&(r&&Array.prototype.forEach.call(n.querySelectorAll(`[data-select-row]`),e=>{e.checked=t.checked}),v(n))});
+// src/react/page/components/href.ts
+function href(params, over = {}) {
+  const query = new URLSearchParams;
+  for (const [key, value] of Object.entries({ ...params, ...over })) {
+    if (value === undefined || value === null || value === "")
+      continue;
+    query.set(key, Array.isArray(value) ? value.join(",") : String(value));
+  }
+  const str = query.toString();
+  return str ? `?${str}` : "?";
+}
+function pageWindow(page, total) {
+  const keep = new Set([1, total, page - 1, page, page + 1]);
+  const sorted = [...keep].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out = [];
+  let prev = 0;
+  for (const p of sorted) {
+    if (p - prev > 1)
+      out.push("…");
+    out.push(p);
+    prev = p;
+  }
+  return out;
+}
+
+// src/react/page/components/panelForm.ts
+function collectFormBody(form) {
+  const body = {};
+  const els = form.elements || [];
+  for (let i = 0;i < els.length; i++) {
+    const el = els[i];
+    if (!el || !el.name || el.disabled)
+      continue;
+    if (el.type === "checkbox") {
+      if (el.checked)
+        body[el.name] = true;
+      continue;
+    }
+    if (el.value === "" || el.value === undefined || el.value === null)
+      continue;
+    if (el.hasAttribute && el.hasAttribute("data-json")) {
+      try {
+        body[el.name] = JSON.parse(el.value);
+      } catch {
+        return { error: `Invalid JSON in ${el.name}` };
+      }
+      continue;
+    }
+    body[el.name] = el.value;
+  }
+  return { body };
+}
+function fillForm(form, row) {
+  const els = form.elements || [];
+  for (let i = 0;i < els.length; i++) {
+    const el = els[i];
+    if (!el || !el.name)
+      continue;
+    const v = row[el.name];
+    if (v === undefined || v === null)
+      continue;
+    if (el.type === "checkbox") {
+      el.checked = v === true || v === "true" || v === 1;
+      continue;
+    }
+    if (el.type === "datetime-local" && typeof v === "string") {
+      el.value = v.slice(0, 16);
+      continue;
+    }
+    el.value = typeof v === "object" ? JSON.stringify(v) : String(v);
+  }
+}
+
+// src/react/page/client/panel.ts
+function debounce(fn, wait) {
+  let id;
+  return (...args) => {
+    clearTimeout(id);
+    id = setTimeout(() => fn(...args), wait);
+  };
+}
+function esc(value) {
+  return String(value ?? "").split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split('"').join("&quot;");
+}
+function cellText(value) {
+  if (value === null || value === undefined)
+    return "";
+  if (typeof value === "object")
+    return JSON.stringify(value);
+  return String(value);
+}
+function badgeClass(col, value) {
+  if (col !== "status" || typeof value !== "string")
+    return null;
+  const text = value.toLowerCase();
+  if (text === "active")
+    return "bg-success-muted text-success-muted-foreground";
+  if (text === "archived")
+    return "bg-warning-muted text-warning-muted-foreground";
+  return "bg-badge-background text-badge-foreground";
+}
+function toParams(sp) {
+  const out = {};
+  sp.forEach((v, k) => {
+    out[k] = v;
+  });
+  return out;
+}
+function baseUrl(root) {
+  const q = root.getAttribute("data-query-url") || "";
+  return q.slice(-5) === "/data" ? q.slice(0, -5) : q || "?";
+}
+function uid() {
+  try {
+    if (window.crypto?.randomUUID)
+      return window.crypto.randomUUID();
+  } catch {}
+  return `k-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
+}
+function setErr(form, msg) {
+  const el = form.querySelector("[data-form-error]");
+  if (el)
+    el.textContent = msg;
+}
+function refresh(root) {
+  run(root, new URLSearchParams(window.location.search));
+}
+function actionCell(id) {
+  return `<td class="border-table-border border-t px-4 py-2 whitespace-nowrap">` + `<div class="border-table-border inline-flex overflow-hidden rounded-md border">` + `<button type="button" data-edit-id="${esc(id)}" class="text-link hover:bg-table-row-hover px-2 py-1 text-sm font-semibold">Edit</button>` + `<button type="button" data-delete-id="${esc(id)}" class="border-table-border text-destructive hover:bg-table-row-hover border-l px-2 py-1 text-sm font-semibold">Delete</button>` + `</div></td>`;
+}
+function paintRows(tbody, cols, rows, pk, selectable, editable) {
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="${cols.length}" class="text-text-muted px-4 py-10 text-center">No records found.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((row) => {
+    const id = row[pk] == null ? "" : String(row[pk]);
+    let html = `<tr class="hover:bg-table-row-hover">`;
+    if (selectable)
+      html += `<td class="border-table-border border-t px-4 py-2"><input type="checkbox" data-select-row value="${esc(id)}" aria-label="Select row ${esc(id)}"></td>`;
+    html += cols.map((col) => {
+      const cls = badgeClass(col, row[col]);
+      const inner = cls ? `<span class="rounded-full px-2 py-0.5 text-xs font-semibold ${cls}">${esc(cellText(row[col]))}</span>` : esc(cellText(row[col]));
+      return `<td class="border-table-border border-t px-4 py-2">${inner}</td>`;
+    }).join("");
+    if (editable)
+      html += actionCell(id);
+    return html + "</tr>";
+  }).join("");
+}
+function paintPages(box, params, page, totalPages) {
+  const linkCls = "border-border rounded-md border px-3 py-1 text-sm hover:bg-navigation-hover";
+  const offCls = "border-border text-text-disabled rounded-md border px-3 py-1 text-sm";
+  let html = page > 1 ? `<a class="${linkCls}" data-qlink href="${esc(href(params, { page: page - 1 }))}">← Previous</a>` : `<span class="${offCls}">← Previous</span>`;
+  for (const p of pageWindow(page, totalPages)) {
+    if (p === "…")
+      html += `<span class="text-text-muted px-1">…</span>`;
+    else if (p === page)
+      html += `<span class="bg-primary text-primary-foreground rounded-md px-3 py-1 text-sm font-bold">${p}</span>`;
+    else
+      html += `<a class="${linkCls}" data-qlink href="${esc(href(params, { page: p }))}">${p}</a>`;
+  }
+  html += page < totalPages ? `<a class="${linkCls}" data-qlink href="${esc(href(params, { page: page + 1 }))}">Next →</a>` : `<span class="${offCls}">Next →</span>`;
+  box.innerHTML = html;
+}
+function paint(root, json, sp) {
+  const params = toParams(sp);
+  const cols = [];
+  Array.prototype.forEach.call(root.querySelectorAll("thead th[data-col]"), (th) => {
+    cols.push(th.getAttribute("data-col"));
+  });
+  const q = json.query ?? {};
+  const page = q.page ?? 1;
+  const limit = q.limit ?? 20;
+  const total = json.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const tbl = root.querySelector("table");
+  const selectable = !!tbl?.hasAttribute("data-selectable");
+  const editable = !!tbl?.hasAttribute("data-editable");
+  const pk = tbl?.getAttribute("data-pk") || "id";
+  const tbody = root.querySelector("[data-panel-rows]");
+  if (tbody)
+    paintRows(tbody, cols, json.data ?? [], pk, selectable, editable);
+  const count = root.querySelector("[data-panel-count]");
+  if (count) {
+    const from = total === 0 ? 0 : (page - 1) * limit + 1;
+    count.textContent = `Page ${page} of ${totalPages} — ${from}–${Math.min(page * limit, total)} of ${total} records`;
+  }
+  const box = root.querySelector("[data-panel-pages]");
+  if (box)
+    paintPages(box, params, page, totalPages);
+  const sort = q.sort ?? {};
+  Array.prototype.forEach.call(root.querySelectorAll("a[data-sort-link]"), (a) => {
+    const col = a.getAttribute("data-sort-link");
+    const active = sort.field === col;
+    const order = active && sort.direction === "asc" ? "desc" : "asc";
+    a.setAttribute("href", href(params, { sort: col, order }));
+    const ind = a.querySelector("[data-sort-ind]");
+    if (ind)
+      ind.textContent = active ? sort.direction === "asc" ? " ▲" : " ▼" : "";
+  });
+  try {
+    window.history.replaceState(null, "", href(params, {}));
+  } catch {}
+  syncBulk(root);
+}
+async function run(root, sp) {
+  const base = root.getAttribute("data-query-url") || "";
+  const search = sp.toString();
+  const res = await fetch(base + (search ? `?${search}` : ""), {
+    method: "QUERY",
+    headers: { Accept: "application/json" }
+  });
+  if (!res.ok)
+    return;
+  paint(root, await res.json(), sp);
+}
+function selectedIds(root) {
+  const ids = [];
+  Array.prototype.forEach.call(root.querySelectorAll("[data-select-row]:checked"), (c) => {
+    ids.push(c.value);
+  });
+  return ids;
+}
+function syncBulk(root) {
+  const ids = selectedIds(root);
+  const bar = root.querySelector("[data-bulk-bar]");
+  if (bar)
+    bar.style.display = ids.length ? "" : "none";
+  const count = root.querySelector("[data-bulk-count]");
+  if (count)
+    count.textContent = `${ids.length} selected`;
+  const boxes = root.querySelectorAll("[data-select-row]");
+  const all = root.querySelector("[data-select-all]");
+  if (all)
+    all.checked = boxes.length > 0 && ids.length === boxes.length;
+}
+async function createRecord(root, form) {
+  setErr(form, "");
+  const raw = form.querySelector("[data-create-json]");
+  if (raw) {
+    let body;
+    try {
+      body = JSON.parse(raw.value);
+    } catch {
+      setErr(form, "Invalid JSON body");
+      return;
+    }
+    const res = await fetch(baseUrl(root), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Idempotency-Key": uid() },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      setErr(form, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      return;
+    }
+  } else {
+    const collected = collectFormBody(form);
+    if (collected.error) {
+      setErr(form, collected.error);
+      return;
+    }
+    const res = await fetch(baseUrl(root), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Idempotency-Key": uid() },
+      body: JSON.stringify(collected.body)
+    });
+    if (!res.ok) {
+      setErr(form, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      return;
+    }
+  }
+  const dlg = form.closest("dialog");
+  form.reset();
+  if (dlg)
+    dlg.close();
+  refresh(root);
+}
+async function updateRecord(root, form) {
+  setErr(form, "");
+  const id = form.dataset?.id || "";
+  if (!id) {
+    setErr(form, "Missing record id");
+    return;
+  }
+  const collected = collectFormBody(form);
+  if (collected.error) {
+    setErr(form, collected.error);
+    return;
+  }
+  const res = await fetch(`${baseUrl(root)}/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(collected.body)
+  });
+  if (!res.ok) {
+    setErr(form, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    return;
+  }
+  const dlg = form.closest("dialog");
+  if (dlg)
+    dlg.close();
+  refresh(root);
+}
+async function openEdit(root, id) {
+  const res = await fetch(`${baseUrl(root)}/data/${encodeURIComponent(id)}`, {
+    method: "QUERY",
+    headers: { Accept: "application/json" }
+  });
+  if (!res.ok)
+    return;
+  const row = (await res.json()).data ?? {};
+  const dlg = document.getElementById("rack-edit");
+  if (!dlg)
+    return;
+  const form = dlg.querySelector("[data-edit-form]");
+  if (!form)
+    return;
+  form.dataset.id = id;
+  const label = dlg.querySelector("[data-edit-id-label]");
+  if (label)
+    label.textContent = `#${id}`;
+  fillForm(form, row);
+  setErr(form, "");
+  dlg.showModal?.();
+}
+async function deleteOne(root, id) {
+  if (!window.confirm(`Delete record ${id}?`))
+    return;
+  const res = await fetch(`${baseUrl(root)}/${encodeURIComponent(id)}`, {
+    method: "DELETE"
+  });
+  if (res.ok)
+    refresh(root);
+}
+async function bulkDelete(root) {
+  const ids = selectedIds(root);
+  if (!ids.length)
+    return;
+  if (!window.confirm(`Delete ${ids.length} records?`))
+    return;
+  const base = baseUrl(root);
+  for (const id of ids) {
+    await fetch(`${base}/${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
+  refresh(root);
+}
+async function bulkApply(root) {
+  const field = root.querySelector("[data-bulk-field]");
+  const input = root.querySelector("[data-bulk-value]");
+  const ids = selectedIds(root);
+  if (!field?.value || !input || !ids.length)
+    return;
+  const base = baseUrl(root);
+  const payload = JSON.stringify({ [field.value]: input.value });
+  for (const id of ids) {
+    await fetch(`${base}/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: payload
+    });
+  }
+  input.value = "";
+  refresh(root);
+}
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (!t?.closest)
+    return;
+  const root = t.closest("[data-query-url]");
+  if (!root)
+    return;
+  const closer = t.closest("[data-close]");
+  if (closer) {
+    closer.closest("dialog")?.close();
+    return;
+  }
+  if (t.closest("[data-open-create]")) {
+    const dlg = document.getElementById("rack-create");
+    if (dlg) {
+      const cf = dlg.querySelector("[data-create-form]");
+      if (cf) {
+        cf.reset();
+        setErr(cf, "");
+      }
+      dlg.showModal?.();
+    }
+    return;
+  }
+  const eb = t.closest("[data-edit-id]");
+  if (eb) {
+    openEdit(root, eb.getAttribute("data-edit-id"));
+    return;
+  }
+  const dbtn = t.closest("[data-delete-id]");
+  if (dbtn) {
+    deleteOne(root, dbtn.getAttribute("data-delete-id"));
+    return;
+  }
+  if (t.closest("[data-bulk-delete]")) {
+    bulkDelete(root);
+    return;
+  }
+  if (t.closest("[data-bulk-apply]")) {
+    bulkApply(root);
+    return;
+  }
+  if (t.closest("[data-bulk-clear]")) {
+    Array.prototype.forEach.call(root.querySelectorAll("[data-select-row],[data-select-all]"), (c) => {
+      c.checked = false;
+    });
+    syncBulk(root);
+    return;
+  }
+  const a = t.closest("a[data-qlink]");
+  if (!a)
+    return;
+  e.preventDefault();
+  run(root, new URLSearchParams(a.getAttribute("href").replace(/^\?/, "")));
+});
+document.addEventListener("submit", (e) => {
+  const f = e.target;
+  if (!f || f.tagName !== "FORM")
+    return;
+  const root = f.closest?.("[data-query-url]");
+  if (!root)
+    return;
+  if (f.hasAttribute("data-create-form")) {
+    e.preventDefault();
+    createRecord(root, f);
+    return;
+  }
+  if (f.hasAttribute("data-edit-form")) {
+    e.preventDefault();
+    updateRecord(root, f);
+    return;
+  }
+  e.preventDefault();
+  const clean = new URLSearchParams;
+  const els = f.elements ?? [];
+  for (let i = 0;i < els.length; i++) {
+    const el = els[i];
+    if (!el.name || el.disabled)
+      continue;
+    if ((el.type === "checkbox" || el.type === "radio") && !el.checked)
+      continue;
+    if (el.value === "")
+      continue;
+    clean.append(el.name, el.value);
+  }
+  run(root, clean);
+});
+var debouncedRunForSearch = debounce((form, root) => {
+  const clean = new URLSearchParams;
+  const els = form.elements ?? [];
+  for (let i = 0;i < els.length; i++) {
+    const el = els[i];
+    if (!el.name || el.disabled)
+      continue;
+    if ((el.type === "checkbox" || el.type === "radio") && !el.checked)
+      continue;
+    if (el.value === "")
+      continue;
+    clean.append(el.name, el.value);
+  }
+  run(root, clean);
+}, 350);
+document.addEventListener("input", (e) => {
+  const t = e.target;
+  if (!t || !t.closest)
+    return;
+  const isSearch = t.getAttribute?.("data-search-input") !== null || t.getAttribute?.("name") === "search";
+  if (!isSearch)
+    return;
+  const form = t.closest("form");
+  const root = t.closest("[data-query-url]") || form?.closest?.("[data-query-url]");
+  if (!form || !root)
+    return;
+  debouncedRunForSearch(form, root);
+});
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (!t?.closest)
+    return;
+  const root = t.closest("[data-query-url]");
+  if (!root)
+    return;
+  const all = t.hasAttribute("data-select-all");
+  if (!all && !t.hasAttribute("data-select-row"))
+    return;
+  if (all) {
+    Array.prototype.forEach.call(root.querySelectorAll("[data-select-row]"), (c) => {
+      c.checked = t.checked;
+    });
+  }
+  syncBulk(root);
+});

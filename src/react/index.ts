@@ -59,9 +59,18 @@ export const pages: ReactRack.PageRegistry = {
   "/panel": () => import("./page/Panel")
 }
 
+const defaultPages = pages
 
-export function reactPlugin(options: ReactRack.ReactPluginOptions) {
-  const render = createRenderer(options.pages)
+function mergeRegistries(base: ReactRack.PageRegistry, extra?: ReactRack.PageRegistry | ReactRack.PageRegistry[]): ReactRack.PageRegistry {
+  if (!extra) return { ...base }
+  const list = Array.isArray(extra) ? extra : [extra]
+  // combine registry with from options — array will be merged
+  return list.reduce<ReactRack.PageRegistry>((acc, r) => ({ ...acc, ...r }), { ...base })
+}
+
+export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
+  const registry = mergeRegistries(defaultPages, options.pages)
+  const render = createRenderer(registry)
   const panelCssOverride = pickPanelCssOption(options);
   let cachedCustomCss: string | Buffer | null = null;
   let cachedCustomCssLoaded = false;
