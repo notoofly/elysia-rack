@@ -1,6 +1,6 @@
 {
   "name": "elysia-rack",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Model-driven CRUD rack for Elysia: REST + QUERY routes, validation, authorization, OpenAPI metadata, and React panel rendering.",
   "type": "module",
   "license": "MIT",
@@ -51,11 +51,10 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "dev": "bun run build:assets && bun run src/playground.ts",
+    "dev": "bun run src/playground.ts",
     "test": "bun test --coverage",
     "typecheck": "tsc --noEmit",
-    "build": "bun run build:assets && bun run build:js && bun run build:dts",
-    "build:assets": "vite build",
+    "build": "bun run build:js && bun run build:dts && mkdir -p dist && cp src/react/app.html dist/app.html 2>/dev/null || true",
     "build:js": "bun build ./src/rack/index.ts ./src/react/index.ts --outdir ./dist --target node --format esm --splitting --external elysia --external react --external react-dom",
     "build:dts": "tsc -p tsconfig.build.json",
     "prepublishOnly": "bun run typecheck && bun run build"
@@ -73,17 +72,13 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "@tailwindcss/vite": "^4.3.3",
     "@types/bun": "latest",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
-    "@vitejs/plugin-react": "^6.1.1",
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.30",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^5",
-    "vite": "^8.2.2"
+    "typescript": "^5"
   }
 }

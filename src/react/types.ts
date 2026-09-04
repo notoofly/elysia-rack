@@ -13,7 +13,19 @@ export namespace ReactRack {
     default: PageComponent
   }>>
 
+  /** Override source for panel.css */
+  export type PanelCssOverride = string | { path?: string; content?: string };
+
   export interface ReactPluginOptions {
-    pages: PageRegistry
+    pages: PageRegistry;
+    /**
+     * Override `panel.css` served at `/__rack/panel.css`.
+     * - `string`: file path if the file exists, otherwise raw CSS string.
+     * - `{ path }`: explicit file path.
+     * - `{ content }`: raw CSS string.
+     * `panelCss` is an alias for `css`.
+     */
+    css?: PanelCssOverride;
+    panelCss?: PanelCssOverride;
   }
 }

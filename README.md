@@ -151,14 +151,36 @@ Conventions:
   reads skip soft-deleted rows.
 - `settings.returning: false` omits `data` from mutation responses.
 
-## Dashboard (sidebar, breadcrumb, iframe)
+## Dashboard
 
-Every `rack()` call registers its path, metadata and operations in a
-registry (`listRacks()` / `clearRacks()` from `elysia-rack`). The default
-`/dashboard` page builds a sidebar (grouped by `metadata.group`, ordered
-by `metadata.order`, skipping `hidden`), a breadcrumb
-(Dashboard / Group / Label), and shows the selected resource's `GET`
-panel inside an `<iframe>`:
+Recommended setup uses `react()`, `dashboard()`, and `rack()`. Each `rack()`
+stores its metadata tree in memory (registry) and `dashboard()` loads it at
+render time via `getRackTree()`.
+
+```ts
+import { dashboard, rack } from "elysia-rack";
+import { pages, reactPlugin } from "elysia-rack/react";
+
+const app = new Elysia()
+  .use(reactPlugin({ pages }))
+  .use(dashboard({ title: "My Panel", path: "/" }))
+  .use(rack("/catalog/products", { model, metadata: { id: "products", group: "Catalog", order: 1 } }))
+  .use(rack("/catalog/variants", { model, metadata: { id: "variants", group: "Catalog", order: 2, parent: "products" } }));
+```
+
+### Tree metadata
+
+`metadata.parent` builds a hierarchy. Children are rendered nested under their
+parent in the sidebar and kept ordered by `order` then label.
+
+```ts
+rack("/catalog/products", { metadata: { id: "products", group: "Catalog", order: 1 } });
+rack("/catalog/variants", { metadata: { id: "variants", parent: "products", group: "Catalog", order: 2 } });
+```
+
+Helpers: `listRacks()`, `getRack(id)`, `getRackTree()`, `flatRackTree()`, `buildRackTree(racks)`, `clearRacks()` from `elysia-rack`.
+
+The dashboard page itself can also be used manually:
 
 ```ts
 import { page, pages, reactPlugin } from "elysia-rack/react";
@@ -174,32 +196,60 @@ const app = new Elysia()
   );
 ```
 
-Sidebar links navigate with `?resource=<id>` (full reload, no JavaScript
-needed). Without a selection the first registered resource is shown.
+The sidebar groups by `metadata.group`, sorts by `order`, skips `hidden`,
+and shows the selected resource's panel inside an `<iframe>`. Links use
+`?resource=<id>` (no JavaScript required).
 
-React panel rendering via the `./react` subpath:
+## HTML template
 
-```ts
-import { page, pages, reactPlugin } from "elysia-rack/react";
+SSR uses `src/react/app.html` as the shell. It is read at runtime, cached,
+and streamed with the React output.
 
-const app = new Elysia()
-  .use(reactPlugin({ pages }))
-  .get("/", () => page("/dashboard", { name: "Ada" }));
+```html
+<!doctype html>
+<html><head>
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="/__rack/panel.css" />
+  <!--app-head-->
+</head><body>
+  <!--app-->
+</body></html>
 ```
 
-## Panel assets (Vite)
+- `{{title}}` is replaced (escaped) per page.
+- `<!--app-->` (also `{{body}}`, `<!--app-html-->`) marks where the React stream is injected.
+- Fallback shell is used if the file is missing. `dist/app.html` is a static copy of `src/react/app.html` included in the package.
 
-CSS, Tailwind and browser JavaScript go through Vite (`vite.config.ts`,
-`bun run build:assets`):
+Override the template by editing `src/react/app.html` (and `dist/app.html` for the published package).
 
-- `src/react/page/panel.css` — stylesheet entry (Tailwind v4) → `dist/panel.css`
-- `src/react/page/client/theme.ts` — dark/light toggle → `dist/panel-theme.js`
-- `src/react/page/client/panel.ts` — live query + actions → `dist/panel-app.js`
-  (imports shared `components/href.ts` and `components/panelForm.ts`)
+## Panel CSS override
+
+Override `panel.css` at `react()` config without forking:
+
+```ts
+import { pages, reactPlugin } from "elysia-rack/react";
+
+// file path (resolved from cwd/dist), raw string, or object
+reactPlugin({ pages, css: "./my-panel.css" });
+reactPlugin({ pages, css: { path: "./my-panel.css" } });
+reactPlugin({ pages, css: { content: ":root{--color-primary:red}" } });
+reactPlugin({ pages, panelCss: "body{...}" }); // alias
+```
+
+If a file path exists it is served; otherwise a raw CSS string is served.
+Fallback is `dist/panel.css`.
+
+## Panel assets
+
+Static assets are served under `/__rack/*`:
+
+- `dist/panel.css` — panel stylesheet (prebuilt)
+- `dist/panel-theme.js` — dark/light toggle
+- `dist/panel-app.js` — live query + actions (imports `components/href.ts`, `components/panelForm.ts`)
 
 Pages reference `/__rack/panel.css`, `/__rack/panel-theme.js` and
-`/__rack/panel-app.js`, served by `reactPlugin` from `dist/` (run the
-build before `dev`; CI and `prepublishOnly` already chain it).
+`/__rack/panel-app.js` via `reactPlugin`. No build step required — assets are
+static and included in the published package.
 
 ## Panel theme
 
@@ -224,7 +274,7 @@ touching React code.
 1. One-time setup: npmjs.com → package → Settings → Trusted Publisher → GitHub Actions (`notoofly/elysia-rack`, workflow `publish.yml`).
 2. Bump `version` in `package.json`.
 3. Create a GitHub Release with tag `v<version>` (e.g. `v0.1.0`).
-4. The `publish` workflow runs automatically: install, typecheck, asset build, test, build, tag-vs-version check, `npm publish --provenance`.
+4. The `publish` workflow runs automatically: install, typecheck, test, build, tag-vs-version check, `npm publish --provenance`.
 
 ## Scripts
 

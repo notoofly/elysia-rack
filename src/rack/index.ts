@@ -21,11 +21,17 @@ import type { Rack } from "./types";
 export type { Rack } from "./types";
 export type * from "./models";
 export {
+  buildRackTree,
   clearRacks,
+  flatRackTree,
+  getRack,
+  getRackTree,
   listRacks,
   registerRack,
   type RackRegistration,
+  type RackTreeNode,
 } from "./registry";
+export { dashboard, type DashboardOptions } from "./dashboard";
 export { resolveAdapter } from "./adapter";
 export {
   getAdapter,

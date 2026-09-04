@@ -10,11 +10,11 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { Elysia, t } from "elysia";
-import { rack } from "./rack/index";
-import { page, pages, reactPlugin } from "./react/index";
+import { dashboard, rack } from "./rack/index";
+import { pages, reactPlugin } from "./react/index";
 
 // ---------------------------------------------------------------------------
-// Schema (drizzle pg-core, berjalan di PGlite in-memory)
+// Schema (drizzle pg-core, PGlite in-memory)
 // ---------------------------------------------------------------------------
 
 export const productStatus = pgEnum("product_status", [
@@ -101,7 +101,14 @@ const ProductQuery = t.Optional(
 // ---------------------------------------------------------------------------
 
 const app = new Elysia()
+  // Recommended setup: react() -> dashboard() -> rack()
+  // rack() stores tree metadata in memory; dashboard() loads it via getRackTree()
+  // Override panel.css via react config (see README: "Panel CSS override"):
+  //   reactPlugin({ pages, css: "./my-panel.css" })
+  //   reactPlugin({ pages, css: { path: "./my-panel.css" } })
+  //   reactPlugin({ pages, css: { content: ":root{--color-primary:red}" } })
   .use(reactPlugin({ pages }))
+  .use(dashboard({ title: "Elysia Rack", path: "/" }))
   .use(
     rack("/catalog/products", {
       model: { drizzle: { db, table: products } },
@@ -189,13 +196,7 @@ const app = new Elysia()
       settings: { primaryKey: "slug", returning: true },
     }),
   )
-  .get("/", ({ query }) =>
-    page("/dashboard", {
-      name: "Elysia Rack",
-      resource:
-        typeof query.resource === "string" ? query.resource : undefined,
-    }),
-  )
+  // legacy manual: .get("/", ({ query }) => page("/dashboard", { name: "Elysia Rack", resource: query.resource }))
   .listen(5000);
 
 console.log("Playground ready:");

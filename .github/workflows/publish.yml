@@ -30,7 +30,6 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
-      - run: bun run build:assets
       - run: bun test --coverage
       - run: bun run build
       - name: check release tag matches package version

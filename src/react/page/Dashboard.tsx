@@ -1,9 +1,12 @@
 import {
-  listRacks,
+  buildRackTree,
+  flatRackTree,
+  getRackTree,
   type RackRegistration,
+  type RackTreeNode,
 } from "../../rack/registry";
 import { Breadcrumb } from "./components/Breadcrumb";
-import { Sidebar, type SidebarGroup } from "./components/Sidebar";
+import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar";
 
 export interface DashboardProps {
   name?: string;
@@ -46,11 +49,45 @@ function buildGroups(racks: RackRegistration[], selectedId?: string): SidebarGro
   return groups;
 }
 
+function toSidebarItem(node: RackTreeNode, selectedId?: string): SidebarItem {
+  return {
+    id: node.metadata.id,
+    label: itemLabel(node),
+    icon: node.metadata.icon,
+    href: `?resource=${encodeURIComponent(node.metadata.id)}`,
+    active: node.metadata.id === selectedId,
+    children: node.children
+      .filter((c) => !c.metadata.hidden)
+      .map((c) => toSidebarItem(c, selectedId)),
+  };
+}
+
+function buildGroupsFromTree(tree: RackTreeNode[], selectedId?: string): SidebarGroup[] {
+  const byGroup = new Map<string, SidebarGroup>();
+  for (const root of tree) {
+    if (root.metadata.hidden) continue;
+    const name = root.metadata.group ?? "General";
+    let group = byGroup.get(name);
+    if (!group) {
+      group = { name, items: [] };
+      byGroup.set(name, group);
+    }
+    group.items.push(toSidebarItem(root, selectedId));
+  }
+  return [...byGroup.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export default async function Dashboard(props: DashboardProps) {
-  const racks = (props.racks ?? listRacks()).filter((r) => !r.metadata.hidden);
-  const selected =
-    racks.find((r) => r.metadata.id === props.resource) ?? racks[0];
-  const groups = buildGroups(racks, selected?.metadata.id);
+  // rack() stores tree metadata in memory (registry), dashboard loads it here
+  const tree: RackTreeNode[] =
+    props.racks !== undefined
+      ? buildRackTree(props.racks.filter((r) => !r.metadata.hidden))
+      : getRackTree().filter((r) => !r.metadata.hidden);
+  const flat = props.racks !== undefined
+    ? props.racks.filter((r) => !r.metadata.hidden)
+    : flatRackTree(tree).filter((r) => !r.metadata.hidden);
+  const selected = flat.find((r) => r.metadata.id === props.resource) ?? flat[0];
+  const groups = tree.length ? buildGroupsFromTree(tree, selected?.metadata.id) : buildGroups(flat, selected?.metadata.id);
   const trail = [
     { label: "Dashboard", href: "?" },
     ...(selected?.metadata.group
