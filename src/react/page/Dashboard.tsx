@@ -3,12 +3,11 @@ import { Breadcrumb } from "./components/Breadcrumb";
 import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar";
 import { Masthead } from "./components/Masthead";
 import { resolveDonateProp } from "../donate";
-import type { ReactRack } from "../types";
 
 export interface DashboardProps {
   name?: string;
   resource?: string;
-  donate?: ReactRack.DonateConfig;
+  donate?: boolean;
 }
 
 function itemLabel(r: { metadata: { pluralLabel?: string; label?: string; id: string } }): string {

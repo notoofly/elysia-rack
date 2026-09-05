@@ -183,7 +183,7 @@ rack("/catalog/variants", { metadata: { id: "variants", parent: "products", grou
 Helpers: `listRacks()`, `getRack(id)`, `getRackTree()`, `flatRackTree()`, `buildRackTree(racks)`, `clearRacks()` from `elysia-rack`.
 
 ### Donate — disable on website
-Donate link (Ko-fi) tampil di Dashboard & Panel footer. Disable via `dashboard({ donate: false })` atau global `reactPlugin({ donate: false })`. Customize: `reactPlugin({ donate: { url: "https://ko-fi.com/xxx", label: "Donate" } })`.
+Donate link (Ko-fi) tampil di Dashboard & Panel footer. Disable via `dashboard({ donate: false })` atau global `reactPlugin({ donate: false })` (default `true`).
 
 You can still render the dashboard manually:
 

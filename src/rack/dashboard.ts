@@ -1,6 +1,5 @@
 import Elysia from "elysia";
 import { PANEL_PAGE_KEY } from "./page";
-import type { ReactRack } from "../react/types";
 
 export interface DashboardOptions {
   /** Mount path for the dashboard page (default "/") */
@@ -9,8 +8,8 @@ export interface DashboardOptions {
   title?: string;
   /** React page registry key (default "/dashboard") */
   pagePath?: string;
-  /** Donate config — false to hide, or { url, label, enabled } to customize */
-  donate?: ReactRack.DonateConfig;
+  /** Donate badge — false to hide, true/undefined to show */
+  donate?: boolean;
 }
 
 /**

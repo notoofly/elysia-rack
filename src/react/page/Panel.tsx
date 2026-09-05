@@ -7,7 +7,6 @@ import { Pagination } from "./components/Pagination";
 import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar";
 import { Toolbar } from "./components/Toolbar";
 import { resolveDonateProp } from "../donate";
-import type { ReactRack } from "../types";
 
 const inputClass =
   "bg-input-background border-input text-foreground rounded-md border px-3 py-1.5 text-sm font-normal normal-case";
@@ -130,7 +129,7 @@ function buildGroupsFromTree(tree: RackTreeNode[], activeId?: string): SidebarGr
 }
 
 export interface PanelProps {
-  donate?: ReactRack.DonateConfig;
+  donate?: boolean;
   resource?: string;
   metadata?: {
     label?: string;
