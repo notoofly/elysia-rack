@@ -2,15 +2,18 @@
 node_modules/
 .bun/
 
-# build output (dibangun ulang via `bun run build`)
+# build output (dibangun ulang via `bun run build` — dipublish via npm, keep dist tracked for direct git install)
 dist/
 out/
 *.tgz
 
-# vite / typescript caches
+# caches & temp
 .vite/
 *.tsbuildinfo
-vite.config.*.timestamp-*.mjs
+.cache/
+tmp/
+temp/
+.opencode/
 
 # test & coverage
 coverage/
@@ -20,9 +23,10 @@ coverage/
 logs/
 *.log
 
-# dotenv environment variable files
+# env & secrets (jangan commit token)
 .env
 .env*.local
+.npmrc
 
 # editors & OS
 .idea/
