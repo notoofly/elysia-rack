@@ -1,4 +1,7 @@
 import {
+  setGlobalDonate
+} from "../index-h3zbq796.js";
+import {
   __require
 } from "../index-37x76zdn.js";
 
@@ -152,8 +155,8 @@ function page(path, props) {
   };
 }
 var pages = {
-  "/dashboard": () => import("../Dashboard-0da8dvbv.js"),
-  "/panel": () => import("../Panel-n0kstkyw.js")
+  "/dashboard": () => import("../Dashboard-xkh2g9f7.js"),
+  "/panel": () => import("../Panel-za4av616.js")
 };
 var defaultPages = pages;
 function mergeRegistries(base, extra) {
@@ -163,6 +166,7 @@ function mergeRegistries(base, extra) {
   return list.reduce((acc, r) => ({ ...acc, ...r }), { ...base });
 }
 function reactPlugin(options = {}) {
+  setGlobalDonate(options.donate);
   const registry = mergeRegistries(defaultPages, options.pages);
   const render = createRenderer(registry);
   const panelCssOverride = pickPanelCssOption(options);

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRenderer } from "./render";
 import { ReactRack } from "./types";
+import { setGlobalDonate } from "./donate";
 
 /**
  * Static panel assets (dist/panel.css, dist/panel-*.js),
@@ -69,6 +70,7 @@ function mergeRegistries(base: ReactRack.PageRegistry, extra?: ReactRack.PageReg
 }
 
 export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
+  setGlobalDonate(options.donate);
   const registry = mergeRegistries(defaultPages, options.pages)
   const render = createRenderer(registry)
   const panelCssOverride = pickPanelCssOption(options);

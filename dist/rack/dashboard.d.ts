@@ -1,4 +1,5 @@
 import Elysia from "elysia";
+import type { ReactRack } from "../react/types";
 export interface DashboardOptions {
     /** Mount path for the dashboard page (default "/") */
     path?: string;
@@ -6,6 +7,8 @@ export interface DashboardOptions {
     title?: string;
     /** React page registry key (default "/dashboard") */
     pagePath?: string;
+    /** Donate config — false to hide, or { url, label, enabled } to customize */
+    donate?: ReactRack.DonateConfig;
 }
 /**
  * Dashboard plugin — mounts `GET {path}` that renders
@@ -50,6 +53,7 @@ export declare function dashboard(options?: DashboardOptions): Elysia<"", {
                     path: string;
                     props: {
                         resource: string | undefined;
+                        donate?: ReactRack.DonateConfig | undefined;
                         name?: string | undefined;
                     };
                 };

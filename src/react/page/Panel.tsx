@@ -6,6 +6,8 @@ import { Masthead } from "./components/Masthead";
 import { Pagination } from "./components/Pagination";
 import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar";
 import { Toolbar } from "./components/Toolbar";
+import { resolveDonateProp } from "../donate";
+import type { ReactRack } from "../types";
 
 const inputClass =
   "bg-input-background border-input text-foreground rounded-md border px-3 py-1.5 text-sm font-normal normal-case";
@@ -128,6 +130,7 @@ function buildGroupsFromTree(tree: RackTreeNode[], activeId?: string): SidebarGr
 }
 
 export interface PanelProps {
+  donate?: ReactRack.DonateConfig;
   resource?: string;
   metadata?: {
     label?: string;
@@ -223,6 +226,7 @@ export default async function Panel(props: PanelProps) {
   // Load entire tree for sidebar, highlight active panel
   const tree = getRackTree().filter((r) => !r.metadata.hidden);
   const groups = buildGroupsFromTree(tree, props.resource);
+  const donate = resolveDonateProp(props.donate);
   const trail = [
     { label: "Dashboard", href: "/" },
     ...(props.metadata?.group ? [{ label: props.metadata.group }] : []),
@@ -398,7 +402,7 @@ export default async function Panel(props: PanelProps) {
           <script type="module" src="/__rack/panel-app.js" />
         </div>
             <footer className="border-border text-text-muted border-t pt-3 text-center text-xs tracking-widest uppercase">
-              Printed by elysia-rack
+              {donate.enabled ? (<><a href={donate.url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline decoration-dotted underline-offset-4">{donate.label}</a> · </>) : null}Printed by elysia-rack
             </footer>
           </div>
         </main>

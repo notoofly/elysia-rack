@@ -1,5 +1,7 @@
 # elysia-rack
 
+[![Ko-fi Donate](https://img.shields.io/badge/Ko--fi-Donate-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/notoofly_manu) [![npm](https://img.shields.io/npm/v/elysia-rack)](https://www.npmjs.com/package/elysia-rack)
+
 Model-driven CRUD rack for [Elysia](https://elysiajs.com): declare a resource once, get REST + `QUERY` routes, validation, authorization, query engine, OpenAPI metadata, and a React panel — running on [Bun](https://bun.com) or Node.js 20+.
 
 ## Install
@@ -179,6 +181,9 @@ rack("/catalog/variants", { metadata: { id: "variants", parent: "products", grou
 ```
 
 Helpers: `listRacks()`, `getRack(id)`, `getRackTree()`, `flatRackTree()`, `buildRackTree(racks)`, `clearRacks()` from `elysia-rack`.
+
+### Donate — disable on website
+Donate link (Ko-fi) tampil di Dashboard & Panel footer. Disable via `dashboard({ donate: false })` atau global `reactPlugin({ donate: false })`. Customize: `reactPlugin({ donate: { url: "https://ko-fi.com/xxx", label: "Donate" } })`.
 
 You can still render the dashboard manually:
 
@@ -441,6 +446,16 @@ bun test           # unit tests (bun:test)
 bun run typecheck  # tsc --noEmit
 bun run build      # dist/ (js via bun build + .d.ts via tsc)
 ```
+
+## Donate
+
+Support pengembangan elysia-rack — traktir kopi via Ko-fi:
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Donate-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/notoofly_manu)
+
+> https://ko-fi.com/notoofly_manu
+
+Terima kasih sudah mendukung open-source!
 
 ## License
 

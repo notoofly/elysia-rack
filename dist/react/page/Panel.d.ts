@@ -1,5 +1,7 @@
 import type { FieldDescriptor } from "../../rack/adapters/index";
+import type { ReactRack } from "../types";
 export interface PanelProps {
+    donate?: ReactRack.DonateConfig;
     resource?: string;
     metadata?: {
         label?: string;

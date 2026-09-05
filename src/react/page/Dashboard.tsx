@@ -2,10 +2,13 @@ import { getRackTree, type RackTreeNode } from "../../rack/registry";
 import { Breadcrumb } from "./components/Breadcrumb";
 import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar";
 import { Masthead } from "./components/Masthead";
+import { resolveDonateProp } from "../donate";
+import type { ReactRack } from "../types";
 
 export interface DashboardProps {
   name?: string;
   resource?: string;
+  donate?: ReactRack.DonateConfig;
 }
 
 function itemLabel(r: { metadata: { pluralLabel?: string; label?: string; id: string } }): string {
@@ -43,6 +46,7 @@ export default async function Dashboard(props: DashboardProps) {
   const groups = buildGroupsFromTree(tree, props.resource);
   const totalResources = tree.length + tree.reduce((a, n) => a + n.children.length, 0);
   const totalGroups = groups.length;
+  const donate = resolveDonateProp(props.donate);
 
   return (
     <div className="koran-paper font-koran-body text-foreground flex min-h-screen flex-col">
@@ -107,6 +111,11 @@ export default async function Dashboard(props: DashboardProps) {
             </div>
 
             <footer className="border-border text-text-muted mt-6 border-t pt-3 text-center text-xs tracking-widest uppercase">
+              {donate.enabled ? (
+                <>
+                  <a href={donate.url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline decoration-dotted underline-offset-4">{donate.label} — {donate.url.replace("https://","")}</a> ·{" "}
+                </>
+              ) : null}
               Printed by elysia-rack — ERP blueprint
             </footer>
           </div>

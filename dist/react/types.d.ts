@@ -15,6 +15,12 @@ export declare namespace ReactRack {
         path?: string;
         content?: string;
     };
+    /** Donate / Ko-fi config — set false to hide */
+    type DonateConfig = false | {
+        enabled?: boolean;
+        url?: string;
+        label?: string;
+    };
     interface ReactPluginOptions {
         pages?: PageRegistry | PageRegistry[];
         /**
@@ -26,5 +32,12 @@ export declare namespace ReactRack {
          */
         css?: PanelCssOverride;
         panelCss?: PanelCssOverride;
+        /**
+         * Donate badge/link — shown in Dashboard & Panel footer.
+         * - `false` to hide, `true`/undefined to show default Ko-fi.
+         * - `{ url, label, enabled }` to customize.
+         * @default { url: "https://ko-fi.com/notoofly_manu", label: "☕ Donate" }
+         */
+        donate?: DonateConfig;
     }
 }

@@ -1149,6 +1149,7 @@ function dashboard(options) {
     path: pagePath,
     props: {
       ...title !== undefined ? { name: title } : {},
+      ...options?.donate !== undefined ? { donate: options.donate } : {},
       resource: typeof query.resource === "string" ? query.resource : undefined
     }
   }));
