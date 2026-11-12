@@ -86,12 +86,20 @@ function refresh(root: any): void {
 
 function actionCell(id: string): string {
   return (
-    `<td class="border-table-border border-t px-4 py-2 whitespace-nowrap">` +
-    `<div class="border-table-border inline-flex overflow-hidden rounded-md border">` +
-    `<button type="button" data-edit-id="${esc(id)}" class="text-link hover:bg-table-row-hover px-2 py-1 text-sm font-semibold">Edit</button>` +
-    `<button type="button" data-delete-id="${esc(id)}" class="border-table-border text-destructive hover:bg-table-row-hover border-l px-2 py-1 text-sm font-semibold">Delete</button>` +
-    `</div></td>`
+    `<td class="border-table-border border-t px-3 py-2.5 whitespace-nowrap text-right">` +
+    `<button type="button" data-edit-id="${esc(id)}" class="text-link hover:text-link-hover px-1 text-sm font-medium hover:underline">Edit</button>` +
+    `<button type="button" data-delete-id="${esc(id)}" class="text-destructive ml-3 px-1 text-sm font-medium hover:underline">Delete</button>` +
+    `</td>`
   );
+}
+
+function numericCols(rows: Record<string, unknown>[], cols: string[]): Set<string> {
+  const out = new Set<string>();
+  if (!rows.length) return out;
+  for (const col of cols) {
+    if (rows.every((r) => typeof r[col] === "number" || r[col] == null)) out.add(col);
+  }
+  return out;
 }
 
 function paintRows(
@@ -102,24 +110,27 @@ function paintRows(
   selectable: boolean,
   editable: boolean,
 ): void {
+  const span = cols.length + (selectable ? 1 : 0) + (editable ? 1 : 0);
   if (!rows.length) {
     tbody.innerHTML =
-      `<tr><td colspan="${cols.length}" class="text-text-muted px-4 py-10 text-center">No records found.</td></tr>`;
+      `<tr><td colspan="${span || 1}" class="text-text-muted px-4 py-10 text-center">No records found.</td></tr>`;
     return;
   }
+  const numeric = numericCols(rows, cols);
   tbody.innerHTML = rows
     .map((row) => {
       const id = row[pk] == null ? "" : String(row[pk]);
       let html = `<tr class="hover:bg-table-row-hover">`;
       if (selectable)
-        html += `<td class="border-table-border border-t px-4 py-2"><input type="checkbox" data-select-row value="${esc(id)}" aria-label="Select row ${esc(id)}"></td>`;
+        html += `<td class="border-table-border border-t px-3 py-2.5"><input type="checkbox" data-select-row value="${esc(id)}" aria-label="Select row ${esc(id)}" class="accent-primary size-4"></td>`;
       html += cols
         .map((col) => {
           const cls = badgeClass(col, row[col]);
           const inner = cls
-            ? `<span class="rounded-full px-2 py-0.5 text-xs font-semibold ${cls}">${esc(cellText(row[col]))}</span>`
+            ? `<span class="rounded-sm px-1.5 py-0.5 text-xs font-medium ${cls}">${esc(cellText(row[col]))}</span>`
             : esc(cellText(row[col]));
-          return `<td class="border-table-border border-t px-4 py-2">${inner}</td>`;
+          const align = numeric.has(col) ? " text-right tabular-nums" : "";
+          return `<td class="border-table-border border-t px-3 py-2.5${align}">${inner}</td>`;
         })
         .join("");
       if (editable) html += actionCell(id);
@@ -135,24 +146,24 @@ function paintPages(
   totalPages: number,
 ): void {
   const linkCls =
-    "border-border rounded-md border px-3 py-1 text-sm hover:bg-navigation-hover";
+    "border-border rounded-md border px-2.5 py-1 text-xs hover:bg-navigation-hover";
   const offCls =
-    "border-border text-text-disabled rounded-md border px-3 py-1 text-sm";
+    "border-border text-text-disabled rounded-md border px-2.5 py-1 text-xs";
   let html =
     page > 1
-      ? `<a class="${linkCls}" data-qlink href="${esc(href(params, { page: page - 1 }))}">← Previous</a>`
-      : `<span class="${offCls}">← Previous</span>`;
+      ? `<a class="${linkCls}" data-qlink href="${esc(href(params, { page: page - 1 }))}">Previous</a>`
+      : `<span class="${offCls}">Previous</span>`;
   for (const p of pageWindow(page, totalPages)) {
     if (p === "…") html += `<span class="text-text-muted px-1">…</span>`;
     else if (p === page)
-      html += `<span class="bg-primary text-primary-foreground rounded-md px-3 py-1 text-sm font-bold">${p}</span>`;
+      html += `<span class="bg-primary text-primary-foreground rounded-md px-2.5 py-1 text-xs font-medium">${p}</span>`;
     else
       html += `<a class="${linkCls}" data-qlink href="${esc(href(params, { page: p }))}">${p}</a>`;
   }
   html +=
     page < totalPages
-      ? `<a class="${linkCls}" data-qlink href="${esc(href(params, { page: page + 1 }))}">Next →</a>`
-      : `<span class="${offCls}">Next →</span>`;
+      ? `<a class="${linkCls}" data-qlink href="${esc(href(params, { page: page + 1 }))}">Next</a>`
+      : `<span class="${offCls}">Next</span>`;
   box.innerHTML = html;
 }
 
@@ -179,8 +190,11 @@ function paint(root: any, json: ListResponse, sp: URLSearchParams): void {
   const count = root.querySelector("[data-panel-count]");
   if (count) {
     const from = total === 0 ? 0 : (page - 1) * limit + 1;
-    count.textContent = `Page ${page} of ${totalPages} — ${from}–${Math.min(page * limit, total)} of ${total} records`;
+    count.textContent =
+      total === 0 ? "0 records" : `${from}–${Math.min(page * limit, total)} of ${total} records`;
   }
+  const totalEl = root.querySelector("[data-panel-total]");
+  if (totalEl) totalEl.textContent = `${total} record${total === 1 ? "" : "s"}`;
   const box = root.querySelector("[data-panel-pages]");
   if (box) paintPages(box, params, page, totalPages);
   const sort = q.sort ?? {};

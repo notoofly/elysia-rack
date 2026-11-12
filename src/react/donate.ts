@@ -1,5 +1,5 @@
 export const DEFAULT_DONATE_URL = "https://ko-fi.com/notoofly_manu";
-export const DEFAULT_DONATE_LABEL = "☕ Donate";
+export const DEFAULT_DONATE_LABEL = "Donate on Ko-fi";
 
 export type ResolvedDonate = { enabled: boolean; url: string; label: string };
 

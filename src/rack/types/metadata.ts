@@ -27,7 +27,8 @@ export interface CrudMetadata {
   parent?: string;
 
   /**
-   * Icon identifier.
+   * Lucide icon name, e.g. `package` or `ShoppingCart`.
+   * Unknown names fall back to the raw string.
    */
   icon?: string;
 

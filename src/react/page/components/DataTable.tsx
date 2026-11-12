@@ -10,7 +10,7 @@ export interface DataTableProps {
   primaryKey?: string;
 }
 
-function statusBadge(value: unknown): string | null {
+function statusTag(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const text = value.toLowerCase();
   if (text === "active") return "bg-success-muted text-success-muted-foreground";
@@ -23,6 +23,11 @@ function cell(value: unknown): string {
   if (value instanceof Date) return value.toLocaleString("en-US");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function isNumericColumn(rows: Record<string, unknown>[], col: string): boolean {
+  if (rows.length === 0) return false;
+  return rows.every((r) => typeof r[col] === "number" || r[col] == null);
 }
 
 export function DataTable({
@@ -38,11 +43,16 @@ export function DataTable({
   const activeOrder = params.order === "desc" ? "desc" : "asc";
   const pk = primaryKey ?? "id";
   const extra = (selectable ? 1 : 0) + (editable ? 1 : 0);
+  const numeric = new Set(columns.filter((c) => isNumericColumn(rows, c)));
+  const cellClass = (col: string) =>
+    `border-table-border border-t px-3 py-2.5 ${
+      numeric.has(col) ? "text-right tabular-nums" : ""
+    }`;
   if (rows.length === 0)
     return (
-      <div className="border-table-border overflow-x-auto rounded-md border">
+      <div className="border-border bg-table overflow-x-auto rounded-lg border">
         <table
-          className="bg-table w-full border-collapse text-left text-sm"
+          className="w-full border-collapse text-left text-sm"
           data-selectable={selectable ? true : undefined}
           data-editable={editable ? true : undefined}
           data-pk={primaryKey ?? "id"}
@@ -61,29 +71,36 @@ export function DataTable({
       </div>
     );
   return (
-    <div className="border-table-border overflow-x-auto rounded-md border">
+    <div className="border-border bg-table overflow-x-auto rounded-lg border">
       <table
-        className="bg-table w-full border-collapse text-left text-sm"
+        className="w-full border-collapse text-left text-sm"
         data-selectable={selectable ? true : undefined}
         data-editable={editable ? true : undefined}
         data-pk={primaryKey ?? "id"}
       >
         <thead>
-          <tr className="bg-table-header">
+          <tr>
             {selectable ? (
-              <th className="border-table-border border-b px-4 py-2">
-                <input type="checkbox" data-select-all aria-label="Select all" />
+              <th className="border-border w-10 border-b px-3 py-2">
+                <input
+                  type="checkbox"
+                  data-select-all
+                  aria-label="Select all"
+                  className="accent-primary size-4"
+                />
               </th>
             ) : null}
             {columns.map((col) => (
               <th
                 key={col}
                 data-col={col}
-                className="border-table-border border-b px-4 py-2 text-xs font-bold tracking-wider uppercase"
+                className={`border-border text-text-muted border-b px-3 py-2 text-xs font-medium ${
+                  numeric.has(col) ? "text-right" : ""
+                }`}
               >
                 {sortable?.includes(col) ? (
                   <a
-                    className="text-link hover:text-link-hover"
+                    className="hover:text-foreground text-link"
                     data-qlink
                     data-sort-link={col}
                     href={href(params, {
@@ -102,7 +119,7 @@ export function DataTable({
               </th>
             ))}
             {editable ? (
-              <th className="border-table-border border-b px-4 py-2 text-xs font-bold tracking-wider uppercase">
+              <th className="border-border text-text-muted border-b px-3 py-2 text-right text-xs font-medium">
                 Actions
               </th>
             ) : null}
@@ -112,20 +129,21 @@ export function DataTable({
           {rows.map((row, i) => (
             <tr key={i} className="hover:bg-table-row-hover">
               {selectable ? (
-                <td className="border-table-border border-t px-4 py-2">
+                <td className="border-table-border border-t px-3 py-2.5">
                   <input
                     type="checkbox"
                     data-select-row
                     value={String(row[pk] ?? "")}
                     aria-label={`Select row ${String(row[pk] ?? i)}`}
+                    className="accent-primary size-4"
                   />
                 </td>
               ) : null}
               {columns.map((col) => (
-                <td key={col} className="border-table-border border-t px-4 py-2">
-                  {col === "status" && statusBadge(row[col]) ? (
+                <td key={col} className={cellClass(col)}>
+                  {col === "status" && statusTag(row[col]) ? (
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadge(row[col]) ?? ""}`}
+                      className={`rounded-sm px-1.5 py-0.5 text-xs font-medium ${statusTag(row[col]) ?? ""}`}
                     >
                       {cell(row[col])}
                     </span>
@@ -135,23 +153,21 @@ export function DataTable({
                 </td>
               ))}
               {editable ? (
-                <td className="border-table-border border-t px-4 py-2 whitespace-nowrap">
-                  <div className="border-table-border inline-flex overflow-hidden rounded-md border">
-                    <button
-                      type="button"
-                      data-edit-id={String(row[pk] ?? "")}
-                      className="text-link hover:bg-table-row-hover px-2 py-1 text-sm font-semibold"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      data-delete-id={String(row[pk] ?? "")}
-                      className="border-table-border text-destructive hover:bg-table-row-hover border-l px-2 py-1 text-sm font-semibold"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                <td className="border-table-border whitespace-nowrap border-t px-3 py-2.5 text-right">
+                  <button
+                    type="button"
+                    data-edit-id={String(row[pk] ?? "")}
+                    className="text-link hover:text-link-hover px-1 text-sm font-medium hover:underline"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    data-delete-id={String(row[pk] ?? "")}
+                    className="text-destructive ml-3 px-1 text-sm font-medium hover:underline"
+                  >
+                    Delete
+                  </button>
                 </td>
               ) : null}
             </tr>

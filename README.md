@@ -4,6 +4,12 @@
 
 Model-driven CRUD rack for [Elysia](https://elysiajs.com): declare a resource once, get REST + `QUERY` routes, validation, authorization, query engine, OpenAPI metadata, and a React panel — running on [Bun](https://bun.com) or Node.js 20+.
 
+Full usage guide: [docs/USAGE.md](docs/USAGE.md).
+
+## Documentation
+
+End-user documentation covers installation, configuration, daily usage, and troubleshooting: [docs/index.md](docs/index.md).
+
 ## Install
 
 ```bash
@@ -85,7 +91,7 @@ work through plain `GET` navigation without JavaScript).
 
 The panel ships create / edit / delete UI driven by the same API:
 
-- `+ New` opens a create dialog (fields derived from row columns,
+- `New record` opens a create dialog (fields derived from row columns,
   primary key optional). Submit sends `POST /` with an auto-generated
   `Idempotency-Key`. Tables without known columns fall back to a raw
   JSON body field.
@@ -147,7 +153,7 @@ Conventions:
 - String route ids are coerced to numbers for integer columns
   (e.g. `serial`); anything else passes through. Malformed ids resolve
   to `404`, missing rows to `404`.
-- `searchable` fields use SQL `LIKE` (case-sensitivity follows the DB).
+- `searchable` fields use SQL `ILIKE` through the Drizzle adapter, so search requires a database that supports `ILIKE` (for example PostgreSQL). SQLite search fails with a SQL syntax error.
 - `settings.softDelete: true` writes a timestamp to `deletedAt`
   (override with `settings.deletedAtField`) instead of deleting, and
   reads skip soft-deleted rows.
@@ -155,7 +161,7 @@ Conventions:
 
 ## Dashboard
 
-`dashboard()` is now a simple *Coming Soon* placeholder. The real navigation lives in `panel` — each `rack()` panel shows a sidebar with the entire tree.
+`dashboard()` renders a navigation overview of every registered resource, with a sidebar and a resource table. Each `rack()` panel also shows a sidebar with the entire tree.
 
 Recommended setup:
 
@@ -165,7 +171,7 @@ import { reactPlugin } from "elysia-rack/react";
 
 const app = new Elysia()
   .use(reactPlugin()) // pages are optional — defaults to dashboard + panel
-  .use(dashboard({ title: "My Panel", path: "/" })) // → Coming Soon at /
+  .use(dashboard({ title: "My Panel", path: "/" })) // → Dashboard at /
   .use(rack("/catalog/products", { model, metadata: { id: "products", group: "Catalog", order: 1 } }))
   .use(rack("/catalog/variants", { model, metadata: { id: "variants", group: "Catalog", order: 2, parent: "products" } }));
 // → Panel at /catalog/products now shows sidebar with Catalog > Products > Variants
@@ -227,14 +233,14 @@ rack("/catalog/products", {
     pluralLabel: "Products",  // shown in sidebar
     group: "Catalog",         // sidebar group
     order: 1,                 // smaller = higher
-    icon: "📦",
+    icon: "package",           // Lucide icon name (kebab-case or PascalCase)
     parent: "catalog-root",   // nest under another id
     hidden: false
   }
 });
 ```
 
-**Decide what users can do.** Turn operations on/off. If you disable `create`, the “+ New” button disappears automatically.
+**Decide what users can do.** Turn operations on/off. If you disable `create`, the “New record” button disappears automatically.
 
 ```ts
 rack("/catalog/products", {
@@ -293,9 +299,9 @@ rack("/catalog/products", {
 
 That’s the whole `rack()` surface. Start with `model`, then add `metadata` → `query` → `validation/authorization` as your app grows.
 
-### 2) `dashboard()` — one line, now Coming Soon
+### 2) `dashboard()`: one line, navigation overview
 
-`dashboard()` mounts `GET /` that renders a *Coming Soon* page. The tree you registered with `rack()` is not shown here — it lives in `panel`.
+`dashboard()` mounts `GET /` and renders a sidebar plus a table of every resource registered with `rack()`.
 
 ```ts
 import { dashboard, rack } from "elysia-rack";
@@ -303,7 +309,7 @@ import { reactPlugin } from "elysia-rack/react";
 
 const app = new Elysia()
   .use(reactPlugin())                         // 1) UI engine — pages optional
-  .use(dashboard({ title: "My Shop", path: "/" })) // 2) Coming Soon at /
+  .use(dashboard({ title: "My Shop", path: "/" })) // 2) Dashboard at /
   .use(rack("/catalog/products", { model, metadata: { id: "products", group: "Catalog", order: 1 } }))
   .use(rack("/catalog/variants", { model, metadata: { id: "variants", parent: "products", group: "Catalog", order: 2 } }));
 // visit /catalog/products → panel shows sidebar with Catalog > Products > Variants
@@ -404,13 +410,13 @@ Fallback is `dist/panel.css`.
 
 Static assets are served under `/__rack/*`:
 
-- `dist/panel.css` — panel stylesheet (prebuilt)
+- `dist/panel.css` — panel stylesheet (built with Tailwind CSS)
 - `dist/panel-theme.js` — dark/light toggle
 - `dist/panel-app.js` — live query + actions (imports `components/href.ts`, `components/panelForm.ts`)
 
 Pages reference `/__rack/panel.css`, `/__rack/panel-theme.js` and
-`/__rack/panel-app.js` via `reactPlugin`. No build step required — assets are
-static and included in the published package.
+`/__rack/panel-app.js` via `reactPlugin`. Run `bun run build` to produce
+`dist/` (`build:css` compiles the stylesheet, `build:js` bundles the clients).
 
 ## Panel theme
 
@@ -420,9 +426,10 @@ static and included in the published package.
   chart, selection, focus, overlay, navigation, table, form, sidebar),
   shadcn/Tailwind compatible, mapped via `@theme inline`.
 - `theme/dark.css` — `.dark` overrides.
-- `theme/koran.css` — default newspaper theme (warm paper, serif
-  headlines). Remove its import for the neutral look.
-- `theme/components.css` — newspaper component classes + base styles.
+- `theme/rack.css` — default theme (black, white, dark blue, gold;
+  Poppins for UI, Chocolate Classical Sans for display headings).
+  Remove its import for the neutral look.
+- `theme/components.css` — base styles, dialog reset, reduced motion.
 
 Dark mode flips automatically: stored choice (`localStorage`), else
 `prefers-color-scheme`. The `◐ Theme` button in the masthead toggles it.

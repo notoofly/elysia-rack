@@ -1,4 +1,4 @@
-/* Newspaper component classes + global foundation.
+/* Panel component base: globals, dialogs, reduced motion.
    All colors reference semantic tokens to follow dark/light mode. */
 
 @layer base {
@@ -18,6 +18,15 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
 /* Native dialog: restore the centering reset by preflight,
    cap the viewport size, and dim the backdrop. */
 dialog {
@@ -27,33 +36,4 @@ dialog {
 }
 dialog::backdrop {
   background-color: var(--overlay);
-}
-
-/* Double rule: thin line + thick line below it */
-.koran-rule-double {
-  border-top: 1px solid var(--header-border);
-  position: relative;
-}
-.koran-rule-double::after {
-  content: "";
-  display: block;
-  border-top: 3px solid var(--header-border);
-  margin-top: 2px;
-}
-
-/* Paper background with a soft glow */
-.koran-paper {
-  background-color: var(--background);
-  background-image: radial-gradient(
-    ellipse at top,
-    rgb(255 255 255 / 0.35),
-    transparent 60%
-  );
-}
-.dark .koran-paper {
-  background-image: radial-gradient(
-    ellipse at top,
-    rgb(255 255 255 / 0.05),
-    transparent 60%
-  );
 }

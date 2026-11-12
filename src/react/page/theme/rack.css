@@ -1,0 +1,245 @@
+/* Default theme: black, white, dark blue, gold.
+   Overrides the foundation tokens (tokens.css / dark.css) without touching components.
+   Remove this file's import from panel.css to return to the neutral look. */
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Chocolate Classical Sans", "Poppins", ui-sans-serif, sans-serif;
+}
+
+@theme inline {
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+}
+
+:root {
+  --background: #f4f5f7;
+  --foreground: #101318;
+
+  --surface: #ffffff;
+  --surface-foreground: #101318;
+  --surface-muted: #eef0f3;
+  --surface-muted-foreground: #565d68;
+
+  --card: #ffffff;
+  --card-foreground: #101318;
+  --card-muted: #eef0f3;
+
+  --popover: #ffffff;
+  --popover-foreground: #101318;
+
+  --primary: #1a2c50;
+  --primary-foreground: #ffffff;
+
+  --secondary: #e8eaee;
+  --secondary-foreground: #101318;
+
+  --muted: #e8eaee;
+  --muted-foreground: #565d68;
+
+  --accent: #e8eaee;
+  --accent-foreground: #101318;
+
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+
+  --success: #1e7a4c;
+  --success-foreground: #ffffff;
+  --success-muted: #e3f1e9;
+  --success-muted-foreground: #145c39;
+
+  --warning: #8a6a12;
+  --warning-foreground: #ffffff;
+  --warning-muted: #f6efdb;
+  --warning-muted-foreground: #6b5311;
+
+  --info: #1a2c50;
+  --info-foreground: #ffffff;
+  --info-muted: #e9edf6;
+  --info-muted-foreground: #1a2c50;
+
+  --gold: #c9a227;
+  --gold-foreground: #101318;
+
+  --border: #e2e5ea;
+  --border-muted: #edeff2;
+
+  --input: #c9ced6;
+  --input-background: #ffffff;
+
+  --ring: #1a2c50;
+  --focus: #1a2c50;
+
+  --text: #101318;
+  --text-muted: #565d68;
+  --text-subtle: #767d87;
+  --text-disabled: #9aa1ab;
+  --text-inverse: #ffffff;
+
+  --selection: #1a2c50;
+  --selection-foreground: #ffffff;
+
+  --link: #1a2c50;
+  --link-hover: #0d1830;
+  --link-visited: #1a2c50;
+
+  --table-background: #ffffff;
+  --table-header: #ffffff;
+  --table-row: #ffffff;
+  --table-row-hover: #f6f7f9;
+  --table-row-selected: #eef1f6;
+  --table-border: #edeff2;
+
+  --form-label: #101318;
+  --form-description: #565d68;
+  --form-placeholder: #767d87;
+  --form-error: #b3261e;
+
+  --navigation-background: #f4f5f7;
+  --navigation-foreground: #101318;
+  --navigation-hover: #e8eaee;
+  --navigation-active: #e8eaee;
+  --navigation-active-foreground: #101318;
+  --navigation-border: #e2e5ea;
+
+  --sidebar: #f4f5f7;
+  --sidebar-foreground: #101318;
+  --sidebar-primary: #1a2c50;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8eaee;
+  --sidebar-accent-foreground: #101318;
+  --sidebar-muted: #565d68;
+  --sidebar-border: #e2e5ea;
+  --sidebar-ring: #1a2c50;
+
+  --header: #f4f5f7;
+  --header-foreground: #101318;
+  --header-border: #d5d9e0;
+
+  --breadcrumb-foreground: #565d68;
+  --breadcrumb-current: #101318;
+  --breadcrumb-separator: #9aa1ab;
+
+  --badge-background: #eef0f3;
+  --badge-foreground: #101318;
+
+  --code-background: #eef0f3;
+  --code-foreground: #101318;
+
+  --radius: 6px;
+}
+
+.dark {
+  --background: #0b0d12;
+  --foreground: #e9edf4;
+
+  --surface: #12151c;
+  --surface-foreground: #e9edf4;
+  --surface-muted: #171b23;
+  --surface-muted-foreground: #97a0ad;
+
+  --card: #12151c;
+  --card-foreground: #e9edf4;
+  --card-muted: #171b23;
+
+  --popover: #171b23;
+  --popover-foreground: #e9edf4;
+
+  --primary: #e9edf4;
+  --primary-foreground: #0b0d12;
+
+  --secondary: #1a1f28;
+  --secondary-foreground: #e9edf4;
+
+  --muted: #1a1f28;
+  --muted-foreground: #97a0ad;
+
+  --accent: #1a1f28;
+  --accent-foreground: #e9edf4;
+
+  --destructive: #ef6b62;
+  --destructive-foreground: #0b0d12;
+
+  --success: #5cc98f;
+  --success-foreground: #0b0d12;
+  --success-muted: #16281f;
+  --success-muted-foreground: #5cc98f;
+
+  --warning: #d9ab4a;
+  --warning-foreground: #0b0d12;
+  --warning-muted: #2a2313;
+  --warning-muted-foreground: #d9ab4a;
+
+  --info: #9db8ea;
+  --info-foreground: #0b0d12;
+  --info-muted: #16203a;
+  --info-muted-foreground: #9db8ea;
+
+  --gold: #d4a72c;
+  --gold-foreground: #101318;
+
+  --border: #262c38;
+  --border-muted: #1a1f28;
+
+  --input: #333a48;
+  --input-background: #12151c;
+
+  --ring: #97a0ad;
+  --focus: #8fb0e8;
+
+  --text: #e9edf4;
+  --text-muted: #97a0ad;
+  --text-subtle: #7d8794;
+  --text-disabled: #565f6b;
+  --text-inverse: #0b0d12;
+
+  --selection: #e9edf4;
+  --selection-foreground: #0b0d12;
+
+  --link: #9db8ea;
+  --link-hover: #c2d4f5;
+  --link-visited: #9db8ea;
+
+  --table-background: #12151c;
+  --table-header: #12151c;
+  --table-row: #12151c;
+  --table-row-hover: #181d26;
+  --table-row-selected: #1c2330;
+  --table-border: #1c212b;
+
+  --form-label: #e9edf4;
+  --form-description: #97a0ad;
+  --form-placeholder: #7d8794;
+  --form-error: #ef6b62;
+
+  --navigation-background: #0b0d12;
+  --navigation-foreground: #e9edf4;
+  --navigation-hover: #1a1f28;
+  --navigation-active: #1a1f28;
+  --navigation-active-foreground: #e9edf4;
+  --navigation-border: #262c38;
+
+  --sidebar: #0b0d12;
+  --sidebar-foreground: #e9edf4;
+  --sidebar-primary: #e9edf4;
+  --sidebar-primary-foreground: #0b0d12;
+  --sidebar-accent: #1a1f28;
+  --sidebar-accent-foreground: #e9edf4;
+  --sidebar-muted: #97a0ad;
+  --sidebar-border: #262c38;
+  --sidebar-ring: #8fb0e8;
+
+  --header: #0b0d12;
+  --header-foreground: #e9edf4;
+  --header-border: #262c38;
+
+  --breadcrumb-foreground: #97a0ad;
+  --breadcrumb-current: #e9edf4;
+  --breadcrumb-separator: #565f6b;
+
+  --badge-background: #1a1f28;
+  --badge-foreground: #e9edf4;
+
+  --code-background: #1a1f28;
+  --code-foreground: #e9edf4;
+}

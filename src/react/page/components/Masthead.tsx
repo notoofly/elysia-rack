@@ -1,40 +1,37 @@
+import type { ReactNode } from "react";
+import { RackIcon } from "./Icon";
+
 export interface MastheadProps {
   title: string;
-  group?: string;
-  resource?: string;
-  total?: number;
+  icon?: string;
+  detail?: ReactNode;
+  actions?: ReactNode;
 }
 
-export function Masthead({ title, group, resource, total }: MastheadProps) {
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+export function Masthead({ title, icon, detail, actions }: MastheadProps) {
   return (
-    <header className="bg-header text-header-foreground">
-      <div className="flex items-center justify-between gap-4 py-2 text-xs tracking-widest text-text-muted uppercase">
-        <span>{today}</span>
-        <span className="hidden sm:inline">Daily Edition</span>
+    <header className="flex flex-wrap items-start justify-between gap-3 pb-4">
+      <div className="min-w-0">
+        <h1 className="font-display flex items-center gap-2 text-2xl leading-tight tracking-tight">
+          {icon ? (
+            <RackIcon name={icon} size={22} className="size-[22px] shrink-0" />
+          ) : null}
+          {title}
+        </h1>
+        {detail ? (
+          <p className="text-text-muted mt-1 text-sm">{detail}</p>
+        ) : null}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {actions}
         <button
           id="koran-theme-toggle"
           type="button"
-          className="border-border hover:bg-navigation-hover rounded-full border px-3 py-1 tracking-widest uppercase"
+          className="border-border text-muted-foreground hover:bg-navigation-hover hover:text-foreground rounded-md border px-2.5 py-1.5 text-xs"
         >
           ◐ Theme
         </button>
       </div>
-      <h1 className="font-koran py-2 text-center text-5xl font-black tracking-tight">
-        {title}
-      </h1>
-      <div className="flex items-center justify-center gap-2 pb-3 text-sm text-text-muted">
-        {group ? <span className="uppercase">{group}</span> : null}
-        {group && (resource || total !== undefined) ? <span aria-hidden="true">·</span> : null}
-        {resource ? <span className="font-mono text-xs">/{resource}</span> : null}
-        {total !== undefined ? <span>{total} records</span> : null}
-      </div>
-      <div className="koran-rule-double" />
     </header>
   );
 }

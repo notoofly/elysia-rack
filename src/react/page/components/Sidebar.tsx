@@ -1,3 +1,5 @@
+import { RackIcon } from "./Icon";
+
 export interface SidebarItem {
   id: string;
   label: string;
@@ -26,12 +28,14 @@ function SidebarItemView({ item, depth = 0 }: { item: SidebarItem; depth?: numbe
         aria-current={item.active ? "page" : undefined}
         className={
           item.active
-            ? "bg-sidebar-primary text-sidebar-primary-foreground flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-semibold"
-            : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-2 rounded-md px-2 py-1.5 text-sm"
+            ? "bg-sidebar-primary text-sidebar-primary-foreground flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium"
+            : "text-sidebar-foreground hover:bg-sidebar-accent flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm"
         }
-        style={depth > 0 ? { paddingLeft: `${8 + depth * 12}px` } : undefined}
+        style={depth > 0 ? { paddingLeft: `${10 + depth * 12}px` } : undefined}
       >
-        {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
+        {item.icon ? (
+          <RackIcon name={item.icon} size={16} className="size-4 shrink-0" />
+        ) : null}
         <span>{item.label}</span>
       </a>
       {hasChildren ? (
@@ -55,22 +59,39 @@ function hasActive(items: SidebarItem[]): boolean {
 
 export function Sidebar({ title, groups }: SidebarProps) {
   return (
-    <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border min-h-0 w-64 shrink-0 overflow-y-auto rounded-lg border">
-      <div className="border-sidebar-border border-b px-4 py-3">
-        <p className="font-koran text-xl font-black tracking-tight">{title}</p>
+    <aside className="border-sidebar-border bg-sidebar shrink-0 border-b lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:overflow-y-auto lg:border-r lg:border-b-0 xl:w-64">
+      <input
+        type="checkbox"
+        id="rack-nav-toggle"
+        aria-label="Toggle navigation"
+        className="peer sr-only"
+      />
+      <div className="border-sidebar-border flex items-center justify-between gap-3 border-b px-4 py-3">
+        <a href="/" className="flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="bg-gold text-gold-foreground flex size-6 shrink-0 items-center justify-center text-[13px] font-semibold"
+          >
+            {title.charAt(0).toUpperCase()}
+          </span>
+          <span className="font-display text-[15px] tracking-tight">{title}</span>
+        </a>
+        <label
+          htmlFor="rack-nav-toggle"
+          className="border-border text-muted-foreground hover:bg-navigation-hover cursor-pointer rounded-md border px-2.5 py-1 text-xs lg:hidden"
+        >
+          Menu
+        </label>
       </div>
-      <nav className="flex flex-col gap-4 p-3">
+      <nav className="hidden flex-col gap-4 overflow-y-auto px-3 py-3 peer-checked:flex lg:flex lg:py-4">
         {groups.map((group) => (
           <section key={group.name}>
-            <details
-              className="group"
-              open={hasActive(group.items) || undefined}
-            >
-              <summary className="font-koran border-sidebar-border flex cursor-pointer list-none items-center justify-between border-b px-2 pb-1 text-base font-bold tracking-tight [&::-webkit-details-marker]:hidden">
+            <details className="group" open={hasActive(group.items) || undefined}>
+              <summary className="text-text-muted flex cursor-pointer list-none items-center justify-between px-2.5 pb-1.5 text-xs font-medium [&::-webkit-details-marker]:hidden">
                 <span>{group.name}</span>
                 <span
                   aria-hidden="true"
-                  className="text-text-muted text-xs transition group-open:rotate-180"
+                  className="text-text-subtle transition-transform group-open:rotate-180"
                 >
                   ▾
                 </span>

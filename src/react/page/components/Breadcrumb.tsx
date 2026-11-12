@@ -5,7 +5,7 @@ export interface BreadcrumbItem {
 
 export function Breadcrumb({ trail }: { trail: BreadcrumbItem[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="pb-3 text-sm">
+    <nav aria-label="Breadcrumb" className="pb-3 text-xs">
       <ol className="flex flex-wrap items-center gap-1.5">
         {trail.map((item, i) => {
           const last = i === trail.length - 1;
@@ -19,7 +19,7 @@ export function Breadcrumb({ trail }: { trail: BreadcrumbItem[] }) {
               {item.href && !last ? (
                 <a
                   href={item.href}
-                  className="text-text-muted hover:text-foreground"
+                  className="text-breadcrumb-foreground hover:text-foreground"
                 >
                   {item.label}
                 </a>
@@ -27,7 +27,9 @@ export function Breadcrumb({ trail }: { trail: BreadcrumbItem[] }) {
                 <span
                   aria-current={last ? "page" : undefined}
                   className={
-                    last ? "text-foreground font-semibold" : "text-text-muted"
+                    last
+                      ? "text-foreground font-medium"
+                      : "text-breadcrumb-foreground"
                   }
                 >
                   {item.label}

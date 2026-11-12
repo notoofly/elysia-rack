@@ -1,5 +1,5 @@
 import type { FieldDescriptor } from "../../rack/adapters/index";
-import { buildRackTree, getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry";
+import { getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry";
 import { Breadcrumb } from "./components/Breadcrumb";
 import { DataTable } from "./components/DataTable";
 import { Masthead } from "./components/Masthead";
@@ -9,9 +9,12 @@ import { Toolbar } from "./components/Toolbar";
 import { resolveDonateProp } from "../donate";
 
 const inputClass =
-  "bg-input-background border-input text-foreground rounded-md border px-3 py-1.5 text-sm font-normal normal-case";
-const fieldLabelClass =
-  "flex flex-col gap-1 text-xs font-semibold tracking-wider text-form-label uppercase";
+  "border-input bg-input-background text-foreground placeholder:text-form-placeholder h-9 rounded-md border px-2.5 text-sm";
+const fieldLabelClass = "flex flex-col gap-1.5 text-sm font-medium text-form-label";
+const secondaryButtonClass =
+  "border-border bg-background text-foreground hover:bg-navigation-hover rounded-md border px-3.5 py-1.5 text-sm font-medium";
+const primaryButtonClass =
+  "bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-3.5 py-1.5 text-sm font-medium";
 
 interface FormField {
   name: string;
@@ -27,7 +30,7 @@ function FieldInput({ field, required }: { field: FormField; required?: boolean 
         <label className={fieldLabelClass}>
           {field.name}
           <select name={field.name} required={required} defaultValue="" className={inputClass}>
-            <option value="">—</option>
+            <option value="">Select</option>
             {(field.enumValues ?? []).map((v) => (
               <option key={v} value={v}>
                 {v}
@@ -38,9 +41,9 @@ function FieldInput({ field, required }: { field: FormField; required?: boolean 
       );
     case "boolean":
       return (
-        <label className={fieldLabelClass}>
+        <label className={`${fieldLabelClass} flex-row items-center gap-2`}>
+          <input type="checkbox" name={field.name} value="true" className="accent-primary size-4" />
           {field.name}
-          <input type="checkbox" name={field.name} value="true" className="h-4 w-4" />
         </label>
       );
     case "integer":
@@ -86,11 +89,7 @@ function FieldInput({ field, required }: { field: FormField; required?: boolean 
       return (
         <label className={fieldLabelClass}>
           {field.name}
-          <input
-            name={field.name}
-            required={required}
-            className={inputClass}
-          />
+          <input name={field.name} required={required} className={inputClass} />
         </label>
       );
   }
@@ -128,6 +127,10 @@ function buildGroupsFromTree(tree: RackTreeNode[], activeId?: string): SidebarGr
   return [...byGroup.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
 export interface PanelProps {
   donate?: boolean;
   resource?: string;
@@ -135,6 +138,7 @@ export interface PanelProps {
     label?: string;
     pluralLabel?: string;
     group?: string;
+    icon?: string;
   };
   operations?: {
     list?: boolean;
@@ -233,37 +237,41 @@ export default async function Panel(props: PanelProps) {
   ];
 
   return (
-    <div className="koran-paper font-koran-body text-foreground flex min-h-screen flex-col">
-      <div className="flex flex-1 gap-6 p-4 sm:p-6">
-        <Sidebar title="Panel" groups={groups} />
-        <main className="flex min-w-0 flex-1 flex-col">
+    <div className="text-foreground flex min-h-screen flex-col lg:flex-row">
+      <Sidebar title="Panel" groups={groups} />
+      <main className="min-w-0 flex-1">
+        <div className="mx-auto w-full max-w-5xl px-4 py-4 sm:px-6">
           <Breadcrumb trail={trail} />
-          <div className="mx-auto w-full max-w-5xl px-4 pb-10 sm:px-6">
+          <div data-query-url={props.queryUrl}>
             <Masthead
-          title={title}
-          group={props.metadata?.group}
-          resource={props.resource}
-          total={total}
-        />
-        <div data-query-url={props.queryUrl}>
-          <Toolbar
-            searchable={props.query?.searchable}
-            filterable={props.query?.filterable}
-            sortable={props.query?.sortable}
-            params={params}
-          />
-          <div className="flex items-center justify-between gap-3 pb-3">
+              title={title}
+              icon={props.metadata?.icon}
+              detail={<span data-panel-total>{plural(total, "record")}</span>}
+              actions={
+                canCreate ? (
+                  <button type="button" data-open-create className={primaryButtonClass}>
+                    New record
+                  </button>
+                ) : undefined
+              }
+            />
+            <Toolbar
+              searchable={props.query?.searchable}
+              filterable={props.query?.filterable}
+              sortable={props.query?.sortable}
+              params={params}
+            />
             <div
               data-bulk-bar
               style={{ display: "none" }}
-              className="items-center gap-2"
+              className="flex flex-wrap items-center gap-2 pb-3"
             >
-              <span data-bulk-count className="text-sm text-text-muted" />
+              <span data-bulk-count className="text-text-muted text-xs" />
               {canDelete ? (
                 <button
                   type="button"
                   data-bulk-delete
-                  className="bg-destructive text-destructive-foreground rounded-md px-3 py-1.5 text-sm font-semibold"
+                  className="bg-destructive text-destructive-foreground rounded-md px-3 py-1.5 text-xs font-medium"
                 >
                   Delete selected
                 </button>
@@ -273,7 +281,7 @@ export default async function Panel(props: PanelProps) {
                   <select
                     data-bulk-field
                     aria-label="Bulk field"
-                    className="bg-input-background border-input rounded-md border px-2 py-1.5 text-sm"
+                    className="border-input bg-input-background h-8 rounded-md border px-2 text-xs"
                   >
                     {editFields.map((f) => (
                       <option key={f.name} value={f.name}>
@@ -285,12 +293,12 @@ export default async function Panel(props: PanelProps) {
                     data-bulk-value
                     placeholder="New value"
                     aria-label="Bulk value"
-                    className="bg-input-background border-input placeholder:text-form-placeholder rounded-md border px-2 py-1.5 text-sm"
+                    className="border-input bg-input-background placeholder:text-form-placeholder h-8 rounded-md border px-2 text-xs"
                   />
                   <button
                     type="button"
                     data-bulk-apply
-                    className="bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm font-semibold"
+                    className="bg-secondary text-secondary-foreground hover:bg-navigation-hover rounded-md px-3 py-1.5 text-xs font-medium"
                   >
                     Apply
                   </button>
@@ -299,113 +307,99 @@ export default async function Panel(props: PanelProps) {
               <button
                 type="button"
                 data-bulk-clear
-                className="text-text-muted text-sm underline"
+                className="text-text-muted hover:text-foreground text-xs underline"
               >
                 Clear
               </button>
             </div>
-            {canCreate ? (
-              <button
-                type="button"
-                data-open-create
-                className="bg-primary text-primary-foreground ml-auto rounded-md px-4 py-1.5 text-sm font-semibold"
+            <DataTable
+              columns={columns}
+              rows={rows}
+              sortable={props.query?.sortable}
+              params={params}
+              selectable={selectable}
+              editable={canEdit || canDelete}
+              primaryKey={pk}
+            />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              limit={limit}
+              params={params}
+            />
+            <dialog
+              id="rack-create"
+              className="bg-card text-card-foreground w-full max-w-md rounded-lg border p-0 shadow-lg"
+            >
+              <form data-create-form className="flex flex-col gap-4 p-5">
+                <h2 className="font-display text-xl leading-tight">New record</h2>
+                {createFields.length > 0 ? (
+                  createFields.map((f) => (
+                    <FieldInput key={f.name} field={f} required={isRequired(f)} />
+                  ))
+                ) : (
+                  <label className="flex flex-col gap-1.5 text-sm font-medium text-form-label">
+                    JSON body
+                    <textarea
+                      data-create-json
+                      rows={4}
+                      placeholder='{"name": "..."}'
+                      className={`${inputClass} h-auto font-mono`}
+                    />
+                  </label>
+                )}
+                <p data-form-error className="text-form-error text-sm" />
+                <div className="border-border flex justify-end gap-2 border-t pt-4">
+                  <button type="button" data-close className={secondaryButtonClass}>
+                    Cancel
+                  </button>
+                  <button type="submit" className={primaryButtonClass}>
+                    Create
+                  </button>
+                </div>
+              </form>
+            </dialog>
+            <dialog
+              id="rack-edit"
+              className="bg-card text-card-foreground w-full max-w-md rounded-lg border p-0 shadow-lg"
+            >
+              <form data-edit-form className="flex flex-col gap-4 p-5">
+                <h2 className="font-display text-xl leading-tight">
+                  Edit record{" "}
+                  <span data-edit-id-label className="text-text-muted font-mono text-sm" />
+                </h2>
+                {editFields.map((f) => (
+                  <FieldInput key={f.name} field={f} />
+                ))}
+                <p data-form-error className="text-form-error text-sm" />
+                <div className="border-border flex justify-end gap-2 border-t pt-4">
+                  <button type="button" data-close className={secondaryButtonClass}>
+                    Cancel
+                  </button>
+                  <button type="submit" className={primaryButtonClass}>
+                    Save
+                  </button>
+                </div>
+              </form>
+            </dialog>
+            <script type="module" src="/__rack/panel-app.js" />
+          </div>
+          <footer className="border-border text-text-muted mt-6 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs">
+            <span>elysia-rack</span>
+            {donate.enabled ? (
+              <a
+                href={donate.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground underline-offset-4 hover:underline"
               >
-                + New
-              </button>
+                {donate.label}
+              </a>
             ) : null}
-          </div>
-          <DataTable
-            columns={columns}
-            rows={rows}
-            sortable={props.query?.sortable}
-            params={params}
-            selectable={selectable}
-            editable={canEdit || canDelete}
-            primaryKey={pk}
-          />
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            total={total}
-            limit={limit}
-            params={params}
-          />
-          <dialog
-            id="rack-create"
-            className="bg-card text-card-foreground rounded-lg border p-0"
-          >
-            <form data-create-form className="flex min-w-80 flex-col gap-3 p-6">
-              <h2 className="font-koran text-2xl font-bold">New record</h2>
-              {createFields.length > 0 ? (
-                createFields.map((f) => (
-                  <FieldInput key={f.name} field={f} required={isRequired(f)} />
-                ))
-              ) : (
-                <label className="flex flex-col gap-1 text-xs font-semibold tracking-wider text-form-label uppercase">
-                  JSON body
-                  <textarea
-                    data-create-json
-                    rows={4}
-                    placeholder='{"name": "..."}'
-                    className="bg-input-background border-input text-foreground rounded-md border px-3 py-1.5 font-mono text-sm font-normal normal-case"
-                  />
-                </label>
-              )}
-              <p data-form-error className="text-form-error text-sm" />
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  data-close
-                  className="border-border rounded-md border px-4 py-1.5 text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-primary text-primary-foreground rounded-md px-4 py-1.5 text-sm font-semibold"
-                >
-                  Create
-                </button>
-              </div>
-            </form>
-          </dialog>
-          <dialog
-            id="rack-edit"
-            className="bg-card text-card-foreground rounded-lg border p-0"
-          >
-            <form data-edit-form className="flex min-w-80 flex-col gap-3 p-6">
-              <h2 className="font-koran text-2xl font-bold">
-                Edit record <span data-edit-id-label className="text-text-muted text-lg" />
-              </h2>
-              {editFields.map((f) => (
-                <FieldInput key={f.name} field={f} />
-              ))}
-              <p data-form-error className="text-form-error text-sm" />
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  data-close
-                  className="border-border rounded-md border px-4 py-1.5 text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-primary text-primary-foreground rounded-md px-4 py-1.5 text-sm font-semibold"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
-          </dialog>
-          <script type="module" src="/__rack/panel-app.js" />
+          </footer>
         </div>
-            <footer className="border-border text-text-muted border-t pt-3 text-center text-xs tracking-widest uppercase">
-              {donate.enabled ? (<><a href={donate.url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline decoration-dotted underline-offset-4">{donate.label}</a> · </>) : null}Printed by elysia-rack
-            </footer>
-          </div>
-        </main>
-      </div>
+      </main>
     </div>
   );
 }

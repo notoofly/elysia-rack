@@ -153,6 +153,7 @@ const app = new Elysia()
         pluralLabel: "Products",
         group: "Catalog",
         order: 1,
+        icon: "package",
       },
 
       openapi: {
@@ -194,6 +195,7 @@ const app = new Elysia()
         pluralLabel: "Categories",
         group: "Catalog",
         order: 2,
+        icon: "tags",
       },
 
       openapi: { tags: ["Catalog"] },
