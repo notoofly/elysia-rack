@@ -4,8 +4,6 @@
 
 Model-driven CRUD rack for [Elysia](https://elysiajs.com): declare a resource once, get REST + `QUERY` routes, validation, authorization, query engine, OpenAPI metadata, and a React panel — running on [Bun](https://bun.com) or Node.js 20+.
 
-Full usage guide: [docs/USAGE.md](docs/USAGE.md).
-
 ## Documentation
 
 End-user documentation covers installation, configuration, daily usage, and troubleshooting: [docs/index.md](docs/index.md).
@@ -335,17 +333,28 @@ Helpers to inspect the tree yourself: `listRacks()`, `getRack(id)`, `getRackTree
 `reactPlugin` is the bridge between Elysia and React. `pages` is now optional and mergeable — defaults already include `"/dashboard"` and `"/panel"`, and any custom pages you pass are merged in. You can pass a single registry or an array.
 
 ```ts
-import { pages, reactPlugin, page } from "elysia-rack/react";
+import { lazyPage, pages, reactPlugin, page } from "elysia-rack/react";
 
 // Option A: just use defaults
 new Elysia().use(reactPlugin());
 
 // Option B: extend defaults with your own page
-const myPages = { "/hello": () => import("./Hello") };
+const myPages = { "/hello": lazyPage(() => import("./Hello")) };
 new Elysia().use(reactPlugin({ pages: myPages })); // merged with defaults
 
-// Option C: merge multiple registries — array will be merged
-const extra = { "/admin": () => import("./Admin") };
+// Option C: pass a component directly (no import wrapper)
+import Hello from "./Hello";
+new Elysia().use(reactPlugin({ pages: { "/hello": Hello } }));
+
+// Option D: auto-mount a view — no page() call needed
+new Elysia().use(
+  reactPlugin({
+    views: [{ path: "/hello", component: Hello, props: { name: "Ada" } }],
+  }),
+);
+
+// Option E: merge multiple registries — array will be merged
+const extra = { "/admin": lazyPage(() => import("./Admin")) };
 new Elysia().use(reactPlugin({ pages: [pages, myPages, extra] }));
 
 // With a style override
@@ -360,7 +369,8 @@ new Elysia().use(reactPlugin({
 
 What each option does:
 
-- `pages` *(optional, `PageRegistry | PageRegistry[]`)* — registry of lazy page components. If omitted, defaults are used. If you pass one or an array, they are merged with defaults so `"/dashboard"` + `"/panel"` stay available. Later entries win on key collision.
+- `pages` *(optional, `PageRegistry | PageRegistry[]`)* — registry of page components or loaders wrapped with `lazyPage(() => import(...))`. If omitted, defaults are used. If you pass one or an array, they are merged with defaults so `"/dashboard"` + `"/panel"` stay available. Later entries win on key collision.
+- `views` *(optional, `ReactView[]`)* — components auto-mounted at their `path` with fixed `props`. Equivalent to registering a page and returning `page(path, props)` yourself.
 - `css` / `panelCss` — replace `dist/panel.css` served at `/__rack/panel.css`. If the string points to an existing file it’s used, otherwise it’s treated as raw CSS. Useful for quick theming without forking.
 
 Under the hood `reactPlugin` also serves `/__rack/panel-theme.js` and `/__rack/panel-app.js` and turns any `page()` return value into streamed HTML using `src/react/app.html` (`{{title}}` + `<!--app-->`).

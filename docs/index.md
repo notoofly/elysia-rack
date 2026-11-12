@@ -62,10 +62,6 @@ You do not need to build routes, table pages, or forms by hand. You do need to w
 | [Common issues](troubleshooting/common-issues.md) | Diagnose installation, configuration, and runtime problems |
 | [FAQ](faq.md) | Short answers about compatibility, usage, and limitations |
 
-## Existing developer guide
-
-The repository also contains [USAGE.md](USAGE.md), a detailed guide that includes internal behavior notes and development workflows. It is useful for maintainers. The pages in this directory are written for people who install, configure, and operate elysia-rack.
-
 ## License
 
 MIT. See the [LICENSE](../LICENSE) file in the repository.

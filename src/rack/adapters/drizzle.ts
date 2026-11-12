@@ -35,6 +35,12 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (m) => `\\${m}`);
 }
 
+function searchCondition(col: any, pattern: string) {
+  // SQLite and MySQL use `LIKE` (case-insensitive for ASCII); `ILIKE` is Postgres-only.
+  const columnType = typeof col?.columnType === "string" ? col.columnType : "";
+  return columnType.startsWith("Pg") ? ilike(col, pattern) : like(col, pattern);
+}
+
 function fieldKind(
   columnType: string | undefined,
   dataType: string | undefined,
@@ -115,12 +121,7 @@ function whereFor(
       .map((f) => {
         const col = table[f];
         if (!col) return undefined;
-        // Use ilike for case-insensitive Postgres when available, fallback to like
-        try {
-          return typeof ilike === "function" ? ilike(col, pattern) : like(col, pattern);
-        } catch {
-          return like(col, pattern);
-        }
+        return searchCondition(col, pattern);
       })
       .filter((c) => c !== undefined);
     if (ors.length > 0) conds.push(or(...ors));

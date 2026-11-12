@@ -56,8 +56,8 @@ export function page<Props = Record<string, never>>(path: string, props?: Props)
 }
 
 export const pages: ReactRack.PageRegistry = {
-  "/dashboard": () => import("./page/Dashboard"),
-  "/panel": () => import("./page/Panel")
+  "/dashboard": ReactRack.lazyPage(() => import("./page/Dashboard")),
+  "/panel": ReactRack.lazyPage(() => import("./page/Panel"))
 }
 
 const defaultPages = pages
@@ -71,7 +71,13 @@ function mergeRegistries(base: ReactRack.PageRegistry, extra?: ReactRack.PageReg
 
 export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
   setGlobalDonate(options.donate);
-  const registry = mergeRegistries(defaultPages, options.pages)
+  const views = options.views ?? []
+  const viewPages: ReactRack.PageRegistry = {}
+  for (const view of views) viewPages[view.path] = view.component
+  const registry = mergeRegistries(defaultPages, [
+    ...(options.pages ? (Array.isArray(options.pages) ? options.pages : [options.pages]) : []),
+    viewPages,
+  ])
   const render = createRenderer(registry)
   const panelCssOverride = pickPanelCssOption(options);
   let cachedCustomCss: string | Buffer | null = null;
@@ -126,7 +132,7 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
     return (cachedCustomCss = null);
   }
 
-  return new Elysia({ name: "@elysia-rack/react" })
+  let app = new Elysia({ name: "@elysia-rack/react" })
     .decorate('react', { render })
     .get("/__rack/:name", async ({ params, status }) => {
       const type = PANEL_ASSETS[params.name];
@@ -169,4 +175,8 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
       return render(descriptor.path, descriptor.props)
     })
 
+  for (const view of views) {
+    app = app.get(view.path, () => render(view.path, view.props)) as unknown as typeof app
+  }
+  return app
 }

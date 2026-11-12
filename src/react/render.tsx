@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { renderToReadableStream } from "react-dom/server"
-import type { ReactRack } from "./types"
+import { ReactRack } from "./types"
 
 function pageTitle(path: string, props: unknown): string {
   const metadata = (props as { metadata?: { pluralLabel?: string; label?: string } } | null)?.metadata;
@@ -66,19 +66,24 @@ function buildShell(template: string, title: string): { head: string; tail: stri
   return { head: html, tail: "" }
 }
 
+function isLazyPage(entry: ReactRack.PageEntry): entry is ReactRack.PageLoader {
+  return ReactRack.isLazyPage(entry);
+}
+
 export function createRenderer(pages: ReactRack.PageRegistry) {
   return async function render(
     path: string,
     props: unknown
   ): Promise<Response> {
-    const loader = pages[path]
-    if (!loader) {
+    const entry = pages[path]
+    if (!entry) {
       return new Response("Page Not Found", {
         status: 404
       })
     }
-    const module = await loader()
-    const Component = module.default
+    const Component = isLazyPage(entry)
+      ? (await entry()).default
+      : entry
     const stream = await renderToReadableStream(
       <Component {...(props as object)} />
     )

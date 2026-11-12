@@ -24,10 +24,10 @@ export default function Hello({ name }: { name: string }) {
 
 ```ts
 import { Elysia } from "elysia";
-import { page, reactPlugin } from "elysia-rack/react";
+import { lazyPage, page, reactPlugin } from "elysia-rack/react";
 
 const myPages = {
-  "/hello": () => import("./Hello"),
+  "/hello": lazyPage(() => import("./Hello")),
 };
 
 const app = new Elysia()
@@ -36,6 +36,25 @@ const app = new Elysia()
 ```
 
 **Expected result:** visiting `/hello` returns server-rendered HTML from your component.
+
+**Shorter:** pass the component directly, or auto-mount it with `views`:
+
+```ts
+import Hello from "./Hello";
+
+// a) component directly in the registry
+app.use(reactPlugin({ pages: { "/hello": Hello } }));
+
+// b) auto-mounted at its URL — no page() call
+app.use(
+  reactPlugin({
+    views: [{ path: "/hello", component: Hello, props: { name: "Ada" } }],
+  }),
+);
+```
+
+Wrap dynamic imports with `lazyPage(() => import(...))`; anything else in `pages`
+is treated as a component.
 
 **Limits:**
 
@@ -48,10 +67,10 @@ const app = new Elysia()
 Pass one registry or an array. Arrays are merged in order, and later entries win on key collisions.
 
 ```ts
-import { pages, reactPlugin } from "elysia-rack/react";
+import { lazyPage, pages, reactPlugin } from "elysia-rack/react";
 
 const adminPages = {
-  "/admin": () => import("./Admin"),
+  "/admin": lazyPage(() => import("./Admin")),
 };
 
 app.use(reactPlugin({ pages: [pages, adminPages] }));
