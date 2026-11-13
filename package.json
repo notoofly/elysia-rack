@@ -59,7 +59,9 @@
     "build:js": "bun build ./src/rack/index.ts ./src/react/index.ts --outdir ./dist --target node --format esm --splitting --external elysia --external react --external react-dom --external lucide-react",
     "build:client": "bun build src/react/page/client/panel.ts --outfile dist/panel-app.js --target browser --format esm && bun build src/react/page/client/theme.ts --outfile dist/panel-theme.js --target browser --format esm && mkdir -p dist && cp src/react/app.html dist/app.html 2>/dev/null || true",
     "build:dts": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "bun run typecheck && bun run build"
+    "prepublishOnly": "bun run typecheck && bun run build",
+    "docs:build": "vitepress build docs",
+    "docs:dev": "vitepress dev docs"
   },
   "peerDependencies": {
     "elysia": "^1.4.0",
@@ -82,7 +84,8 @@
     "elysia": "^1.4.30",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitepress": "1"
   },
   "funding": {
     "type": "ko-fi",
