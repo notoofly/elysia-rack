@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0f19">
+<title>elysia-rack — Model-driven CRUD rack for Elysia</title>
+<meta name="description" content="Turn a database model into a complete admin resource: REST + QUERY routes, validation, authorization, OpenAPI metadata, and a React panel for the Elysia web framework.">
+<link rel="canonical" href="https://notoofly.github.io/elysia-rack/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="elysia-rack — Model-driven CRUD rack for Elysia">
+<meta property="og:description" content="Turn a database model into a complete admin resource: REST + QUERY routes, validation, authorization, OpenAPI metadata, and a React panel.">
+<meta property="og:url" content="https://notoofly.github.io/elysia-rack/">
+<meta property="og:image" content="https://notoofly.github.io/elysia-rack/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@notoofly">
+<link rel="preload" as="style" href="css/style.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+
+<header class="site-header">
+  <div class="header-inner container">
+    <a class="brand" href="/" aria-label="elysia-rack home">
+      <img class="logo" src="assets/logo.png" alt="elysia-rack logo" width="32" height="32"/>
+      <span class="wordmark">elysia<span>-rack</span></span>
+    </a>
+    <nav class="nav" aria-label="Main navigation">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#installation">Installation</a>
+      <a href="#docs-preview">Documentation</a>
+      <a href="https://github.com/notoofly/elysia-rack" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <div class="header-actions">
+      <a class="button button-primary" href="#get-started">Get Started</a>
+      <button class="button button-ghost" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">🌓</button>
+    </div>
+  </div>
+</header>
+
+<main id="content">
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-content">
+      <h1>Model-driven <span class="accent">CRUD</span> for Elysia.</h1>
+      <p class="lead">Turn a database model into a complete admin resource: REST + QUERY routes, search and filtering, validation, authorization, OpenAPI metadata, and a browser panel — defined once, served everywhere.</p>
+      <div class="hero-ctas">
+        <a class="button button-primary" href="#get-started">Get Started</a>
+        <a class="button button-ghost" href="/docs/">View Documentation</a>
+      </div>
+      <div class="hero-stats" aria-label="Project highlights">
+        <div><strong>REST</strong> + <strong>QUERY</strong> routes</div>
+        <div><strong>OpenAPI</strong> metadata</div>
+        <div><strong>React</strong> admin panel</div>
+      </div>
+      <p class="hero-repo">
+        <a href="https://github.com/notoofly/elysia-rack" target="_blank" rel="noopener">GitHub: notoofly/elysia-rack</a>
+      </p>
+    </div>
+    <div class="hero-visual">
+      <pre class="code-block"><code>&lt;elysia&gt;
+  .use(rack("/products", { model: products }))
+  .use(dashboard({ path: "/" }))
+&lt;/elysia&gt;</code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section features" aria-labelledby="features-heading">
+  <div class="container">
+    <div class="section-head">
+      <h2 id="features-heading">Features</h2>
+      <p>Capabilities built around a single model definition.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>REST routes</h3>
+        <p>List, detail, create, replace, update, and delete operations generated from your model.</p>
+      </div>
+      <div class="feature-card">
+        <h3>QUERY read API</h3>
+        <p>A read endpoint under <code>/data</code> for the panel and client applications, with search, filtering, sorting, and pagination.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Validation &amp; authorization</h3>
+        <p>Per-operation validation and authorization rules you control.</p>
+      </div>
+      <div class="feature-card">
+        <h3>React admin panel</h3>
+        <p>A browser panel for creating, editing, and deleting records, plus a dashboard of registered resources.</p>
+      </div>
+      <div class="feature-card">
+        <h3>OpenAPI metadata</h3>
+        <p>Generated OpenAPI documentation for every route.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Idempotent creates</h3>
+        <p>Safe, idempotent create requests with configurable stores.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works" class="section how-it-works" aria-labelledby="how-heading">
+  <div class="container">
+    <div class="section-head">
+      <h2 id="how-heading">How it works</h2>
+      <p>Define the model once; elysia-rack derives the API and panel.</p>
+    </div>
+    <div class="workflow">
+      <div class="step">
+        <span class="step-num">1</span>
+        <h4>Define a table</h4>
+        <p>Create your database table or Drizzle/Prisma model.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <h4>Register a rack</h4>
+        <p>Call <code>rack(path, { model })</code> to mount REST + QUERY routes.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <h4>Add the panel</h4>
+        <p>Mount <code>dashboard()</code> and <code>reactPlugin()</code> for the browser UI.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="code-example" class="section code-example" aria-labelledby="code-heading">
+  <div class="container">
+    <div class="section-head">
+      <h2 id="code-heading">Code example</h2>
+      <p>A complete, minimal setup.</p>
+    </div>
+    <div class="code-wrap">
+      <div class="code-toolbar">
+        <span class="lang">TypeScript</span>
+        <button class="copy-btn" data-target="#example-code" aria-label="Copy code to clipboard">Copy</button>
+      </div>
+      <pre class="code-block" id="example-code"><code class="lang-ts"><span class="kw">import</span> <span class="kw">type</span> <span class="kw">from</span> <span class="str">"drizzle-orm/sqlite-core"</span>;
+<span class="kw">import</span> { <span class="fn">integer</span>, <span class="fn">sqliteTable</span>, <span class="fn">text</span> } <span class="kw">from</span> <span class="str">"drizzle-orm/sqlite-core"</span>;
+<span class="kw">import</span> { <span class="fn">Elysia</span> } <span class="kw">from</span> <span class="str">"elysia"</span>;
+<span class="kw">import</span> { <span class="fn">dashboard</span>, <span class="fn">rack</span> } <span class="kw">from</span> <span class="str">"elysia-rack"</span>;
+<span class="kw">import</span> { <span class="fn">reactPlugin</span> } <span class="kw">from</span> <span class="str">"elysia-rack/react"</span>;
+
+<span class="kw">const</span> products = sqliteTable(<span class="str">"products"</span>, {
+  id: <span class="fn">integer</span>(<span class="str">"id"</span>).primaryKey({ autoIncrement: <span class="lit">true</span> }),
+  name: <span class="fn">text</span>(<span class="str">"name"</span>).<span class="fn">notNull</span>(),
+  price: <span class="fn">integer</span>(<span class="str">"price"</span>).<span class="fn">notNull</span>().<span class="fn">default</span>(<span class="num">0</span>),
+});
+
+<span class="kw">const</span> app = <span class="kw">new</span> <span class="fn">Elysia</span>()
+  .<span class="fn">use</span>(<span class="fn">reactPlugin</span>())
+  .<span class="fn">use</span>(<span class="fn">dashboard</span>({ title: <span class="str">"Shop"</span>, path: <span class="str">"/"</span> }))
+  .<span class="fn">use</span>(<span class="fn">rack</span>(<span class="str">"/products"</span>, { model: products }));
+
+app.<span class="fn">listen</span>(<span class="num">3000</span>);</code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="example" class="section example" aria-labelledby="example-heading">
+  <div class="container">
+    <div class="section-head">
+      <h2 id="example-heading">Example</h2>
+      <p>End-to-end: server setup plus a client request.</p>
+    </div>
+    <div class="example-grid">
+      <div class="example-pane">
+        <div class="code-toolbar">
+          <span class="lang">server.ts</span>
+          <button class="copy-btn" data-target="#example-server" aria-label="Copy server code to clipboard">Copy</button>
+        </div>
+        <pre class="code-block" id="example-server"><code class="lang-ts"><span class="kw">import</span> { <span class="fn">Elysia</span> } <span class="kw">from</span> <span class="str">"elysia"</span>;
+<span class="kw">import</span> { <span class="fn">rack</span>, <span class="fn">dashboard</span> } <span class="kw">from</span> <span class="str">"elysia-rack"</span>;
+<span class="kw">import</span> { <span class="fn">reactPlugin</span> } <span class="kw">from</span> <span class="str">"elysia-rack/react"</span>;
+<span class="kw">import</span> { <span class="fn">sqliteTable</span>, <span class="fn">integer</span>, <span class="fn">text</span> } <span class="kw">from</span> <span class="str">"drizzle-orm/sqlite-core"</span>;
+<span class="kw">import</span> { <span class="fn">drizzle</span> } <span class="kw">from</span> <span class="str">"drizzle-orm/bun-sqlite"</span>;
+<span class="kw">import</span> { <span class="fn">Database</span> } <span class="kw">from</span> <span class="str">"bun:sqlite"</span>;
+
+<span class="kw">const</span> products = sqliteTable(<span class="str">"products"</span>, {
+  id: <span class="fn">integer</span>(<span class="str">"id"</span>).primaryKey({ autoIncrement: <span class="lit">true</span> }),
+  name: <span class="fn">text</span>(<span class="str">"name"</span>).<span class="fn">notNull</span>(),
+  price: <span class="fn">integer</span>(<span class="str">"price"</span>).<span class="fn">notNull</span>(),
+});
+
+<span class="kw">const</span> db = drizzle(new <span class="fn">Database</span>(<span class="str">"shop.db"</span>));
+
+<span class="kw">const</span> app = <span class="kw">new</span> <span class="fn">Elysia</span>()
+  .<span class="fn">use</span>(<span class="fn">reactPlugin</span>())
+  .<span class="fn">use</span>(<span class="fn">dashboard</span>({ title: <span class="str">"Shop"</span>, path: <span class="str">"/"</span> }))
+  .<span class="fn">use</span>(<span class="fn">rack</span>(<span class="str">"/products"</span>, { model: products, db }));
+
+app.<span class="fn">listen</span>(<span class="num">3000</span>);</code></pre>
+      </div>
+      <div class="example-pane">
+        <div class="code-toolbar">
+          <span class="lang">client</span>
+          <button class="copy-btn" data-target="#example-client" aria-label="Copy client code to clipboard">Copy</button>
+        </div>
+        <pre class="code-block" id="example-client"><code class="lang-js"><span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="str">"http://localhost:3000/products"</span>);
+<span class="kw">const</span> data = <span class="kw">await</span> res.json();
+<span class="fn">console</span>.<span class="fn">log</span>(data);</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="docs-preview" class="section docs-preview" aria-labelledby="docs-heading">
+  <div class="container docs-grid">
+    <div class="docs-content">
+      <h2 id="docs-heading">Documentation</h2>
+      <p>Full guides, configuration reference, installation steps, and troubleshooting.</p>
+      <ul class="docs-list">
+        <li><a href="/docs/getting-started/">Getting started</a> — install, configure, and run your first operation</li>
+        <li><a href="/docs/installation/">Installation</a> — install and remove the package</li>
+        <li><a href="/docs/configuration/">Configuration</a> — how the parts fit together</li>
+        <li><a href="/docs/guides/basic-usage/">Guides</a> — basic usage, common workflows, advanced usage</li>
+        <li><a href="/docs/troubleshooting/common-issues/">Troubleshooting</a> — common issues and fixes</li>
+        <li><a href="/docs/faq/">FAQ</a> — short answers about compatibility and limits</li>
+      </ul>
+      <a class="button button-primary" href="/docs/">Open documentation &rarr;</a>
+    </div>
+    <div class="docs-visual"></div>
+  </div>
+</section>
+
+<section id="get-started" class="section installation" aria-labelledby="install-heading">
+  <div class="container">
+    <div class="section-head">
+      <h2 id="install-heading">Installation</h2>
+      <p>Add elysia-rack to your Elysia application.</p>
+    </div>
+    <div class="install-wrap">
+      <div class="install-block">
+        <pre class="code-block"><code class="lang-sh">bun add elysia-rack elysia react react-dom drizzle-orm</code></pre>
+        <button class="copy-btn" data-target="#install-code" aria-label="Copy install command">Copy</button>
+      </div>
+      <div class="install-note">
+        <p>Works with Bun 1.0+ or Node.js 20+. Elysia 1.4+ required. React 18+ only if you use the panel.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section github" aria-labelledby="github-heading">
+  <div class="container">
+    <div class="section-head">
+      <h2 id="github-heading">GitHub</h2>
+      <p>View the source, report issues, and contribute.</p>
+    </div>
+    <div class="github-card">
+      <div class="github-info">
+        <h3><a href="https://github.com/notoofly/elysia-rack" target="_blank" rel="noopener">notoofly/elysia-rack</a></h3>
+        <p>Model-driven CRUD rack for Elysia: REST + QUERY routes, validation, authorization, OpenAPI metadata, and React panel rendering.</p>
+        <div class="github-meta">
+          <span><strong>License:</strong> MIT</span>
+          <span><strong>Package:</strong> elysia-rack</span>
+        </div>
+      </div>
+      <div class="github-actions">
+        <a class="button button-outline" href="https://github.com/notoofly/elysia-rack" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <span class="wordmark small">elysia<span>-rack</span></span>
+      <p>Model-driven CRUD rack for Elysia.</p>
+    </div>
+    <div class="footer-links">
+      <div>
+        <strong>Project</strong>
+        <ul>
+          <li><a href="/docs/">Documentation</a></li>
+          <li><a href="https://github.com/notoofly/elysia-rack" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="/docs/faq/">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <strong>Legal</strong>
+        <ul>
+          <li><a href="../LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+          <li>Copyright &copy; <span id="year"></span> notoofly</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script defer src="js/main.js"></script>
+</body>
+</html>
