@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.3] — 2026-11-13
+
+- Release of CHANGELOG.md and docs/playground updates.
+
 ## [0.5.2] — 2026-11-13
 
 - Docs: expanded README examples (`metadata.fields`, `actions`) and `src/playground.ts` demo (category relation field, Duplicate row action, Export CSV toolbar action, `includeDeleted`).
