@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.4] — 2026-11-13
+
+- Docs: rewritten README.md — project header, key features, routes/configuration tables, custom actions, idempotency, soft delete, ORM adapters, authorization, dashboard, pages/theming, docs links, contributing, license, resources.
+
 ## [0.5.3] — 2026-11-13
 
 - Release of CHANGELOG.md and docs/playground updates.
