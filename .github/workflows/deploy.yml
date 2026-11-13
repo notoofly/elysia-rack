@@ -1,0 +1,80 @@
+name: Deploy landing page and documentation to GitHub Pages
+
+on:
+  push:
+    branches: [main, docs]
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout landing page source (main)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: landing-src
+
+      - name: Checkout documentation source (docs)
+        uses: actions/checkout@v4
+        with:
+          ref: docs
+          path: docs-src
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install documentation dependencies
+        working-directory: docs-src
+        run: bun install --frozen-lockfile
+
+      - name: Build documentation
+        working-directory: docs-src
+        run: bun run docs:build
+
+      - name: Make docs clean URLs resolvable on static hosting
+        working-directory: docs-src
+        run: |
+          cd docs/.vitepress/dist
+          for f in *.html */*.html */*/*.html; do
+            [ -e "$f" ] || continue
+            b="${f%.html}"
+            case "$b" in index|404) continue ;; esac
+            mkdir -p "$b"
+            cp "$f" "$b/index.html"
+          done
+
+      - name: Assemble deployment output
+        run: |
+          rm -rf public
+          mkdir -p public/docs
+          # Landing page (static, served at root)
+          cp -r landing-src/site/. public/
+          # Documentation (served under /docs/)
+          cp -r docs-src/docs/.vitepress/dist/. public/docs/
+          # Repo LICENSE served at root so documentation / LINKS resolve
+          cp landing-src/LICENSE public/LICENSE
+          # Remove any source-control metadata that leaked into output
+          find public -name .git -prune -exec rm -rf {} + 2>/dev/null || true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

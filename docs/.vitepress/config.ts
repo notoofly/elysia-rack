@@ -8,7 +8,6 @@ export default defineConfig({
   base: '/elysia-rack/docs/',
   lang: 'en-US',
   lastUpdated: true,
-  cleanUrls: true,
   ignoreDeadLinks: [/LICENSE/],
 
   head: [
