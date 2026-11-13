@@ -57,7 +57,21 @@ const app = new Elysia().use(
       label: "Product",
       pluralLabel: "Products",
       group: "Catalog",
+      icon: "package",
+      fields: {
+        name: { label: "Product name" },
+        price: { format: "currency", currency: "USD" },
+        categoryId: {
+          label: "Category",
+          relation: { load: () => loadCategoryOptions() },
+        },
+      },
     },
+
+    actions: [
+      { label: "Duplicate", href: "/catalog/products/:id/duplicate", method: "POST" },
+      { label: "Export CSV", href: "/catalog/products/export", scope: "toolbar" },
+    ],
 
     openapi: { tags: ["Products"] },
     settings: { primaryKey: "id", returning: true },
@@ -296,13 +310,15 @@ rack("/catalog/products", {
   model,
   query: {
     searchable: ["name", "sku"],
-    filterable: ["status"],
+    filterable: ["status", "categoryId"],
     sortable: ["name", "price", "createdAt"],
     defaultSort: { field: "createdAt", direction: "desc" },
     pagination: { default: 20, max: 100 }
   }
 });
 ```
+
+Filter controls adapt to the field kind: enum and boolean become selects, dates get a date picker, numbers get numeric inputs, and relation fields become selects. `metadata.hiddenFields` / `hideInTable` keep a field out of the toolbar too.
 
 **Add safety.** Validation and authorization are per-operation. A string like `"products.delete"` checks the `x-permissions` header; a function gives you the full `Request`.
 
