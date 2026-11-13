@@ -460,19 +460,45 @@ async function openDetail(root: any, id: string): Promise<void> {
   const label = dlg.querySelector("[data-detail-id-label]");
   if (label) label.textContent = `#${id}`;
   const body = dlg.querySelector("[data-detail-body]");
-  if (body) body.innerHTML = renderDetail(root, row);
+  if (body) {
+    body.replaceChildren(renderDetail(root, row));
+  }
   dlg.showModal?.();
 }
 
-function renderDetail(root: any, row: Record<string, unknown>): string {
+function renderDetail(root: any, row: Record<string, unknown>): any {
   const cfg = tableConfig(root);
-  const items = cfg.fields
-    .filter((field) => row[field.name] !== undefined && !field.hideInTable)
-    .map(
-      (field) =>
-        `<div class="flex flex-col gap-0.5"><dt class="text-text-muted text-xs font-medium">${esc(field.label)}</dt><dd class="text-foreground text-sm">${esc(displayValue(field, row[field.name])) || "—"}</dd></div>`,
-    );
-  return items.join("") || `<p class="text-text-muted text-sm">No fields</p>`;
+  const frag = document.createDocumentFragment();
+  const visibleFields = cfg.fields.filter(
+    (field) => row[field.name] !== undefined && !field.hideInTable,
+  );
+
+  if (!visibleFields.length) {
+    const p = document.createElement("p");
+    p.className = "text-text-muted text-sm";
+    p.textContent = "No fields";
+    frag.appendChild(p);
+    return frag;
+  }
+
+  for (const field of visibleFields) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "flex flex-col gap-0.5";
+
+    const dt = document.createElement("dt");
+    dt.className = "text-text-muted text-xs font-medium";
+    dt.textContent = String(field.label ?? "");
+
+    const dd = document.createElement("dd");
+    dd.className = "text-foreground text-sm";
+    dd.textContent = displayValue(field, row[field.name]) || "—";
+
+    wrapper.appendChild(dt);
+    wrapper.appendChild(dd);
+    frag.appendChild(wrapper);
+  }
+
+  return frag;
 }
 
 async function deleteOne(root: any, id: string): Promise<void> {
