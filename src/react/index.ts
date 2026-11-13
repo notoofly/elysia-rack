@@ -140,14 +140,33 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
       // Allow panel.css override via react({ css })
       if (params.name === "panel.css") {
         const custom = await loadCustomPanelCss();
+        const dir = resolveDistDir();
+        let defaultCss: string | null = null;
+        if (dir) {
+          try {
+            defaultCss = await readFile(join(dir, "panel.css"), "utf-8");
+          } catch { /* fall back to custom only below */ }
+        }
         if (custom !== null) {
-          return new Response(custom, {
+          const combined = defaultCss
+            ? `${defaultCss}\n\n/* Custom panel.css overrides */\n${custom}`
+            : custom;
+          return new Response(combined, {
             headers: {
               "Content-Type": type,
               "Cache-Control": "public, max-age=3600",
             },
           });
         }
+        if (defaultCss) {
+          return new Response(defaultCss, {
+            headers: {
+              "Content-Type": type,
+              "Cache-Control": "public, max-age=3600",
+            },
+          });
+        }
+        return status(404, "Panel asset not found");
       }
       const dir = resolveDistDir();
       if (!dir) return status(404, "Panel asset not found");

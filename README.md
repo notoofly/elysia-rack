@@ -231,6 +231,9 @@ new Elysia().use(
 );
 
 // override panel.css (file path, raw CSS string, or { path } / { content })
+// Custom CSS is appended after the default panel.css, so it cascades over
+// the default instead of replacing it — useful for changing only a few
+// tokens or rules.
 new Elysia().use(reactPlugin({ css: "./my-panel.css" }));
 ```
 

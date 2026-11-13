@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.5] — 2026-11-13
+
+- Fix custom `panel.css`: previously replaced the default stylesheet entirely; now it is appended after the default `panel.css`, so custom rules cascade over and override specific tokens/rules without losing the base panel styles.
+
 ## [0.5.4] — 2026-11-13
 
 - Docs: rewritten README.md — project header, key features, routes/configuration tables, custom actions, idempotency, soft delete, ORM adapters, authorization, dashboard, pages/theming, docs links, contributing, license, resources.
