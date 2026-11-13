@@ -5,6 +5,15 @@ import type {
   CrudOperation as _CrudOperation,
 } from "./authorization";
 import type {
+  CrudAction as _CrudAction,
+} from "./actions";
+import type {
+  CrudFieldConfig as _CrudFieldConfig,
+  CrudFieldFormat as _CrudFieldFormat,
+  CrudFieldOption as _CrudFieldOption,
+  CrudFieldRelation as _CrudFieldRelation,
+} from "./fields";
+import type {
   CrudMetadata as _CrudMetadata,
 } from "./metadata";
 import type {
@@ -63,6 +72,11 @@ export namespace Rack {
   export type CrudOperationsOptions = _CrudOperationsOptions;
 
   export type CrudMetadata = _CrudMetadata;
+  export type CrudAction = _CrudAction;
+  export type CrudFieldConfig = _CrudFieldConfig;
+  export type CrudFieldFormat = _CrudFieldFormat;
+  export type CrudFieldOption = _CrudFieldOption;
+  export type CrudFieldRelation = _CrudFieldRelation;
 
   export type CrudOpenAPIOptions = _CrudOpenAPIOptions;
   export type CrudOpenAPIOperation = _CrudOpenAPIOperation;
@@ -117,6 +131,15 @@ export namespace Rack {
      * registry, and generated UI.
      */
     metadata?: CrudMetadata;
+
+    /**
+     * Extra custom action buttons rendered in the generated Panel.
+     *
+     * Row actions (default) appear next to Edit/Delete; toolbar actions
+     * appear in the page header. Actions with `:id` in `href` receive the
+     * row primary key.
+     */
+    actions?: readonly CrudAction[];
 
     /**
      * OpenAPI metadata and operation overrides.

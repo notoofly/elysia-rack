@@ -12,12 +12,14 @@ export const PANEL_PAGE_KEY = "@elysia-panel/react";
 export interface PanelPageProps {
   resource: string;
   metadata?: Rack.CrudMetadata;
+  actions?: readonly Rack.CrudAction[];
   query?: Rack.CrudQueryOptions;
   operations?: Rack.CrudOperationsOptions;
   primaryKey?: string;
   params?: Record<string, unknown>;
   queryUrl?: string;
   fields?: FieldDescriptor[];
+  softDelete?: boolean;
   deletedAtField?: string;
   load?: (input: Record<string, unknown>) => Promise<{
     data: unknown[];

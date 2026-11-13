@@ -6,8 +6,13 @@ function delegateOf(model: Rack.CrudModel): any {
   return (model as { prisma: Rack.CrudPrismaModel }).prisma.model as any;
 }
 
-function deletedAtFilter(opts: AdapterOptions): Record<string, unknown> {
-  return opts.softDelete ? { [opts.deletedAtField ?? "deletedAt"]: null } : {};
+function deletedAtFilter(
+  opts: AdapterOptions,
+  includeDeleted = false,
+): Record<string, unknown> {
+  return opts.softDelete && !includeDeleted
+    ? { [opts.deletedAtField ?? "deletedAt"]: null }
+    : {};
 }
 
 function whereFor(
@@ -15,7 +20,7 @@ function whereFor(
   opts: AdapterOptions,
 ): Record<string, unknown> {
   const where: Record<string, unknown> = {
-    ...deletedAtFilter(opts),
+    ...deletedAtFilter(opts, query.includeDeleted),
   };
 
   for (const [key, value] of Object.entries(query.filters)) {

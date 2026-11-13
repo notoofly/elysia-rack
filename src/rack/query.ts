@@ -3,7 +3,15 @@ import type { Rack } from "./types";
 /**
  * Normalized list query produced by {@link parseListQuery}.
  */
-export type ParsedListQuery = ReturnType<typeof parseListQuery>;
+export interface ParsedListQuery {
+  search?: { value: string; fields: readonly string[] };
+  filters: Record<string, unknown>;
+  sort?: { field: string; direction: Rack.CrudSortDirection };
+  page: number;
+  limit: number;
+  /** Include soft-deleted rows (only meaningful with `softDelete`). */
+  includeDeleted?: boolean;
+}
 
 /**
  * Parse raw URL/body input into a normalized list query,
@@ -12,7 +20,7 @@ export type ParsedListQuery = ReturnType<typeof parseListQuery>;
 export function parseListQuery(
   raw: Record<string, unknown>,
   queryOptions?: Rack.CrudQueryOptions,
-) {
+): ParsedListQuery {
   const pagination = queryOptions?.pagination ?? {};
   const max = pagination.max ?? 100;
   const fallbackLimit = pagination.default ?? 20;
@@ -58,6 +66,12 @@ export function parseListQuery(
         }
       : undefined;
 
+  const includeDeleted =
+    raw["includeDeleted"] === true ||
+    raw["includeDeleted"] === "true" ||
+    raw["includeDeleted"] === 1 ||
+    raw["includeDeleted"] === "1";
+
   const reserved = new Set([
     "search",
     "sort",
@@ -66,6 +80,7 @@ export function parseListQuery(
     "page",
     "limit",
     "perPage",
+    "includeDeleted",
   ]);
   const filters: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(raw)) {
@@ -78,5 +93,7 @@ export function parseListQuery(
     filters[key] = value;
   }
 
-  return { search, filters, sort, page, limit };
+  return includeDeleted
+    ? { search, filters, sort, page, limit, includeDeleted }
+    : { search, filters, sort, page, limit };
 }

@@ -90,6 +90,8 @@ settings: {
 }
 ```
 
+The panel adds a `Show deleted` toggle (sets `includeDeleted=true` on list queries) and a `Restore` button on deleted rows. Restore clears `deletedAtField` through `PATCH /{id}`.
+
 ## `operations`
 
 Every operation is enabled by default. Set an operation to `false` to remove its route and its panel control.
@@ -243,9 +245,10 @@ Behavior:
 | `order` or `direction` | `asc` or `desc` |
 | `page` | Page number, starting at 1 |
 | `limit` or `perPage` | Page size |
+| `includeDeleted` | Include soft-deleted rows when `softDelete` is enabled |
 | Any other key | A filter, subject to `filterable` |
 
-Reserved keys are `search`, `sort`, `order`, `direction`, `page`, `limit`, and `perPage`. Every other key is a filter candidate.
+Reserved keys are `search`, `sort`, `order`, `direction`, `page`, `limit`, `perPage`, and `includeDeleted`. Every other key is a filter candidate.
 
 When a filter value is an array, it is treated as a multi-value filter. Send arrays in the JSON request body, not in the URL.
 
@@ -263,6 +266,13 @@ metadata: {
   icon: "package",
   order: 1,
   hidden: false,
+  hiddenFields: ["cost"],
+  fields: {
+    name: { label: "Product name", order: 1 },
+    price: { format: "currency", currency: "USD" },
+    cost: { hideInTable: true },
+    categoryId: { relation: { options: [{ value: 1, label: "Shoes" }] } },
+  },
 }
 ```
 
@@ -276,6 +286,22 @@ metadata: {
 | `icon` | string | None | Lucide icon name such as `package` or `ShoppingCart` |
 | `order` | number | `0` | Sort order within the group, lower first |
 | `hidden` | boolean | `false` | Hide from the sidebar and dashboard |
+| `hiddenFields` | string[] | None | Field names hidden from table columns, create/edit forms, and bulk field picker |
+| `fields` | object | None | Per-field display config keyed by field name (see below) |
+
+### `metadata.fields`
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `label` | string | Field name | Table header and form label |
+| `format` | `"text"` \| `"number"` \| `"currency"` \| `"date"` \| `"datetime"` \| `"boolean"` \| `"badge"` \| `"json"` | By kind | Cell/detail formatter |
+| `currency` | string | `"USD"` | ISO code for `format: "currency"` |
+| `readOnly` | boolean | `false` | Show in table, hide from create/edit forms |
+| `hideInTable` | boolean | `false` | Hide the column but keep it editable in forms |
+| `hideInForm` | boolean | `false` | Hide from create/edit forms but keep the column |
+| `order` | number | Field index | Sort weight, lower first |
+| `relation.options` | array of `{ value, label }` | None | Static select options for a relation field |
+| `relation.load` | `async () => options` | None | Async options loader resolved while the panel renders |
 
 Behavior:
 
@@ -284,6 +310,22 @@ Behavior:
 - Children are sorted by `order`, then by label.
 - `hidden` removes a resource from navigation, but its routes continue to work.
 - Unknown icon names render as text instead of an icon.
+- `icon` is also emitted as an inline SVG favicon in the page `<head>`.
+
+## `actions`
+
+Extra custom buttons rendered in the generated panel.
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `label` | string | Required | Button text |
+| `href` | string | Required | Target URL; `:id` is replaced with the row primary key |
+| `icon` | string | None | Lucide icon name (toolbar actions only) |
+| `method` | string | None | When set, the action runs via `fetch` and refreshes the table; otherwise it is a plain link |
+| `confirm` | string | None | Native confirmation prompt before a `method` action runs |
+| `scope` | `"row"` \| `"toolbar"` | `"row"` | Row actions sit beside Edit/Delete; toolbar actions sit in the page header |
+
+Custom action URLs are not covered by the rack's `authorization` options. Apply `authorize()` or your own guard inside the route that serves the action.
 
 ## `page`
 

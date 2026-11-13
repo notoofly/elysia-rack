@@ -126,12 +126,14 @@ export function rack(path: string, options: Rack.RackOptions) {
         return panelPage(options.page?.path ?? "/panel", {
           resource,
           metadata: options.metadata,
+          actions: options.actions,
           query: options.query,
           operations,
           primaryKey,
           params: { ...(context.query ?? {}) },
           queryUrl: `${path.replace(/\/$/, "")}/data`,
           fields: dataAdapter.describe(options.model),
+          softDelete: options.settings?.softDelete ?? false,
           deletedAtField: options.settings?.deletedAtField ?? "deletedAt",
           load: (input) =>
             dataAdapter

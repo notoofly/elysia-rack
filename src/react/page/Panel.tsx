@@ -1,8 +1,11 @@
 import type { FieldDescriptor } from "../../rack/adapters/index";
+import type { Rack } from "../../rack/types";
 import { getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry";
 import { Breadcrumb } from "./components/Breadcrumb";
 import { DataTable } from "./components/DataTable";
+import { RackIcon } from "./components/Icon";
 import { Masthead } from "./components/Masthead";
+import { buildPanelFields, type PanelField } from "./components/panelFields";
 import { Pagination } from "./components/Pagination";
 import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar";
 import { Toolbar } from "./components/Toolbar";
@@ -16,19 +19,27 @@ const secondaryButtonClass =
 const primaryButtonClass =
   "bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-3.5 py-1.5 text-sm font-medium";
 
-interface FormField {
-  name: string;
-  kind: FieldDescriptor["kind"];
-  nullable: boolean;
-  enumValues?: readonly string[];
-}
-
-function FieldInput({ field, required }: { field: FormField; required?: boolean }) {
+function FieldInput({ field, required }: { field: PanelField; required?: boolean }) {
+  if (field.relation) {
+    return (
+      <label className={fieldLabelClass}>
+        {field.label}
+        <select name={field.name} required={required} defaultValue="" className={inputClass}>
+          <option value="">Select</option>
+          {field.relation.map((option) => (
+            <option key={String(option.value)} value={String(option.value)}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
   switch (field.kind) {
     case "enum":
       return (
         <label className={fieldLabelClass}>
-          {field.name}
+          {field.label}
           <select name={field.name} required={required} defaultValue="" className={inputClass}>
             <option value="">Select</option>
             {(field.enumValues ?? []).map((v) => (
@@ -43,14 +54,14 @@ function FieldInput({ field, required }: { field: FormField; required?: boolean 
       return (
         <label className={`${fieldLabelClass} flex-row items-center gap-2`}>
           <input type="checkbox" name={field.name} value="true" className="accent-primary size-4" />
-          {field.name}
+          {field.label}
         </label>
       );
     case "integer":
     case "number":
       return (
         <label className={fieldLabelClass}>
-          {field.name}
+          {field.label}
           <input
             type="number"
             step={field.kind === "number" ? "any" : "1"}
@@ -63,7 +74,7 @@ function FieldInput({ field, required }: { field: FormField; required?: boolean 
     case "date":
       return (
         <label className={fieldLabelClass}>
-          {field.name}
+          {field.label}
           <input
             type="datetime-local"
             name={field.name}
@@ -75,7 +86,7 @@ function FieldInput({ field, required }: { field: FormField; required?: boolean 
     case "json":
       return (
         <label className={fieldLabelClass}>
-          {field.name}
+          {field.label}
           <textarea
             name={field.name}
             data-json
@@ -88,7 +99,7 @@ function FieldInput({ field, required }: { field: FormField; required?: boolean 
     default:
       return (
         <label className={fieldLabelClass}>
-          {field.name}
+          {field.label}
           <input name={field.name} required={required} className={inputClass} />
         </label>
       );
@@ -131,36 +142,45 @@ function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
+function CustomActionButton({ action }: { action: Rack.CrudAction }) {
+  const content = (
+    <>
+      {action.icon ? <RackIcon name={action.icon} size={14} className="size-3.5" /> : null}
+      {action.label}
+    </>
+  );
+  if (action.method) {
+    return (
+      <button
+        type="button"
+        data-rack-href={action.href}
+        data-rack-method={action.method}
+        data-rack-confirm={action.confirm}
+        className={`${secondaryButtonClass} inline-flex items-center gap-1.5`}
+      >
+        {content}
+      </button>
+    );
+  }
+  return (
+    <a href={action.href} className={`${secondaryButtonClass} inline-flex items-center gap-1.5`}>
+      {content}
+    </a>
+  );
+}
+
 export interface PanelProps {
   donate?: boolean;
   resource?: string;
-  metadata?: {
-    label?: string;
-    pluralLabel?: string;
-    group?: string;
-    icon?: string;
-  };
-  operations?: {
-    list?: boolean;
-    detail?: boolean;
-    create?: boolean;
-    replace?: boolean;
-    update?: boolean;
-    delete?: boolean;
-  };
+  metadata?: Rack.CrudMetadata;
+  actions?: readonly Rack.CrudAction[];
+  operations?: Rack.CrudOperationsOptions;
   primaryKey?: string;
-  query?: {
-    searchable?: readonly string[];
-    filterable?: readonly string[];
-    sortable?: readonly string[];
-    pagination?: {
-      default?: number;
-      max?: number;
-    };
-  };
+  query?: Rack.CrudQueryOptions;
   params?: Record<string, unknown>;
   queryUrl?: string;
   fields?: FieldDescriptor[];
+  softDelete?: boolean;
   deletedAtField?: string;
   load?: (input: Record<string, unknown>) => Promise<{
     data: unknown[];
@@ -188,10 +208,6 @@ export default async function Panel(props: PanelProps) {
     }
   }
 
-  const columns =
-    rows.length > 0
-      ? Object.keys(rows[0] ?? {}).filter((c) => c !== "deletedAt")
-      : [];
   const title =
     props.metadata?.pluralLabel ??
     props.metadata?.label ??
@@ -200,31 +216,33 @@ export default async function Panel(props: PanelProps) {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const pk = props.primaryKey ?? "id";
   const deletedAt = props.deletedAtField ?? "deletedAt";
-  // Smart fields from the adapter; fallback to text inputs from row columns.
-  const fieldDefs: FormField[] = props.fields?.length
-    ? props.fields
-        .filter((f) => !f.autoIncrement && f.name !== deletedAt)
-        .map((f) => ({
-          name: f.name,
-          kind: f.kind,
-          nullable: f.nullable,
-          enumValues: f.enumValues,
-        }))
-    : columns
-        .filter((c) => c !== deletedAt)
-        .map((name) => ({
-          name,
-          kind: "text" as const,
-          nullable: name === pk,
-        }));
-  const createFields = fieldDefs;
-  const editFields = fieldDefs.filter((f) => f.name !== pk);
-  const isRequired = (f: FormField) => !f.nullable && f.kind !== "boolean";
+  const rawColumns = rows.length > 0 ? Object.keys(rows[0] ?? {}) : [];
+
+  const fields = await buildPanelFields({
+    fields: props.fields,
+    columns: rawColumns,
+    config: props.metadata?.fields,
+    hiddenFields: props.metadata?.hiddenFields,
+    primaryKey: pk,
+    deletedAtField: deletedAt,
+  });
+  const tableFields = fields.filter((f) => !f.hideInTable);
+  const formFields = fields.filter((f) => !f.hideInForm && !f.autoIncrement);
+  const createFields = formFields;
+  const editFields = formFields.filter((f) => f.name !== pk);
+  const isRequired = (f: PanelField) => !f.nullable && f.kind !== "boolean";
   const canCreate = props.operations?.create !== false;
   const canEdit =
     props.operations?.update !== false || props.operations?.replace !== false;
   const canDelete = props.operations?.delete !== false;
+  const canUpdate = props.operations?.update !== false;
+  const canView = props.operations?.detail !== false;
+  const softDelete = props.softDelete === true;
   const selectable = canEdit || canDelete;
+  const allActions = props.actions ?? [];
+  const rowActions = allActions.filter((a) => (a.scope ?? "row") === "row");
+  const toolbarActions = allActions.filter((a) => a.scope === "toolbar");
+  const includeDeleted = params.includeDeleted === "true" || params.includeDeleted === true;
 
   // Load entire tree for sidebar, highlight active panel
   const tree = getRackTree().filter((r) => !r.metadata.hidden);
@@ -248,18 +266,28 @@ export default async function Panel(props: PanelProps) {
               icon={props.metadata?.icon}
               detail={<span data-panel-total>{plural(total, "record")}</span>}
               actions={
-                canCreate ? (
-                  <button type="button" data-open-create className={primaryButtonClass}>
-                    New record
-                  </button>
+                toolbarActions.length > 0 || canCreate ? (
+                  <>
+                    {toolbarActions.map((action, i) => (
+                      <CustomActionButton key={i} action={action} />
+                    ))}
+                    {canCreate ? (
+                      <button type="button" data-open-create className={primaryButtonClass}>
+                        New record
+                      </button>
+                    ) : null}
+                  </>
                 ) : undefined
               }
             />
             <Toolbar
+              fields={fields}
               searchable={props.query?.searchable}
               filterable={props.query?.filterable}
               sortable={props.query?.sortable}
               params={params}
+              softDelete={softDelete}
+              includeDeleted={includeDeleted}
             />
             <div
               data-bulk-bar
@@ -285,7 +313,7 @@ export default async function Panel(props: PanelProps) {
                   >
                     {editFields.map((f) => (
                       <option key={f.name} value={f.name}>
-                        {f.name}
+                        {f.label}
                       </option>
                     ))}
                   </select>
@@ -313,13 +341,18 @@ export default async function Panel(props: PanelProps) {
               </button>
             </div>
             <DataTable
-              columns={columns}
+              fields={fields}
               rows={rows}
               sortable={props.query?.sortable}
               params={params}
               selectable={selectable}
               editable={canEdit || canDelete}
+              viewable={canView}
+              actions={rowActions}
               primaryKey={pk}
+              softDelete={softDelete}
+              restorable={canUpdate}
+              deletedAtField={deletedAt}
             />
             <Pagination
               page={page}
@@ -383,6 +416,28 @@ export default async function Panel(props: PanelProps) {
                 </div>
               </form>
             </dialog>
+            <dialog
+              id="rack-detail"
+              className="bg-card text-card-foreground w-full max-w-md rounded-lg border p-0 shadow-lg"
+            >
+              <div className="flex flex-col gap-4 p-5">
+                <h2 className="font-display text-xl leading-tight">
+                  Record{" "}
+                  <span data-detail-id-label className="text-text-muted font-mono text-sm" />
+                </h2>
+                <dl data-detail-body className="flex flex-col gap-3 text-sm" />
+                <div className="border-border flex justify-end border-t pt-4">
+                  <button type="button" data-close className={secondaryButtonClass}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            </dialog>
+            <div
+              data-rack-toasts
+              aria-live="polite"
+              className="pointer-events-none fixed right-4 bottom-4 z-50 flex flex-col gap-2"
+            />
             <script type="module" src="/__rack/panel-app.js" />
           </div>
           <footer className="border-border text-text-muted mt-6 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs">

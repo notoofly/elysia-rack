@@ -217,7 +217,12 @@ export const drizzleAdapter: CrudAdapter = {
   async list(model, query, opts): Promise<ListResult> {
     const db = dbOf(model);
     const table = tableOf(model);
-    const where = whereFor(table, query, opts, opts.softDelete ?? false);
+    const where = whereFor(
+      table,
+      query,
+      opts,
+      (opts.softDelete ?? false) && !query.includeDeleted,
+    );
     const order = orderFor(table, query);
 
     let select: any = db.select().from(table);

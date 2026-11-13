@@ -1,3 +1,5 @@
+import type { CrudFieldConfig } from "./fields";
+
 export interface CrudMetadata {
   /**
    * Internal unique resource ID.
@@ -41,4 +43,16 @@ export interface CrudMetadata {
    * Hide from generated sidebar.
    */
   hidden?: boolean;
+
+  /**
+   * Field names hidden from the generated panel (table columns,
+   * create/edit forms, and bulk field picker).
+   */
+  hiddenFields?: readonly string[];
+
+  /**
+   * Per-field display configuration: labels, formatters, order,
+   * read-only, table/form visibility, and relations.
+   */
+  fields?: Record<string, CrudFieldConfig>;
 }

@@ -2,12 +2,31 @@ import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { renderToReadableStream } from "react-dom/server"
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server"
+import { RackIcon } from "./page/components/Icon"
 import { ReactRack } from "./types"
 
+type PageMetadata = { pluralLabel?: string; label?: string; icon?: string };
+
+function pageMeta(props: unknown): PageMetadata {
+  return (props as { metadata?: PageMetadata } | null)?.metadata ?? {};
+}
+
 function pageTitle(path: string, props: unknown): string {
-  const metadata = (props as { metadata?: { pluralLabel?: string; label?: string } } | null)?.metadata;
-  return metadata?.pluralLabel ?? metadata?.label ?? path;
+  const metadata = pageMeta(props);
+  return metadata.pluralLabel ?? metadata.label ?? path;
+}
+
+/** Render `metadata.icon` (Lucide name) as an inline SVG favicon in `<head>`. */
+function faviconHead(icon?: string): string {
+  if (!icon) return ""
+  try {
+    const svg = renderToStaticMarkup(<RackIcon name={icon} size={32} />)
+    if (!svg.startsWith("<svg")) return ""
+    return `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,${encodeURIComponent(svg)}">`
+  } catch {
+    return ""
+  }
 }
 
 function escapeHtml(value: string): string {
@@ -49,9 +68,11 @@ async function loadTemplate(): Promise<string> {
   return cachedTemplate
 }
 
-function buildShell(template: string, title: string): { head: string; tail: string } {
+function buildShell(template: string, title: string, extraHead = ""): { head: string; tail: string } {
   const safeTitle = escapeHtml(title)
-  const html = template.replaceAll("{{title}}", safeTitle)
+  const html = template
+    .replaceAll("{{title}}", safeTitle)
+    .replace("<!--app-head-->", extraHead)
 
   // Primary SSR placeholder — stream is injected here
   for (const marker of ["<!--app-->", "{{body}}", "<!--app-html-->"]) {
@@ -88,7 +109,11 @@ export function createRenderer(pages: ReactRack.PageRegistry) {
       <Component {...(props as object)} />
     )
     const template = await loadTemplate()
-    const { head, tail } = buildShell(template, pageTitle(path, props))
+    const { head, tail } = buildShell(
+      template,
+      pageTitle(path, props),
+      faviconHead(pageMeta(props).icon),
+    )
     const encoder = new TextEncoder();
     const combined = new ReadableStream({
       async start(controller) {

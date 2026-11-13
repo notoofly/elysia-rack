@@ -98,10 +98,40 @@ The panel ships create / edit / delete UI driven by the same API:
 - Row `Delete` confirms natively, then `DELETE /:id`.
 - Checkbox selection enables the bulk bar: `Delete selected` loops
   `DELETE /:id`, and the field applier loops `PATCH /:id` with the
-  chosen field/value. `Clear` resets the selection.
+  chosen field/value (coerced to the field kind). `Clear` resets the selection.
+- Row `View` loads the record through `QUERY /data/:id` into a read-only dialog.
+- With `settings.softDelete`, the toolbar adds `Show deleted`. Deleted rows
+  show a `Restore` button that clears `deletedAt` via `PATCH /:id`.
+
+Mutations report success and failures with toast messages and disable the
+submit button while a request is in flight.
 
 Action UI follows `operations`: disable `create`/`update`/`delete` and
 the corresponding buttons, dialogs and bulk controls disappear.
+
+### Custom actions
+
+Add extra buttons with the `actions` option. `:id` in `href` is replaced
+with the row primary key. Row actions (default) sit next to
+Edit/Delete; `scope: "toolbar"` actions sit in the page header.
+
+```ts
+rack("/catalog/products", {
+  model,
+  actions: [
+    { label: "Duplicate", href: "/catalog/products/:id/duplicate", method: "POST" },
+    { label: "Export CSV", href: "/catalog/products/export", scope: "toolbar", icon: "download" }
+  ]
+});
+```
+
+Without `method`, the button is a plain link. With `method`, the panel
+runs it via `fetch` and refreshes the table; `confirm` shows a native
+confirmation first.
+
+Custom action endpoints are yours to protect. The panel does not apply the
+rack's `authorization` rules to them, so call `authorize()` (or your own
+guard) inside the route that handles the action URL.
 
 ## Idempotency (POST)
 
@@ -233,10 +263,22 @@ rack("/catalog/products", {
     order: 1,                 // smaller = higher
     icon: "package",           // Lucide icon name (kebab-case or PascalCase)
     parent: "catalog-root",   // nest under another id
-    hidden: false
+    hidden: false,
+    hiddenFields: ["cost"],   // fields hidden from table columns and forms
+    fields: {
+      name: { label: "Product name", order: 1 },
+      price: { format: "currency", currency: "USD" },
+      cost: { hideInTable: true },              // editable in forms, not listed
+      categoryId: {                              // relation select in forms
+        label: "Category",
+        relation: { load: async () => loadCategories() }
+      }
+    }
   }
 });
 ```
+
+`metadata.icon` also becomes the page favicon (an inline SVG in `<head>`). Per-field config supports `label`, `format` (`text`, `number`, `currency`, `date`, `datetime`, `boolean`, `badge`, `json`), `readOnly`, `hideInTable`, `hideInForm`, `order`, and `relation`. A relation renders a `<select>`; provide static `options` or a `load` function, and the label is used for table/detail display.
 
 **Decide what users can do.** Turn operations on/off. If you disable `create`, the “New record” button disappears automatically.
 
