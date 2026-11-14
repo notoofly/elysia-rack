@@ -229,7 +229,7 @@ app.use(reactPlugin({ css: "./panel-overrides.css" }));
 
 2. Restart the server and reload the panel.
 
-**Expected result:** `/__rack/panel.css` serves your override. The default stylesheet is replaced, not appended.
+**Expected result:** `/__rack/panel.css` serves your override. The default stylesheet is served first and your custom CSS is appended after it, so custom rules cascade over the base.
 
 **Common mistake:** passing a path that does not exist. If the string is not a valid file and does not look like CSS, the default stylesheet is used.
 

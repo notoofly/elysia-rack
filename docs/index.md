@@ -2,7 +2,7 @@
 
 elysia-rack is a library for the [Elysia](https://elysiajs.com) web framework. It turns a database model into a complete admin resource: a JSON API, search and filtering, validation, authorization, and a browser panel for creating, editing, and deleting records.
 
-The documentation describes version `0.2.2` of the published package.
+The documentation describes version `0.5.5` of the published package.
 
 ## What it does
 

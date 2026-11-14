@@ -54,7 +54,7 @@ bun pm ls | grep elysia-rack
 npm ls elysia-rack
 ```
 
-The output should include `elysia-rack` and its version. The documentation describes version `0.2.2`.
+The output should include `elysia-rack` and its version. The documentation describes version `0.5.5`.
 
 A quick import check also confirms that the package resolves:
 
@@ -80,7 +80,7 @@ bun update elysia-rack
 npm update elysia-rack
 ```
 
-Review the release notes before upgrading across minor versions. The package is at version `0.2.2`, so configuration keys may still change between releases.
+Review the release notes before upgrading across minor versions. The package is at version `0.5.5`, so configuration keys may still change between releases.
 
 ## Uninstall
 

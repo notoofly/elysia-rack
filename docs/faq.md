@@ -164,7 +164,7 @@ The record is timestamped in the configured column and hidden from reads. It is 
 
 ### Can I use a custom stylesheet?
 
-Yes. Pass `css` or `panelCss` to `reactPlugin`. The override replaces the default panel stylesheet.
+Yes. Pass `css` or `panelCss` to `reactPlugin`. The override is appended after the default panel stylesheet, so custom rules cascade over the base.
 
 ### Can I hide the donate link?
 

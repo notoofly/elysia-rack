@@ -7,6 +7,8 @@ import { createRenderer } from "./render";
 import { ReactRack } from "./types";
 import { setGlobalDonate } from "./donate";
 
+export const lazyPage = ReactRack.lazyPage;
+
 /**
  * Static panel assets (dist/panel.css, dist/panel-*.js),
  * served under `/__rack/*`. No build step required.

@@ -335,8 +335,9 @@ Controls the panel page mounted at `GET {path}`.
 |---|---|---|---|
 | `path` | string | `"/panel"` | React page registry key to render |
 | `enabled` | boolean | `true` | Set to `false` to remove the panel page |
+| `component` | string | None | Declared per-resource page customization (a type-level field; not yet applied by `rack()`). |
 
-`page.path` is a key in the React page registry, not an additional URL. The panel is always mounted at the resource path. To render a custom component, register a page under a new key and point `page.path` at it.
+`page.path` is a key in the React page registry, not an additional URL. The panel is always mounted at the resource path. To render a custom component, register a page under a new key and point `page.path` (or `page.component`) at it.
 
 Disabling the panel keeps the data API available.
 
@@ -419,6 +420,7 @@ The dashboard has no built-in authorization. Protect its path in your applicatio
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `pages` | object or array | Built-in pages | Additional React pages, merged with the defaults |
+| `views` | array | None | Pages auto-mounted at their `path`; `page()` is not needed for these. Each entry: `{ path, component, props? }` |
 | `css` | string or object | `dist/panel.css` | Override the panel stylesheet |
 | `panelCss` | string or object | None | Alias for `css` |
 | `donate` | boolean | `true` | Show or hide the Ko-fi link globally |
@@ -456,6 +458,8 @@ reactPlugin({ panelCss: "body{padding:0}" });
 | `{ content }` | Always treated as raw CSS |
 | Missing or unreadable file | Falls back to the default stylesheet |
 
+Custom CSS is **appended** after the default `panel.css`, so custom rules cascade over and override specific tokens or rules without losing the base panel styles. It does not replace the default stylesheet.
+
 ## `page(path, props)`
 
 `page()` describes a page for `reactPlugin()` to render. Custom routes can return it:
@@ -484,3 +488,34 @@ These helpers expose the in-memory resource registry. They are useful for custom
 | `clearRacks()` | Clears the registry, mainly for tests |
 
 The registry lives in memory and is filled when `rack()` runs during startup. It is not persisted.
+
+## Exported utilities
+
+These helpers are exported from `elysia-rack` and are useful when you need direct access to the adapter layer or the idempotency store.
+
+### ORM adapters
+
+| Export | Source | Purpose |
+|---|---|---|
+| `drizzleAdapter` | `elysia-rack` | Drizzle ORM adapter (Postgres, SQLite, …) |
+| `prismaAdapter` | `elysia-rack` | Prisma adapter |
+| `getAdapter(model)` | `elysia-rack` | Returns the `CrudAdapter` for a model |
+| `resolveAdapter(model)` | `elysia-rack` | Returns `"drizzle"` or `"prisma"` for a model |
+
+Each adapter implements the `CrudAdapter` contract: `describe`, `list`, `detail`, `create`, `replace`, `update`, and `remove`. The `rack()` function selects the adapter automatically based on the `model` shape (`{ drizzle }` or `{ prisma }`).
+
+### Idempotency store
+
+| Export | Source | Purpose |
+|---|---|---|
+| `createMemoryIdempotencyStore(maxEntries?)` | `elysia-rack` | Default in-memory idempotency store (bounded to 1,000 entries by default) |
+
+Pass the result to `idempotency.store` if you want to control the store size or reuse the same store across racks within one process. For multi-instance deploys, use a shared store (e.g. Redis) that implements the `CrudIdempotencyStore` contract instead.
+
+### React page utilities
+
+| Export | Source | Purpose |
+|---|---|---|
+| `page(path, props)` | `elysia-rack/react` | Describes a React page to render from a custom route |
+| `lazyPage(loader)` | `elysia-rack/react` | Marks a `() => import(...)` loader as lazy so it is not treated as a component |
+| `pages` | `elysia-rack/react` | Built-in page registry with `"/dashboard"` and `"/panel"` |

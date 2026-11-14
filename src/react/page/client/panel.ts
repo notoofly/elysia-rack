@@ -153,34 +153,77 @@ function badgeClass(value: unknown): string {
   return "bg-badge-background text-badge-foreground";
 }
 
-function actionButton(action: CustomAction, id: string): string {
+function actionButton(action: CustomAction, id: string): any {
   const target = esc(action.href.replaceAll(":id", encodeURIComponent(id)));
   const cls =
     "text-link hover:text-link-hover ml-3 px-1 text-sm font-medium hover:underline";
   if (action.method) {
-    const confirm = action.confirm
-      ? ` data-rack-confirm="${esc(action.confirm)}"`
-      : "";
-    return `<button type="button" data-rack-href="${target}" data-rack-method="${esc(action.method)}"${confirm} class="${cls}">${esc(action.label)}</button>`;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.rackHref = target;
+    btn.dataset.rackMethod = esc(action.method);
+    btn.className = cls;
+    if (action.confirm) {
+      btn.dataset.rackConfirm = esc(action.confirm);
+    }
+    btn.textContent = esc(action.label);
+    return btn;
   }
-  return `<a href="${target}" class="${cls}">${esc(action.label)}</a>`;
+  const a = document.createElement("a");
+  a.href = target;
+  a.className = cls;
+  a.textContent = esc(action.label);
+  return a;
 }
 
-function actionCell(id: string, cfg: TableConfig, deleted: boolean): string {
-  let inner = "";
+function actionCell(
+  id: string,
+  cfg: TableConfig,
+  deleted: boolean,
+): any {
+  const td = document.createElement("td");
+  td.className =
+    "border-table-border border-t px-3 py-2.5 whitespace-nowrap text-right";
+  const cls =
+    "text-link hover:text-link-hover px-1 text-sm font-medium hover:underline";
   if (deleted) {
-    if (cfg.restorable)
-      inner = `<button type="button" data-restore-id="${esc(id)}" class="text-link hover:text-link-hover px-1 text-sm font-medium hover:underline">Restore</button>`;
+    if (cfg.restorable) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.restoreId = esc(id);
+      btn.className = cls;
+      btn.textContent = "Restore";
+      td.appendChild(btn);
+    }
   } else {
-    if (cfg.viewable)
-      inner += `<button type="button" data-view-id="${esc(id)}" class="text-link hover:text-link-hover px-1 text-sm font-medium hover:underline">View</button>`;
-    if (cfg.editable)
-      inner +=
-        `<button type="button" data-edit-id="${esc(id)}" class="text-link hover:text-link-hover ${cfg.viewable ? "ml-3 " : ""}px-1 text-sm font-medium hover:underline">Edit</button>` +
-        `<button type="button" data-delete-id="${esc(id)}" class="text-destructive ml-3 px-1 text-sm font-medium hover:underline">Delete</button>`;
-    for (const action of cfg.actions) inner += actionButton(action, id);
+    if (cfg.viewable) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.viewId = esc(id);
+      btn.className = cls;
+      btn.textContent = "View";
+      td.appendChild(btn);
+    }
+    if (cfg.editable) {
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.dataset.editId = esc(id);
+      editBtn.className = `text-link hover:text-link-hover${cfg.viewable ? " ml-3" : ""} px-1 text-sm font-medium hover:underline`;
+      editBtn.textContent = "Edit";
+      td.appendChild(editBtn);
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.dataset.deleteId = esc(id);
+      delBtn.className =
+        "text-destructive ml-3 px-1 text-sm font-medium hover:underline";
+      delBtn.textContent = "Delete";
+      td.appendChild(delBtn);
+    }
+    for (const action of cfg.actions) {
+      td.appendChild(actionButton(action, id));
+    }
   }
-  return `<td class="border-table-border border-t px-3 py-2.5 whitespace-nowrap text-right">${inner}</td>`;
+  return td;
 }
 
 function numericCols(rows: Record<string, unknown>[], cols: string[]): Set<string> {
@@ -192,12 +235,9 @@ function numericCols(rows: Record<string, unknown>[], cols: string[]): Set<strin
   return out;
 }
 
-function cellHtml(field: PanelField | undefined, value: unknown): string {
+function cellText(field: PanelField | undefined, value: unknown): string {
   if (value === null || value === undefined) return "";
-  const text = esc(displayValue(field, value));
-  if (field?.format === "badge" || field?.name === "status")
-    return `<span class="rounded-sm px-1.5 py-0.5 text-xs font-medium ${badgeClass(value)}">${text}</span>`;
-  return text;
+  return esc(displayValue(field, value));
 }
 
 function paintRows(
@@ -209,32 +249,68 @@ function paintRows(
   const showActions =
     cfg.editable || cfg.viewable || cfg.softDelete || cfg.actions.length > 0;
   const span = cols.length + (cfg.selectable ? 1 : 0) + (showActions ? 1 : 0);
+  const numeric = numericCols(rows, cols);
+
   if (!rows.length) {
-    tbody.innerHTML =
-      `<tr><td colspan="${span || 1}" class="text-text-muted px-4 py-10 text-center">No records found.</td></tr>`;
+    tbody.replaceChildren();
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = span || 1;
+    td.className = "text-text-muted px-4 py-10 text-center";
+    td.textContent = "No records found.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
     return;
   }
-  const numeric = numericCols(rows, cols);
-  tbody.innerHTML = rows
-    .map((row) => {
-      const id = row[cfg.pk] == null ? "" : String(row[cfg.pk]);
-      const deleted = cfg.softDelete && row[cfg.deletedAt] != null;
-      let html = `<tr class="hover:bg-table-row-hover">`;
-      if (cfg.selectable)
-        html += `<td class="border-table-border border-t px-3 py-2.5"><input type="checkbox" data-select-row value="${esc(id)}" aria-label="Select row ${esc(id)}" class="accent-primary size-4"></td>`;
-      html += cols
-        .map((col) => {
-          const field = cfg.byName.get(col);
-          const align = numeric.has(col) || (field && isNumericField(field))
-            ? " text-right tabular-nums"
-            : "";
-          return `<td class="border-table-border border-t px-3 py-2.5${align}">${cellHtml(field, row[col])}</td>`;
-        })
-        .join("");
-      if (showActions) html += actionCell(id, cfg, Boolean(deleted));
-      return html + "</tr>";
-    })
-    .join("");
+
+  tbody.replaceChildren();
+  for (const row of rows) {
+    const id = row[cfg.pk] == null ? "" : String(row[cfg.pk]);
+    const deleted = cfg.softDelete && row[cfg.deletedAt] != null;
+    const tr = document.createElement("tr");
+    tr.className = "hover:bg-table-row-hover";
+
+    if (cfg.selectable) {
+      const td = document.createElement("td");
+      td.className = "border-table-border border-t px-3 py-2.5";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.dataset.selectRow = "";
+      input.value = id;
+      input.setAttribute("aria-label", `Select row ${esc(id)}`);
+      input.className = "accent-primary size-4";
+      td.appendChild(input);
+      tr.appendChild(td);
+    }
+
+    for (const col of cols) {
+      const field = cfg.byName.get(col);
+      const align = numeric.has(col) || (field && isNumericField(field))
+        ? " text-right tabular-nums"
+        : "";
+      const td = document.createElement("td");
+      td.className = `border-table-border border-t px-3 py-2.5${align}`;
+      const value = row[col];
+      const badge = field?.format === "badge" || field?.name === "status";
+      if (value === null || value === undefined) {
+        td.textContent = "";
+      } else if (badge) {
+        const span = document.createElement("span");
+        span.className = `rounded-sm px-1.5 py-0.5 text-xs font-medium ${badgeClass(value)}`;
+        span.textContent = displayValue(field, value);
+        td.appendChild(span);
+      } else {
+        td.textContent = cellText(field, value);
+      }
+      tr.appendChild(td);
+    }
+
+    if (showActions) {
+      tr.appendChild(actionCell(id, cfg, Boolean(deleted)));
+    }
+
+    tbody.appendChild(tr);
+  }
 }
 
 function paintPages(
