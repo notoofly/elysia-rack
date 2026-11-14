@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.8] — 2026-11-14
+
+- Bump to 0.5.8.
+
 ## [0.5.5] — 2026-11-13
 
 - Fix custom `panel.css`: previously replaced the default stylesheet entirely; now it is appended after the default `panel.css`, so custom rules cascade over and override specific tokens/rules without losing the base panel styles.
