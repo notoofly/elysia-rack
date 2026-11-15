@@ -178,13 +178,12 @@ authorization: {
 
 ### String permissions
 
-A string rule is checked against these sources, in order:
+A string rule is checked against these server-trusted sources, in order:
 
 1. `permissions` decorated on the Elysia context, for example `app.decorate("permissions", ["products.view"])`.
 2. `permissions` stored with `app.state("permissions", ["products.view"])`.
-3. The `x-permissions` request header, as a comma-separated list such as `products.view, products.create`.
 
-If none of these sources is present, the request is allowed. This is a development convenience and a security limitation. Configure a permission source before relying on string rules in production.
+The caller-controlled `x-permissions` request header is never trusted and cannot satisfy a string rule. If neither source is present, the request is denied with `403` (fail closed). Mount a permission source before using string rules.
 
 ### Function rules
 
@@ -352,14 +351,16 @@ Controls replay protection for `POST` create requests.
 | `header` | string | `"Idempotency-Key"` | Header that carries the client key |
 | `ttl` | number | `86400` | Replay window in seconds |
 | `store` | object | In-memory store | Custom shared store |
+| `scope` | function | none | Derive a server-trusted caller scope (e.g. principal/tenant id) |
 
 Behavior:
 
 - Keys are scoped per resource, so the same key can be used on different resources.
+- When `scope` returns a value, keys are also scoped per caller: two callers that send the same key do not see each other's stored response.
+- Without `scope`, all callers of a rack instance share one namespace. Only rely on that when keys are unguessable and never reused across callers.
 - A replay returns the stored status and body with the header `Idempotent-Replayed: true`.
 - Concurrent requests with the same key in one process share a single insert.
-- The default memory store holds up to 1000 entries and evicts the oldest.
-- The default store is per process. Use a shared store when running more than one instance.
+- The default memory store never evicts live entries within their TTL, so execute-once holds for the process lifetime. It does not survive a restart and is not shared between processes.
 
 Custom store contract:
 
@@ -376,7 +377,7 @@ const store: Rack.CrudIdempotencyStore = {
 };
 ```
 
-The store receives keys that are already scoped to the resource. It must honor the TTL when one is provided.
+The store receives keys that are already scoped to the resource (and to the caller when `idempotency.scope` is set). It must honor the TTL when one is provided.
 
 ## `openapi`
 
@@ -508,9 +509,9 @@ Each adapter implements the `CrudAdapter` contract: `describe`, `list`, `detail`
 
 | Export | Source | Purpose |
 |---|---|---|
-| `createMemoryIdempotencyStore(maxEntries?)` | `elysia-rack` | Default in-memory idempotency store (bounded to 1,000 entries by default) |
+| `createMemoryIdempotencyStore(maxEntries?)` | `elysia-rack` | Default in-memory idempotency store (soft ceiling of 1,000 live entries by default; expired entries are purged) |
 
-Pass the result to `idempotency.store` if you want to control the store size or reuse the same store across racks within one process. For multi-instance deploys, use a shared store (e.g. Redis) that implements the `CrudIdempotencyStore` contract instead.
+Pass the result to `idempotency.store` if you want to control the store size or reuse the same store across racks within one process. The memory store never evicts live entries within their TTL, so memory grows with the number of unique keys issued in that window. For strict execute-once across restarts or multi-instance deploys, use a durable shared store (e.g. Redis) that implements the `CrudIdempotencyStore` contract instead.
 
 ### React page utilities
 

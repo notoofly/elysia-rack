@@ -19,11 +19,14 @@ function whereFor(
   query: ParsedListQuery,
   opts: AdapterOptions,
 ): Record<string, unknown> {
+  const hideDeleted = opts.softDelete === true && !query.includeDeleted;
+  const deletedField = opts.deletedAtField ?? "deletedAt";
   const where: Record<string, unknown> = {
     ...deletedAtFilter(opts, query.includeDeleted),
   };
 
   for (const [key, value] of Object.entries(query.filters)) {
+    if (hideDeleted && key === deletedField) continue;
     where[key] = Array.isArray(value) ? { in: value } : value;
   }
 

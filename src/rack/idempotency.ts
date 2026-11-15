@@ -6,11 +6,13 @@ interface MemoryEntry {
 }
 
 /**
- * In-memory idempotency store with lazy expiry and a bounded size
- * (oldest entries are evicted first).
+ * In-memory idempotency store with lazy expiry.
  *
- * Scoped per rack instance. Use a shared store (e.g. Redis) via
- * `idempotency.store` when running multiple instances.
+ * Live entries (within their TTL) are never evicted, so the execute-once
+ * guarantee holds for the life of the process. `maxEntries` is a soft
+ * ceiling that triggers an expired-entry purge; memory grows with the number
+ * of unique keys issued within the TTL window. Use a durable shared store
+ * (e.g. Redis) for strict execute-once across restarts or multiple instances.
  */
 export function createMemoryIdempotencyStore(
   maxEntries = 1000,
@@ -29,13 +31,15 @@ export function createMemoryIdempotencyStore(
     },
 
     set(key, record, ttlSeconds = 86400) {
-      if (entries.size >= maxEntries && !entries.has(key)) {
-        const oldest = entries.keys().next();
-        if (!oldest.done) entries.delete(oldest.value);
+      const now = Date.now();
+      if (entries.size >= maxEntries) {
+        for (const [k, entry] of entries) {
+          if (now >= entry.expiresAt) entries.delete(k);
+        }
       }
       entries.set(key, {
         record,
-        expiresAt: Date.now() + ttlSeconds * 1000,
+        expiresAt: now + ttlSeconds * 1000,
       });
     },
   };

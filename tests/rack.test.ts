@@ -297,29 +297,30 @@ describe("rack authorization", () => {
     expect(seen.request).toBeInstanceOf(Request);
   });
 
-  it("allows string rule when no auth source is wired", async () => {
+  it("denies string rule when no auth source is wired", async () => {
     const app = mount("/dev", {
       model: drizzle(),
       authorization: { list: "products.view" },
     });
-    expect((await call(app, "QUERY", "/dev/data")).status).toBe(200);
+    const { status, json } = await call(app, "QUERY", "/dev/data");
+    expect(status).toBe(403);
+    expect(json.requiredPermission).toBe("products.view");
   });
 
-  it("enforces string rule against x-permissions header", async () => {
+  it("ignores the caller-controlled x-permissions header", async () => {
     const app = mount("/perm", {
       model: drizzle(),
       authorization: { list: "products.view" },
     });
-    expect(
-      (await call(app, "QUERY", "/perm/data", undefined, { "x-permissions": "a, products.view " }))
-        .status,
-    ).toBe(200);
-
-    const denied = await call(app, "QUERY", "/perm/data", undefined, {
-      "x-permissions": "other",
-    });
-    expect(denied.status).toBe(403);
-    expect(denied.json).toEqual({
+    const { status, json } = await call(
+      app,
+      "QUERY",
+      "/perm/data",
+      undefined,
+      { "x-permissions": "products.view" },
+    );
+    expect(status).toBe(403);
+    expect(json).toEqual({
       error: "Forbidden",
       operation: "list",
       requiredPermission: "products.view",

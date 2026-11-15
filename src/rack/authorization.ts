@@ -14,10 +14,10 @@ export interface AuthCheck {
  *
  * - `undefined` / `true` → allow
  * - `false` → 403
- * - `string` → treated as required permission. Checked against
- *   `permissions` decorated on context (e.g. by an auth plugin) or the
- *   `x-permissions` header (comma-separated). Allowed when no auth source
- *   is wired yet (TODO: strict mode once auth plugin lands).
+ * - `string` → required permission. Satisfied only by a server-trusted
+ *   source: `permissions` decorated on context (e.g. by an auth plugin) or
+ *   `permissions` in `app.state`. The caller-controlled `x-permissions`
+ *   header is never trusted. No source wired → deny (fail closed).
  * - `function` → awaited, `false` → 403
  */
 export async function authorize(
@@ -36,27 +36,15 @@ export async function authorize(
   if (rule === false) return forbidden();
 
   if (typeof rule === "string") {
-    const fromContext = Array.isArray(ctx.permissions)
+    const granted = Array.isArray(ctx.permissions)
       ? ctx.permissions
       : Array.isArray(ctx.store?.["permissions"])
         ? (ctx.store?.["permissions"] as unknown[])
         : null;
 
-    if (fromContext !== null)
-      return (fromContext as unknown[]).includes(rule)
-        ? null
-        : forbidden({ requiredPermission: rule });
-
-    const header = ctx.request.headers.get("x-permissions");
-    if (typeof header === "string" && header.length > 0) {
-      const granted = header.split(",").map((s) => s.trim());
-      return granted.includes(rule)
-        ? null
-        : forbidden({ requiredPermission: rule });
-    }
-
-    // TODO(auth): deny-by-default once the auth plugin provides permissions.
-    return null;
+    return granted !== null && (granted as unknown[]).includes(rule)
+      ? null
+      : forbidden({ requiredPermission: rule });
   }
 
   const allowed = await rule({

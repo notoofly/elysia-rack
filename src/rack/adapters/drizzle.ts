@@ -157,6 +157,27 @@ async function applyUpdate(
   );
 }
 
+function keyCondition(
+  table: any,
+  opts: AdapterOptions,
+  key: unknown,
+  body?: unknown,
+) {
+  const cond = eq(table[opts.primaryKey], key);
+  // An explicit `deletedAt: null` write is the restore path and must reach
+  // tombstoned rows; every other write is confined to live rows.
+  const restoring =
+    opts.softDelete === true &&
+    typeof body === "object" &&
+    body !== null &&
+    (body as Record<string, unknown>)[opts.deletedAtField ?? "deletedAt"] ===
+      null;
+  const alive = restoring
+    ? undefined
+    : aliveCondition(table, opts, opts.softDelete ?? false);
+  return alive ? and(cond, alive) : cond;
+}
+
 async function findByKey(
   db: any,
   table: any,
@@ -265,7 +286,7 @@ export const drizzleAdapter: CrudAdapter = {
     const row = await applyUpdate(
       db,
       table,
-      eq(table[opts.primaryKey], key),
+      keyCondition(table, opts, key, body),
       body,
     );
     if (row === null) return null;
@@ -281,7 +302,7 @@ export const drizzleAdapter: CrudAdapter = {
     const row = await applyUpdate(
       db,
       table,
-      eq(table[opts.primaryKey], key),
+      keyCondition(table, opts, key, body),
       body,
     );
     if (row === null) return null;

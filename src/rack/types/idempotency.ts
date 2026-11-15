@@ -8,7 +8,8 @@ export interface CrudIdempotencyRecord {
 /**
  * Pluggable idempotency store.
  *
- * Keys are already scoped per resource (`<resource>::<key>`).
+ * Keys are already scoped per resource and (when `idempotency.scope` is set)
+ * per caller: `<resource>::[<scope>::]<key>`.
  * Implementations must honor `ttlSeconds` when provided.
  */
 export interface CrudIdempotencyStore {
@@ -54,4 +55,20 @@ export interface CrudIdempotencyOptions {
    * Use a shared store (e.g. Redis) when running multiple instances.
    */
   store?: CrudIdempotencyStore;
+
+  /**
+   * Derive a server-trusted caller scope (for example a principal or tenant
+   * id) from the request context. Keys become
+   * `<resource>::<scope>::<key>`, so two callers that send the same key do
+   * not observe each other's stored response.
+   *
+   * When omitted, keys share one namespace per rack instance. That is safe
+   * only when idempotency keys are unguessable and never reused across
+   * callers; otherwise provide this to isolate callers.
+   */
+  scope?: (context: {
+    request: Request;
+    permissions?: unknown;
+    store?: Record<string, unknown>;
+  }) => string | undefined;
 }

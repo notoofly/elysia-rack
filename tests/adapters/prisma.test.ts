@@ -94,6 +94,16 @@ describe("prismaAdapter.list", () => {
       status: { in: ["a", "b"] },
     });
   });
+
+  it("keeps the alive predicate when the caller filters on deletedAt", async () => {
+    const { calls, model } = mockDelegate();
+    await prismaAdapter.list(
+      model,
+      { ...baseQuery(), filters: { deletedAt: { not: null } } },
+      { ...opts, softDelete: true },
+    );
+    expect(called(calls, "findMany").where).toEqual({ deletedAt: null });
+  });
 });
 
 describe("prismaAdapter.detail", () => {

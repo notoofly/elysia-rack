@@ -231,7 +231,8 @@ export function rack(path: string, options: Rack.RackOptions) {
                 operation: "create" as const,
               });
           } else {
-            const scoped = `${resource}::${clientKey}`;
+            const scope = idem?.scope?.(authContext(context, "create")) ?? "";
+            const scoped = `${resource}::${scope !== "" ? `${scope}::` : ""}${clientKey}`;
 
             const stored = await idemStore.get(scoped);
             if (stored !== undefined) return replay(context, stored);

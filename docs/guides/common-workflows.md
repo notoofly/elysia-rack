@@ -174,7 +174,7 @@ rack("/catalog/products", {
 **Steps:**
 
 1. Add authorization rules per operation.
-2. Use a string when your application provides permissions through `app.decorate` or `app.state`, or through the `x-permissions` header.
+2. Use a string when your application provides permissions through `app.decorate` or `app.state`.
 3. Use a function when the check needs the request or record ID.
 
 ```ts

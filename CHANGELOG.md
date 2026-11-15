@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.0] — 2026-11-15
+
+Security fixes from the run-1 audit. Some changes are breaking.
+
+### Authorization (breaking)
+- String permission rules now fail closed and trust only server-side sources: `permissions` decorated on the context (`app.decorate`) or `app.state`. The caller-controlled `x-permissions` header is no longer accepted, and a string rule with no permission source now returns `403` instead of allowing the request. Mount a permission source before using string rules.
+
+### Soft delete
+- Drizzle: `update` and `replace` now include the alive predicate (`deletedAt IS NULL`), so soft-deleted rows return `404` and cannot be mutated. Restoring a row still requires an explicit authorized write.
+- Prisma: caller filters can no longer overwrite the `deletedAt` alive predicate, so list/count cannot reveal soft-deleted rows.
+
+### Idempotency
+- New `idempotency.scope` callback namespaces keys per server-trusted caller (e.g. principal or tenant). Keys become `<resource>::<scope>::<key>`. Without `scope`, callers share one namespace; set it when multiple principals use a rack instance.
+- The in-memory store no longer evicts live entries within their TTL, so the execute-once guarantee holds for the process lifetime. `maxEntries` is a soft ceiling that triggers an expired-entry purge. Use a durable shared store for strict execute-once across restarts or multiple instances.
+
 ## [0.5.8] — 2026-11-14
 
 - Bump to 0.5.8.
