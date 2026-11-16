@@ -147,7 +147,7 @@ describe("rack registry", () => {
       const app = dashboard({ path: "/dash" });
       const res = await app.handle(new Request("http://localhost/dash"));
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as { path: string; props: unknown };
       expect(body.path).toBe("/dashboard");
       expect(body.props).toBeDefined();
     });
@@ -159,7 +159,7 @@ describe("rack registry", () => {
         new Request("http://localhost/?resource=products"),
       );
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as { props: { resource: string } };
       expect(body.props.resource).toBe("products");
     });
   });
