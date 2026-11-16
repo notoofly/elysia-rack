@@ -324,6 +324,14 @@ const app = new Elysia()
           scope: "toolbar",
           icon: "download",
         },
+        {
+          label: "Logout",
+          href: "/auth/logout",
+          method: "POST",
+          scope: "toolbar",
+          icon: "log-out",
+          confirm: "Yakin ingin keluar?",
+        },
       ],
 
       openapi: {
@@ -466,6 +474,62 @@ const app = new Elysia()
     const sessionId = createSession(email, user.role as "admin" | "user");
     return { sessionId, role: user.role };
   }, { body: LoginSchema })
+  .get("/auth/login", async () => {
+    return new Response(
+      `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login - Elysia Rack</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #f3f4f6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .card { background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 320px; }
+  h1 { font-size: 1.25rem; margin: 0 0 1.5rem; color: #111827; text-align: center; }
+  label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #374151; }
+  input { width: 100%; padding: 0.625rem; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-size: 1rem; margin-bottom: 1rem; }
+  button { width: 100%; padding: 0.625rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  button:hover { background: #1d4ed8; }
+  .hint { text-align: center; font-size: 0.875rem; color: #6b7280; margin-top: 1rem; }
+  .hint code { color: #111827; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Masuk ke Elysia Rack</h1>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="admin@example.com" required />
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="••••••••" required />
+      <button type="submit">Masuk</button>
+    </form>
+    <p class="hint">Coba: <code>admin@example.com / admin123</code> atau <code>user@example.com / user123</code></p>
+  </div>
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (res.ok) {
+        const { sessionId } = await res.json();
+        localStorage.setItem("rack_session", sessionId);
+        window.location.href = "/";
+      } else {
+        alert("Login gagal: cek email dan password");
+      }
+    });
+  </script>
+</body>
+</html>`,
+      { headers: { "content-type": "text/html; charset=utf-8" } },
+    );
+  })
   .post("/auth/logout", async (ctx: any) => {
     const sessionId = ctx.request.headers.get("Authorization")?.replace("Bearer ", "");
     if (sessionId) deleteSession(sessionId);
@@ -511,8 +575,9 @@ console.log("  Duplicate action   POST  http://localhost:5000/catalog/products/1
 console.log("  Export action      GET   http://localhost:5000/catalog/products/export");
 console.log("  Categories (read-only) QUERY http://localhost:5000/catalog/categories/data");
 console.log("  Dashboard          GET   http://localhost:5000/");
+console.log("  Login page         GET   http://localhost:5000/auth/login");
 console.log("  Login              POST  http://localhost:5000/auth/login (email: admin@example.com / admin123 atau user@example.com / user123)");
-console.log("  Logout             POST  http://localhost:5000/auth/logout");
+console.log("  Logout action      POST  http://localhost:5000/auth/logout (via toolbar action)");
 console.log("  Transactions         GET   http://localhost:5000/finance/transactions");
 
 export type App = typeof app;
