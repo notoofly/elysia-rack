@@ -204,6 +204,25 @@ function isEmptyBody(body: unknown): boolean {
   );
 }
 
+// Date-kind columns (e.g. `integer(..., { mode: "timestamp" })`) map with
+// `value.getTime()`, so string bodies from JSON/forms must become `Date`.
+function coerceBodyValues(
+  table: any,
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(body)) {
+    const col = table[key];
+    if (col && (col as any).dataType === "date" && typeof value === "string") {
+      const date = new Date(value);
+      out[key] = Number.isNaN(date.getTime()) ? value : date;
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
 export const drizzleAdapter: CrudAdapter = {
   name: "drizzle",
 
@@ -273,11 +292,12 @@ export const drizzleAdapter: CrudAdapter = {
   async create(model, body, opts) {
     const db = dbOf(model);
     const table = tableOf(model);
+    const values = coerceBodyValues(table, body as Record<string, unknown>);
     if (opts.returning === false) {
-      await db.insert(table).values(body as any);
+      await db.insert(table).values(values as any);
       return undefined;
     }
-    return firstRow(db.insert(table).values(body as any).returning());
+    return firstRow(db.insert(table).values(values as any).returning());
   },
 
   async replace(model, id, body, opts) {
@@ -290,7 +310,7 @@ export const drizzleAdapter: CrudAdapter = {
       db,
       table,
       keyCondition(table, opts, key, body),
-      body,
+      coerceBodyValues(table, body as Record<string, unknown>),
     );
     if (row === null) return null;
     return opts.returning === false ? undefined : row;
@@ -306,7 +326,7 @@ export const drizzleAdapter: CrudAdapter = {
       db,
       table,
       keyCondition(table, opts, key, body),
-      body,
+      coerceBodyValues(table, body as Record<string, unknown>),
     );
     if (row === null) return null;
     return opts.returning === false ? undefined : row;

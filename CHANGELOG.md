@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.3] — 2026-11-16
+
+### Fixes
+- Drizzle adapter coerces string date values (e.g. from JSON bodies or panel forms) to `Date` for date-kind columns such as `integer(..., { mode: "timestamp" })` on create/replace/update. Previously these produced `500: value.getTime is not a function`.
+
 ## [0.6.2] — 2026-11-16
 
 ### Fixes
