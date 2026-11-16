@@ -65,6 +65,20 @@ function esc(value: unknown): string {
     .join("&quot;");
 }
 
+function safeHref(raw: string): string {
+  const value = String(raw ?? "").trim();
+  if (!value) return "#";
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.href;
+    }
+  } catch {
+    return "#";
+  }
+  return "#";
+}
+
 function toParams(sp: URLSearchParams): Record<string, string> {
   const out: Record<string, string> = {};
   sp.forEach((v, k) => {
@@ -154,7 +168,8 @@ function badgeClass(value: unknown): string {
 }
 
 function actionButton(action: CustomAction, id: string): any {
-  const target = esc(action.href.replaceAll(":id", encodeURIComponent(id)));
+  const rawTarget = action.href.replaceAll(":id", encodeURIComponent(id));
+  const target = safeHref(rawTarget);
   const cls =
     "text-link hover:text-link-hover ml-3 px-1 text-sm font-medium hover:underline";
   if (action.method) {
