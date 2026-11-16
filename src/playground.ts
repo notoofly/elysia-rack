@@ -236,7 +236,7 @@ function getAuthPayload(request: Request): AuthPayload | null {
 const authPlugin = () =>
   new Elysia({ name: "authPlugin" })
     .decorate({ permissions: undefined as AuthPayload | undefined })
-    .decorate("permissions", (ctx) => {
+    .decorate("permissions", (ctx: any) => {
       const payload = getAuthPayload(ctx.request);
       if (payload) return payload;
       return undefined;
@@ -466,8 +466,8 @@ const app = new Elysia()
     const sessionId = createSession(email, user.role as "admin" | "user");
     return { sessionId, role: user.role };
   }, { body: LoginSchema })
-  .post("/auth/logout", async ({ headers, status }) => {
-    const sessionId = headers.get("Authorization")?.replace("Bearer ", "");
+  .post("/auth/logout", async (ctx) => {
+    const sessionId = ctx.request.headers.get("Authorization")?.replace("Bearer ", "");
     if (sessionId) deleteSession(sessionId);
     return { ok: true };
   })

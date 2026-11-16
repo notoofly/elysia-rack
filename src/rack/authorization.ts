@@ -52,6 +52,7 @@ export async function authorize(
     request: ctx.request,
     id: ctx.id,
     resource: ctx.resource,
+    permissions: ctx.permissions,
   });
   return allowed ? null : forbidden();
 }

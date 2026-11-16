@@ -19,6 +19,8 @@ export interface CrudAuthorizationContext {
   id?: string;
 
   resource: unknown;
+
+  permissions?: unknown;
 }
 
 export interface CrudAuthorizationOptions {
