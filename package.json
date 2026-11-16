@@ -7,7 +7,7 @@
   "author": "notoofly",
   "repository": {
     "type": "git",
-    "url": "https://github.com/notoofly/elysia-rack.git"
+    "url": "git+https://github.com/notoofly/elysia-rack.git"
   },
   "homepage": "https://github.com/notoofly/elysia-rack#readme",
   "bugs": {
