@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.2] — 2026-11-16
+
+### Fixes
+- Drizzle `describe()` now uses drizzle's `is()` helper instead of `instanceof`, so panel create/edit forms render correctly even when the app and elysia-rack resolve separate `drizzle-orm` copies (duplicate class identity broke the `instanceof` check and caused a JSON-textarea fallback in the "New record" dialog).
+
 ## [0.6.1] — 2026-11-16
 
 ### Build & module system
