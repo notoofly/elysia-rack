@@ -8,7 +8,7 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-import type { Rack } from "../src/rack/index";
+import type { Rack } from "../src/rack/index.ts";
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),

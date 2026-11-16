@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import type { FieldDescriptor } from "../src/rack/adapters/index";
-import { parseListQuery } from "../src/rack/query";
+import type { FieldDescriptor } from "../src/rack/adapters/index.ts";
+import { parseListQuery } from "../src/rack/query.ts";
 import {
   buildPanelFields,
   coerceFieldValue,
   displayValue,
-} from "../src/react/page/components/panelFields";
+} from "../src/react/page/components/panelFields.ts";
 
 const descriptors: FieldDescriptor[] = [
   { name: "id", kind: "integer", primary: true, autoIncrement: true, nullable: false },

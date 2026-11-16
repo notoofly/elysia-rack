@@ -11,8 +11,8 @@ import {
   like,
   or,
 } from "drizzle-orm";
-import type { ParsedListQuery } from "../query";
-import type { Rack } from "../types";
+import type { ParsedListQuery } from "../query.ts";
+import type { Rack } from "../types/index.ts";
 import {
   coerceIdValue,
   isNumericColumn,
@@ -21,7 +21,7 @@ import {
   type FieldDescriptor,
   type FieldKind,
   type ListResult,
-} from "./index";
+} from "./index.ts";
 
 function tableOf(model: Rack.CrudModel): any {
   return (model as { drizzle: Rack.CrudDrizzleModel }).drizzle.table as any;

@@ -1,8 +1,8 @@
-export type { CrudDrizzleModel } from "./drizzle";
-export type { CrudPrismaModel } from "./prisma";
+export type { CrudDrizzleModel } from "./drizzle.ts";
+export type { CrudPrismaModel } from "./prisma.ts";
 
-import type { CrudDrizzleModel } from "./drizzle";
-import type { CrudPrismaModel } from "./prisma";
+import type { CrudDrizzleModel } from "./drizzle.ts";
+import type { CrudPrismaModel } from "./prisma.ts";
 
 /**
  * ORM model/resource configuration.

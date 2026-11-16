@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Elysia, t } from "elysia";
-import { panelPage, rack, type Rack } from "../src/rack/index";
-import { ReactRack } from "../src/react/types";
+import { panelPage, rack, type Rack } from "../src/rack/index.ts";
+import { ReactRack } from "../src/react/types.ts";
 import {
   categories,
   createTestDb,
   drizzleModel,
   seedProducts,
   type TestDb,
-} from "./helpers";
+} from "./helpers.ts";
 
 type App = Elysia<any, any, any, any, any, any, any>;
 

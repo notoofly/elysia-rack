@@ -3,8 +3,8 @@ import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server"
-import { RackIcon } from "./page/components/Icon"
-import { ReactRack } from "./types"
+import { RackIcon } from "./page/components/Icon.ts"
+import { ReactRack } from "./types.ts"
 
 type PageMetadata = { pluralLabel?: string; label?: string; icon?: string };
 

@@ -5,7 +5,7 @@ import {
   listRacks,
   rack,
   type Rack,
-} from "../src/rack/index";
+} from "../src/rack/index.ts";
 
 const model = { drizzle: { db: {}, table: {} } } as Rack.CrudModel;
 

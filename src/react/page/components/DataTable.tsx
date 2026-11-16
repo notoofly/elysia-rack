@@ -1,6 +1,6 @@
-import type { CrudAction } from "../../../rack/types/actions";
-import { href } from "./href";
-import { displayValue, isNumericField, type PanelField } from "./panelFields";
+import type { CrudAction } from "../../../rack/types/actions.ts";
+import { href } from "./href.ts";
+import { displayValue, isNumericField, type PanelField } from "./panelFields.ts";
 
 export interface DataTableProps {
   fields: PanelField[];

@@ -1,6 +1,6 @@
-import type { ParsedListQuery } from "../query";
-import type { Rack } from "../types";
-import { coerceIdValue, type AdapterOptions, type CrudAdapter, type FieldDescriptor, type ListResult } from "./index";
+import type { ParsedListQuery } from "../query.ts";
+import type { Rack } from "../types/index.ts";
+import { coerceIdValue, type AdapterOptions, type CrudAdapter, type FieldDescriptor, type ListResult } from "./index.ts";
 
 function delegateOf(model: Rack.CrudModel): any {
   return (model as { prisma: Rack.CrudPrismaModel }).prisma.model as any;

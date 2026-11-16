@@ -1,4 +1,4 @@
-import type { CrudFieldConfig } from "./fields";
+import type { CrudFieldConfig } from "./fields.ts";
 
 export interface CrudMetadata {
   /**

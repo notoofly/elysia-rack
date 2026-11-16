@@ -1,15 +1,15 @@
-import type { FieldDescriptor } from "../../rack/adapters/index";
-import type { Rack } from "../../rack/types";
-import { getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry";
-import { Breadcrumb } from "./components/Breadcrumb";
-import { DataTable } from "./components/DataTable";
-import { RackIcon } from "./components/Icon";
-import { Masthead } from "./components/Masthead";
-import { buildPanelFields, type PanelField } from "./components/panelFields";
-import { Pagination } from "./components/Pagination";
-import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar";
-import { Toolbar } from "./components/Toolbar";
-import { resolveDonateProp } from "../donate";
+import type { FieldDescriptor } from "../../rack/adapters/index.ts";
+import type { Rack } from "../../rack/types/index.ts";
+import { getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry.ts";
+import { Breadcrumb } from "./components/Breadcrumb.ts";
+import { DataTable } from "./components/DataTable.ts";
+import { RackIcon } from "./components/Icon.ts";
+import { Masthead } from "./components/Masthead.ts";
+import { buildPanelFields, type PanelField } from "./components/panelFields.ts";
+import { Pagination } from "./components/Pagination.ts";
+import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar.ts";
+import { Toolbar } from "./components/Toolbar.ts";
+import { resolveDonateProp } from "../donate.ts";
 
 const inputClass =
   "border-input bg-input-background text-foreground placeholder:text-form-placeholder h-9 rounded-md border px-2.5 text-sm";

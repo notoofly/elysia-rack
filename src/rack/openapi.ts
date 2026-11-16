@@ -1,4 +1,4 @@
-import type { Rack } from "./types";
+import type { Rack } from "./types/index.ts";
 
 /**
  * Merge resource-level `options.openapi` with per-operation overrides

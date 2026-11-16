@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { drizzleAdapter } from "../../src/rack/adapters/drizzle";
-import type { Rack } from "../../src/rack/index";
+import { drizzleAdapter } from "../../src/rack/adapters/drizzle.ts";
+import type { Rack } from "../../src/rack/index.ts";
 
 const products = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),

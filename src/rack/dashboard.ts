@@ -1,5 +1,5 @@
-import Elysia from "elysia";
-import { PANEL_PAGE_KEY } from "./page";
+import { Elysia } from "elysia";
+import { PANEL_PAGE_KEY } from "./page.ts";
 
 export interface DashboardOptions {
   /** Mount path for the dashboard page (default "/") */

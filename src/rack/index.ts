@@ -1,5 +1,5 @@
-import Elysia, { status } from "elysia";
-import { resolveAdapter } from "./adapter";
+import { Elysia, status } from "elysia";
+import { resolveAdapter } from "./adapter.ts";
 import {
   getAdapter,
   type AdapterOptions,
@@ -7,19 +7,19 @@ import {
   type FieldDescriptor,
   type FieldKind,
   type ListResult,
-} from "./adapters/index";
-import { drizzleAdapter } from "./adapters/drizzle";
-import { prismaAdapter } from "./adapters/prisma";
-import { authorize, type AuthCheck } from "./authorization";
-import { createMemoryIdempotencyStore } from "./idempotency";
-import { detailFor } from "./openapi";
-import { panelPage, type PanelPageProps } from "./page";
-import { parseListQuery } from "./query";
-import { registerRack } from "./registry";
-import type { Rack } from "./types";
+} from "./adapters/index.ts";
+import { drizzleAdapter } from "./adapters/drizzle.ts";
+import { prismaAdapter } from "./adapters/prisma.ts";
+import { authorize, type AuthCheck } from "./authorization.ts";
+import { createMemoryIdempotencyStore } from "./idempotency.ts";
+import { detailFor } from "./openapi.ts";
+import { panelPage, type PanelPageProps } from "./page.ts";
+import { parseListQuery } from "./query.ts";
+import { registerRack } from "./registry.ts";
+import type { Rack } from "./types/index.ts";
 
-export type { Rack } from "./types";
-export type * from "./models";
+export type { Rack } from "./types/index.ts";
+export type * from "./models/index.ts";
 export {
   buildRackTree,
   clearRacks,
@@ -30,9 +30,9 @@ export {
   registerRack,
   type RackRegistration,
   type RackTreeNode,
-} from "./registry";
-export { dashboard, type DashboardOptions } from "./dashboard";
-export { resolveAdapter } from "./adapter";
+} from "./registry.ts";
+export { dashboard, type DashboardOptions } from "./dashboard.ts";
+export { resolveAdapter } from "./adapter.ts";
 export {
   getAdapter,
   drizzleAdapter,
@@ -42,12 +42,12 @@ export {
   type FieldDescriptor,
   type FieldKind,
   type ListResult,
-} from "./adapters/index";
-export { authorize, type AuthCheck } from "./authorization";
-export { createMemoryIdempotencyStore } from "./idempotency";
-export { detailFor } from "./openapi";
-export { panelPage, PANEL_PAGE_KEY, type PanelPageProps } from "./page";
-export { parseListQuery } from "./query";
+} from "./adapters/index.ts";
+export { authorize, type AuthCheck } from "./authorization.ts";
+export { createMemoryIdempotencyStore } from "./idempotency.ts";
+export { detailFor } from "./openapi.ts";
+export { panelPage, PANEL_PAGE_KEY, type PanelPageProps } from "./page.ts";
+export { parseListQuery } from "./query.ts";
 
 const DEFAULT_OPERATIONS: Required<Rack.CrudOperationsOptions> = {
   list: true,

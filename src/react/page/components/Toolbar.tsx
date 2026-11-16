@@ -1,5 +1,5 @@
-import { href } from "./href";
-import type { PanelField } from "./panelFields";
+import { href } from "./href.ts";
+import type { PanelField } from "./panelFields.ts";
 
 export interface ToolbarProps {
   fields?: PanelField[];

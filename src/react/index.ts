@@ -1,11 +1,11 @@
-import Elysia from "elysia";
+import { Elysia } from "elysia";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRenderer } from "./render";
-import { ReactRack } from "./types";
-import { setGlobalDonate } from "./donate";
+import { createRenderer } from "./render.ts";
+import { ReactRack } from "./types.ts";
+import { setGlobalDonate } from "./donate.ts";
 
 export const lazyPage = ReactRack.lazyPage;
 
@@ -58,8 +58,8 @@ export function page<Props = Record<string, never>>(path: string, props?: Props)
 }
 
 export const pages: ReactRack.PageRegistry = {
-  "/dashboard": ReactRack.lazyPage(() => import("./page/Dashboard")),
-  "/panel": ReactRack.lazyPage(() => import("./page/Panel"))
+  "/dashboard": ReactRack.lazyPage(() => import("./page/Dashboard.ts")),
+  "/panel": ReactRack.lazyPage(() => import("./page/Panel.ts"))
 }
 
 const defaultPages = pages

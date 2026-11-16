@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { Elysia } from "elysia";
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
-import { reactPlugin } from "../src/react/index";
-import { createRenderer } from "../src/react/render";
-import { ReactRack } from "../src/react/types";
-import Panel from "../src/react/page/Panel";
-import { DataTable } from "../src/react/page/components/DataTable";
-import { Toolbar } from "../src/react/page/components/Toolbar";
+import { reactPlugin } from "../src/react/index.ts";
+import { createRenderer } from "../src/react/render.ts";
+import { ReactRack } from "../src/react/types.ts";
+import Panel from "../src/react/page/Panel.ts";
+import { DataTable } from "../src/react/page/components/DataTable.ts";
+import { Toolbar } from "../src/react/page/components/Toolbar.ts";
 
 function Hello({ name }: { name: string }) {
   return <main>{`Hello ${name}`}</main>;

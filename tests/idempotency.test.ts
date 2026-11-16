@@ -4,14 +4,14 @@ import {
   createMemoryIdempotencyStore,
   rack,
   type Rack,
-} from "../src/rack/index";
+} from "../src/rack/index.ts";
 import {
   countProducts,
   createTestDb,
   drizzleModel,
   seedProducts,
   type TestDb,
-} from "./helpers";
+} from "./helpers.ts";
 
 type App = Elysia<any, any, any, any, any, any, any>;
 

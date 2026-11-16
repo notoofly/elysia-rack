@@ -1,4 +1,4 @@
-import type { Rack } from "./types";
+import type { Rack } from "./types/index.ts";
 
 /**
  * Resolve which ORM adapter a `CrudModel` targets.

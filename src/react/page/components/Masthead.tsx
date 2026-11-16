@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { RackIcon } from "./Icon";
+import { RackIcon } from "./Icon.ts";
 
 export interface MastheadProps {
   title: string;

@@ -1,5 +1,5 @@
 import { status } from "elysia";
-import type { Rack } from "./types";
+import type { Rack } from "./types/index.ts";
 
 export interface AuthCheck {
   request: Request;

@@ -11,8 +11,8 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { Elysia, t } from "elysia";
-import { dashboard, rack } from "./rack/index";
-import { reactPlugin } from "./react/index";
+import { dashboard, rack } from "./rack/index.ts";
+import { reactPlugin } from "./react/index.ts";
 
 // ---------------------------------------------------------------------------
 // Schema (drizzle pg-core, PGlite in-memory)
@@ -265,17 +265,17 @@ const app = new Elysia()
       authorization: {
         list: true,
         detail: true,
-        create: async (ctx) => {
-          return ctx.permissions?.role === "admin";
+        create: async (ctx: any) => {
+          return (ctx.permissions as { role: string })?.role === "admin";
         },
-        replace: async (ctx) => {
-          return ctx.permissions?.role === "admin";
+        replace: async (ctx: any) => {
+          return (ctx.permissions as { role: string })?.role === "admin";
         },
-        update: async (ctx) => {
-          return ctx.permissions?.role === "admin";
+        update: async (ctx: any) => {
+          return (ctx.permissions as { role: string })?.role === "admin";
         },
-        delete: async (ctx) => {
-          return ctx.permissions?.role === "admin";
+        delete: async (ctx: any) => {
+          return (ctx.permissions as { role: string })?.role === "admin";
         },
       },
 
@@ -391,27 +391,27 @@ const app = new Elysia()
       authorization: {
         list: true,
         detail: true,
-        create: async (ctx) => {
-          return ctx.permissions?.role === "admin" || ctx.permissions?.role === "user";
+        create: async (ctx: any) => {
+          return (ctx.permissions as { role: string })?.role === "admin" || (ctx.permissions as { role: string })?.role === "user";
         },
-        replace: async (ctx) => {
-          if (ctx.permissions?.role === "admin") return true;
-          if (ctx.permissions?.role === "user") {
+        replace: async (ctx: any) => {
+          if ((ctx.permissions as { role: string })?.role === "admin") return true;
+          if ((ctx.permissions as { role: string })?.role === "user") {
             const t = ctx.id ? await db.select().from(transactions).where(eq(transactions.id, Number(ctx.id))).then(r => r[0]) : null;
             return t?.userId !== undefined;
           }
           return false;
         },
-        update: async (ctx) => {
-          if (ctx.permissions?.role === "admin") return true;
-          if (ctx.permissions?.role === "user") {
+        update: async (ctx: any) => {
+          if ((ctx.permissions as { role: string })?.role === "admin") return true;
+          if ((ctx.permissions as { role: string })?.role === "user") {
             const t = ctx.id ? await db.select().from(transactions).where(eq(transactions.id, Number(ctx.id))).then(r => r[0]) : null;
             return t?.userId !== undefined;
           }
           return false;
         },
-        delete: async (ctx) => {
-          return ctx.permissions?.role === "admin";
+        delete: async (ctx: any) => {
+          return (ctx.permissions as { role: string })?.role === "admin";
         },
       },
 
@@ -456,7 +456,7 @@ const app = new Elysia()
       },
     }),
   )
-  .post("/auth/login", async ({ body, status }) => {
+  .post("/auth/login", async ({ body, status }: any) => {
     const { email, password } = body as { email: string; password: string };
     const results = await db.select().from(users).where(eq(users.email, email));
     const user = results[0];
@@ -466,7 +466,7 @@ const app = new Elysia()
     const sessionId = createSession(email, user.role as "admin" | "user");
     return { sessionId, role: user.role };
   }, { body: LoginSchema })
-  .post("/auth/logout", async (ctx) => {
+  .post("/auth/logout", async (ctx: any) => {
     const sessionId = ctx.request.headers.get("Authorization")?.replace("Bearer ", "");
     if (sessionId) deleteSession(sessionId);
     return { ok: true };
@@ -486,7 +486,7 @@ const app = new Elysia()
       },
     });
   })
-  .post("/catalog/products/:id/duplicate", async ({ params, status }) => {
+  .post("/catalog/products/:id/duplicate", async ({ params, status }: any) => {
     const [source] = await db
       .select()
       .from(products)

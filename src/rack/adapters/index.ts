@@ -1,10 +1,10 @@
-import type { ParsedListQuery } from "../query";
-import type { Rack } from "../types";
-import { drizzleAdapter } from "./drizzle";
-import { prismaAdapter } from "./prisma";
+import type { ParsedListQuery } from "../query.ts";
+import type { Rack } from "../types/index.ts";
+import { drizzleAdapter } from "./drizzle.ts";
+import { prismaAdapter } from "./prisma.ts";
 
-export { drizzleAdapter } from "./drizzle";
-export { prismaAdapter } from "./prisma";
+export { drizzleAdapter } from "./drizzle.ts";
+export { prismaAdapter } from "./prisma.ts";
 
 export interface AdapterOptions {
   primaryKey: string;

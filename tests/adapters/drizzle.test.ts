@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { drizzleAdapter } from "../../src/rack/adapters/drizzle";
+import { drizzleAdapter } from "../../src/rack/adapters/drizzle.ts";
 import {
   createTestDb,
   drizzleModel,
   seedProducts,
   type TestDb,
-} from "../helpers";
+} from "../helpers.ts";
 
 let db!: TestDb;
 

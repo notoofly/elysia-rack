@@ -1,9 +1,9 @@
-import type { FieldDescriptor, FieldKind } from "../../../rack/adapters/index";
+import type { FieldDescriptor, FieldKind } from "../../../rack/adapters/index.ts";
 import type {
   CrudFieldConfig,
   CrudFieldFormat,
   CrudFieldOption,
-} from "../../../rack/types/fields";
+} from "../../../rack/types/fields.ts";
 
 /**
  * Serializable per-field descriptor shared by the server renderer,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { prismaAdapter } from "../../src/rack/adapters/prisma";
-import type { Rack } from "../../src/rack/index";
+import { prismaAdapter } from "../../src/rack/adapters/prisma.ts";
+import type { Rack } from "../../src/rack/index.ts";
 
 const ROW = { id: 1, name: "Phone", price: 500, status: "active" };
 

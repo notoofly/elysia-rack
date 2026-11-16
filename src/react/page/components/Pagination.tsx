@@ -1,4 +1,4 @@
-import { href, pageWindow } from "./href";
+import { href, pageWindow } from "./href.ts";
 
 export interface PaginationProps {
   page: number;

@@ -1,4 +1,4 @@
-import { RackIcon } from "./Icon";
+import { RackIcon } from "./Icon.ts";
 
 export interface SidebarItem {
   id: string;

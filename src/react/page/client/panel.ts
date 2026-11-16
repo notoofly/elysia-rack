@@ -4,14 +4,14 @@
 declare const document: any;
 declare const window: any;
 
-import { href, pageWindow } from "../components/href";
-import { collectFormBody, fillForm } from "../components/panelForm";
+import { href, pageWindow } from "../components/href.ts";
+import { collectFormBody, fillForm } from "../components/panelForm.ts";
 import {
   coerceFieldValue,
   displayValue,
   isNumericField,
   type PanelField,
-} from "../components/panelFields";
+} from "../components/panelFields.ts";
 
 interface ListQuery {
   page?: number;

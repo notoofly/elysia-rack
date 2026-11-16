@@ -1,5 +1,5 @@
-import type { FieldDescriptor } from "./adapters/index";
-import type { Rack } from "./types";
+import type { FieldDescriptor } from "./adapters/index.ts";
+import type { Rack } from "./types/index.ts";
 
 /**
  * Registry key shared with `ReactRack.PAGE` (src/react/types.ts).
