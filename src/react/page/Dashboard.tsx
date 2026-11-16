@@ -1,8 +1,8 @@
 import { Fragment } from "react";
 import { getRackTree, type RackTreeNode } from "../../rack/registry.ts";
-import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar.ts";
-import { RackIcon } from "./components/Icon.ts";
-import { Masthead } from "./components/Masthead.ts";
+import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar.tsx";
+import { RackIcon } from "./components/Icon.tsx";
+import { Masthead } from "./components/Masthead.tsx";
 import { resolveDonateProp } from "../donate.ts";
 
 export interface DashboardProps {

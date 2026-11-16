@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRenderer } from "./render.ts";
+import { createRenderer } from "./render.tsx";
 import { ReactRack } from "./types.ts";
 import { setGlobalDonate } from "./donate.ts";
 

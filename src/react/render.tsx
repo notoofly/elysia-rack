@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server"
-import { RackIcon } from "./page/components/Icon.ts"
+import { RackIcon } from "./page/components/Icon.tsx"
 import { ReactRack } from "./types.ts"
 
 type PageMetadata = { pluralLabel?: string; label?: string; icon?: string };
@@ -120,7 +120,7 @@ export function createRenderer(pages: ReactRack.PageRegistry) {
         controller.enqueue(encoder.encode(head));
         const reader = stream.getReader();
         try {
-          for (;;) {
+          for (; ;) {
             const { done, value } = await reader.read();
             if (done) break;
             controller.enqueue(value);

@@ -1,14 +1,14 @@
 import type { FieldDescriptor } from "../../rack/adapters/index.ts";
 import type { Rack } from "../../rack/types/index.ts";
 import { getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry.ts";
-import { Breadcrumb } from "./components/Breadcrumb.ts";
-import { DataTable } from "./components/DataTable.ts";
-import { RackIcon } from "./components/Icon.ts";
-import { Masthead } from "./components/Masthead.ts";
+import { Breadcrumb } from "./components/Breadcrumb.tsx";
+import { DataTable } from "./components/DataTable.tsx";
+import { RackIcon } from "./components/Icon.tsx";
+import { Masthead } from "./components/Masthead.tsx";
 import { buildPanelFields, type PanelField } from "./components/panelFields.ts";
-import { Pagination } from "./components/Pagination.ts";
-import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar.ts";
-import { Toolbar } from "./components/Toolbar.ts";
+import { Pagination } from "./components/Pagination.tsx";
+import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar.tsx";
+import { Toolbar } from "./components/Toolbar.tsx";
 import { resolveDonateProp } from "../donate.ts";
 
 const inputClass =
