@@ -58,8 +58,8 @@ export function page<Props = Record<string, never>>(path: string, props?: Props)
 }
 
 export const pages: ReactRack.PageRegistry = {
-  "/dashboard": ReactRack.lazyPage(() => import("./page/Dashboard.ts")),
-  "/panel": ReactRack.lazyPage(() => import("./page/Panel.ts"))
+  "/dashboard": ReactRack.lazyPage(() => import("./page/Dashboard.js")),
+  "/panel": ReactRack.lazyPage(() => import("./page/Panel.js"))
 }
 
 const defaultPages = pages

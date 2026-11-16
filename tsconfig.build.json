@@ -1,11 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "ESNext",
+    "module": "NodeNext",
     "noEmit": false,
     "emitDeclarationOnly": true,
     "declaration": true,
-    "allowImportingTsExtensions": false,
+    "allowImportingTsExtensions": true,
     "outDir": "dist",
     "rootDir": "src"
   },
