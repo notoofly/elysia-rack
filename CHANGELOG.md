@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.6.1] — 2026-11-16
+
+### Build & module system
+- Switch `tsconfig.json` to `moduleResolution: "NodeNext"` and `module: "NodeNext"` for standard Node.js ESM resolution.
+- All relative imports now use explicit `.ts` / `.tsx` extensions; dynamic imports use `.js` for `bun build` runtime resolution.
+- `tsconfig.build.json` updated to `module: "NodeNext"` with `allowImportingTsExtensions: true` for declaration emission.
+
+### Authorization context
+- `CrudAuthorizationContext` now includes `permissions?: unknown`, so authorization rule functions can access auth payloads decorated on the Elysia context (e.g. by an auth plugin).
+- `authorize()` passes `permissions` through to rule functions.
+
+### Fixes
+- Playground: explicit `ctx` types on authorization callbacks and route handlers (`params`, `status`, `body`).
+- `tests/react.test.tsx`: corrected `.tsx` extensions for React component imports.
+- `src/react/render.tsx` and `src/react/page/*`: corrected `.tsx` extensions for component imports.
+- Dashboard request handler tests with typed `res.json()` casts.
+
+### Coverage
+- Added tests for `getRack`, `buildRackTree`, `flatRackTree`, and `dashboard` request handling.
+- `src/rack/dashboard.ts` and `src/rack/registry.ts` now at 100% line coverage.
+
 ## [0.6.0] — 2026-11-15
 
 Security fixes from the run-1 audit. Some changes are breaking.
