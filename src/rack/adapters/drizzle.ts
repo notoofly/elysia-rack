@@ -7,6 +7,7 @@ import {
   eq,
   ilike,
   inArray,
+  is,
   isNull,
   like,
   or,
@@ -210,7 +211,9 @@ export const drizzleAdapter: CrudAdapter = {
     const table = tableOf(model);
     const out: FieldDescriptor[] = [];
     for (const [name, col] of Object.entries(table)) {
-      if (!(col instanceof Column)) continue;
+      // `is` compares drizzle's global entityKind symbol, so it still works
+      // when the app and this package resolve separate drizzle-orm copies.
+      if (!is(col, Column)) continue;
       const column = col as unknown as Record<string, unknown>;
       const columnType =
         typeof column["columnType"] === "string"
