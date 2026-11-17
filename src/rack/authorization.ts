@@ -1,16 +1,17 @@
 import { status } from "elysia";
+import type { JsonValue } from "./json.ts";
 import type { Rack } from "./types/index.ts";
 
 /**
  * What route handlers hand to `authorize()`. `resource` is the bound model
  * object; `permissions` must come from server-trusted sources.
  */
-export interface AuthCheck<TModel = unknown> {
+export interface AuthCheck<TModel = Rack.CrudModel> {
   request: Request;
   id?: string;
   resource: TModel;
   permissions?: readonly string[];
-  store?: Record<string, unknown>;
+  store?: Record<string, JsonValue>;
 }
 
 /**
@@ -24,7 +25,12 @@ export interface AuthCheck<TModel = unknown> {
  *   header is never trusted. No source wired → deny (fail closed).
  * - `function` → awaited, `false` → 403
  */
-export async function authorize<TModel>(
+/** String-permission lists decorated on the store. */
+function isStringArray(value: JsonValue | undefined): value is readonly string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+
+export async function authorize<TModel extends Rack.CrudModel>(
   operation: Rack.CrudOperation,
   rule: Rack.CrudAuthorizationRule<TModel> | undefined,
   ctx: AuthCheck<TModel>,
@@ -42,8 +48,8 @@ export async function authorize<TModel>(
   if (typeof rule === "string") {
     const granted: readonly string[] | null = Array.isArray(ctx.permissions)
       ? ctx.permissions
-      : Array.isArray(ctx.store?.["permissions"])
-        ? (ctx.store?.["permissions"] as readonly string[])
+      : isStringArray(ctx.store?.["permissions"])
+        ? ctx.store["permissions"]
         : null;
 
     return granted !== null && granted.includes(rule)

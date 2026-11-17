@@ -6,11 +6,13 @@ import {
   type CrudAdapter,
   type FieldDescriptor,
   type FieldKind,
+  type JsonBody,
   type ListResult,
 } from "./adapters/index.ts";
 import { drizzleAdapter } from "./adapters/drizzle.ts";
 import { prismaAdapter } from "./adapters/prisma.ts";
 import { authorize, type AuthCheck } from "./authorization.ts";
+import { isJsonRecord, isJsonValue, type JsonValue, type RowData } from "./json.ts";
 import { createMemoryIdempotencyStore } from "./idempotency.ts";
 import { detailFor } from "./openapi.ts";
 import { panelPage, type PanelPageProps } from "./page.ts";
@@ -59,15 +61,15 @@ const DEFAULT_OPERATIONS: Required<Rack.CrudOperationsOptions> = {
 };
 
 /**
- * The slice of the Elysia route context the CRUD handlers rely on.
- * The full Elysia `Context` is assignable to this shape.
+ * The slice of the Elysia route context the auth check relies on.
+ * The full Elysia `Context` is assignable to this shape; request bodies
+ * are read from the inferred context and validated with `isJsonRecord`.
  */
 interface RackContext {
   request: Request;
   params?: Record<string, string>;
   query?: Record<string, string>;
-  body?: unknown;
-  store?: Record<string, unknown>;
+  store?: Record<string, JsonValue>;
   permissions?: readonly string[];
   set?: { headers?: Record<string, string | number | string[]> };
 }
@@ -122,6 +124,10 @@ export function rack<TModel extends Rack.CrudModel>(
     store: context.store,
   });
 
+  /** Route bodies arrive untyped from the platform; validate to JSON. */
+  const jsonBodyOf = (value: unknown): JsonBody =>
+    isJsonValue(value) ? value : undefined;
+
   const maybeBody = (schema?: AnySchema) =>
     schema !== undefined ? { body: schema } : {};
   const maybeParams = () =>
@@ -133,7 +139,7 @@ export function rack<TModel extends Rack.CrudModel>(
   if (operations.list && options.page?.enabled !== false)
     app.get(
       "/",
-      async (context: RackContext) => {
+      async (context) => {
         const denied = await authorize(
           "list",
           options.authorization?.list,
@@ -170,17 +176,14 @@ export function rack<TModel extends Rack.CrudModel>(
     app.route(
       "QUERY",
       "/data",
-      async (context: RackContext) => {
+      async (context) => {
         const denied = await authorize(
           "list",
           options.authorization?.list,
           authContext(context, "list"),
         );
         if (denied) return denied;
-        const body =
-          typeof context.body === "object" && context.body !== null
-            ? (context.body as Record<string, unknown>)
-            : {};
+        const body = isJsonRecord(context.body) ? context.body : {};
         const parsed = parseListQuery(
           { ...(context.query ?? {}), ...body },
           options.query,
@@ -216,9 +219,12 @@ export function rack<TModel extends Rack.CrudModel>(
     const idemTtl = idem?.ttl ?? 86400;
     const idemInflight = new Map<string, Promise<Rack.CrudIdempotencyRecord>>();
 
-    const buildCreatedBody = (context: RackContext, row: unknown) => ({
+    const buildCreatedBody = (
+      context: RackContext,
+      row: RowData | null | undefined,
+    ) => ({
       ...envelope("create"),
-      ...(row !== undefined ? { data: row } : {}),
+      ...(row !== undefined && row !== null ? { data: row } : {}),
       ...(options.settings?.returning !== undefined
         ? { returning: options.settings.returning }
         : {}),
@@ -236,7 +242,7 @@ export function rack<TModel extends Rack.CrudModel>(
 
     app.post(
       "/",
-      async (context: RackContext) => {
+      async (context) => {
         const denied = await authorize(
           "create",
           options.authorization?.create,
@@ -264,7 +270,7 @@ export function rack<TModel extends Rack.CrudModel>(
               pending = (async () => {
                 const row = await dataAdapter.create(
                   options.model,
-                  context.body,
+                  jsonBodyOf(context.body),
                   adapterOpts,
                 );
                 const record: Rack.CrudIdempotencyRecord = {
@@ -288,7 +294,7 @@ export function rack<TModel extends Rack.CrudModel>(
 
         const row = await dataAdapter.create(
           options.model,
-          context.body,
+          jsonBodyOf(context.body),
           adapterOpts,
         );
         return status(201, buildCreatedBody(context, row));
@@ -305,7 +311,7 @@ export function rack<TModel extends Rack.CrudModel>(
     app.route(
       "QUERY",
       `/data${itemPath}`,
-      async (context: RackContext) => {
+      async (context) => {
         const denied = await authorize(
           "detail",
           options.authorization?.detail,
@@ -335,7 +341,7 @@ export function rack<TModel extends Rack.CrudModel>(
   if (operations.replace)
     app.put(
       itemPath,
-      async (context: RackContext) => {
+      async (context) => {
         const denied = await authorize(
           "replace",
           options.authorization?.replace,
@@ -346,7 +352,7 @@ export function rack<TModel extends Rack.CrudModel>(
         const row = await dataAdapter.replace(
           options.model,
           id,
-          context.body,
+          jsonBodyOf(context.body),
           adapterOpts,
         );
         if (row == null) return notFound("replace", id);
@@ -370,7 +376,7 @@ export function rack<TModel extends Rack.CrudModel>(
   if (operations.update)
     app.patch(
       itemPath,
-      async (context: RackContext) => {
+      async (context) => {
         const denied = await authorize(
           "update",
           options.authorization?.update,
@@ -381,7 +387,7 @@ export function rack<TModel extends Rack.CrudModel>(
         const row = await dataAdapter.update(
           options.model,
           id,
-          context.body,
+          jsonBodyOf(context.body),
           adapterOpts,
         );
         if (row == null) return notFound("update", id);
@@ -405,7 +411,7 @@ export function rack<TModel extends Rack.CrudModel>(
   if (operations.delete)
     app.delete(
       itemPath,
-      async (context: RackContext) => {
+      async (context) => {
         const denied = await authorize(
           "delete",
           options.authorization?.delete,

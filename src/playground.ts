@@ -235,11 +235,9 @@ function getAuthPayload(request: Request): AuthPayload | null {
 
 const authPlugin = () =>
   new Elysia({ name: "authPlugin" })
-    .decorate({ permissions: undefined as AuthPayload | undefined })
-    .decorate("permissions", (ctx: any) => {
+    .decorate("permissions", (ctx: { request: Request }) => {
       const payload = getAuthPayload(ctx.request);
-      if (payload) return payload;
-      return undefined;
+      return payload === null ? undefined : [payload.role];
     });
 
 // ---------------------------------------------------------------------------
@@ -265,18 +263,10 @@ const app = new Elysia()
       authorization: {
         list: true,
         detail: true,
-        create: async (ctx: any) => {
-          return (ctx.permissions as { role: string })?.role === "admin";
-        },
-        replace: async (ctx: any) => {
-          return (ctx.permissions as { role: string })?.role === "admin";
-        },
-        update: async (ctx: any) => {
-          return (ctx.permissions as { role: string })?.role === "admin";
-        },
-        delete: async (ctx: any) => {
-          return (ctx.permissions as { role: string })?.role === "admin";
-        },
+        create: async (ctx) => ctx.permissions?.includes("admin") === true,
+        replace: async (ctx) => ctx.permissions?.includes("admin") === true,
+        update: async (ctx) => ctx.permissions?.includes("admin") === true,
+        delete: async (ctx) => ctx.permissions?.includes("admin") === true,
       },
 
       query: {
@@ -399,28 +389,38 @@ const app = new Elysia()
       authorization: {
         list: true,
         detail: true,
-        create: async (ctx: any) => {
-          return (ctx.permissions as { role: string })?.role === "admin" || (ctx.permissions as { role: string })?.role === "user";
-        },
-        replace: async (ctx: any) => {
-          if ((ctx.permissions as { role: string })?.role === "admin") return true;
-          if ((ctx.permissions as { role: string })?.role === "user") {
-            const t = ctx.id ? await db.select().from(transactions).where(eq(transactions.id, Number(ctx.id))).then(r => r[0]) : null;
+        create: async (ctx) =>
+          ctx.permissions?.includes("admin") === true ||
+          ctx.permissions?.includes("user") === true,
+        replace: async (ctx) => {
+          if (ctx.permissions?.includes("admin") === true) return true;
+          if (ctx.permissions?.includes("user") === true) {
+            const t = ctx.id
+              ? await db
+                  .select()
+                  .from(transactions)
+                  .where(eq(transactions.id, Number(ctx.id)))
+                  .then((r) => r[0])
+              : null;
             return t?.userId !== undefined;
           }
           return false;
         },
-        update: async (ctx: any) => {
-          if ((ctx.permissions as { role: string })?.role === "admin") return true;
-          if ((ctx.permissions as { role: string })?.role === "user") {
-            const t = ctx.id ? await db.select().from(transactions).where(eq(transactions.id, Number(ctx.id))).then(r => r[0]) : null;
+        update: async (ctx) => {
+          if (ctx.permissions?.includes("admin") === true) return true;
+          if (ctx.permissions?.includes("user") === true) {
+            const t = ctx.id
+              ? await db
+                  .select()
+                  .from(transactions)
+                  .where(eq(transactions.id, Number(ctx.id)))
+                  .then((r) => r[0])
+              : null;
             return t?.userId !== undefined;
           }
           return false;
         },
-        delete: async (ctx: any) => {
-          return (ctx.permissions as { role: string })?.role === "admin";
-        },
+        delete: async (ctx) => ctx.permissions?.includes("admin") === true,
       },
 
       query: {
@@ -464,14 +464,14 @@ const app = new Elysia()
       },
     }),
   )
-  .post("/auth/login", async ({ body, status }: any) => {
-    const { email, password } = body as { email: string; password: string };
+  .post("/auth/login", async ({ body, status }) => {
+    const { email, password } = body;
     const results = await db.select().from(users).where(eq(users.email, email));
     const user = results[0];
     if (!user) return status(401, { error: "Invalid credentials" });
     if (user.passwordHash !== hashPassword(password))
       return status(401, { error: "Invalid credentials" });
-    const sessionId = createSession(email, user.role as "admin" | "user");
+    const sessionId = createSession(email, user.role);
     return { sessionId, role: user.role };
   }, { body: LoginSchema })
   .get("/auth/login", async () => {
@@ -530,7 +530,7 @@ const app = new Elysia()
       { headers: { "content-type": "text/html; charset=utf-8" } },
     );
   })
-  .post("/auth/logout", async (ctx: any) => {
+  .post("/auth/logout", async (ctx) => {
     const sessionId = ctx.request.headers.get("Authorization")?.replace("Bearer ", "");
     if (sessionId) deleteSession(sessionId);
     return { ok: true };
@@ -550,7 +550,7 @@ const app = new Elysia()
       },
     });
   })
-  .post("/catalog/products/:id/duplicate", async ({ params, status }: any) => {
+  .post("/catalog/products/:id/duplicate", async ({ params, status }) => {
     const [source] = await db
       .select()
       .from(products)

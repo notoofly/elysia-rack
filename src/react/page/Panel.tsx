@@ -1,3 +1,4 @@
+import type { RowData } from "../../rack/json.ts";
 import type { FieldDescriptor } from "../../rack/adapters/index.ts";
 import type { Rack } from "../../rack/types/index.ts";
 import { getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry.ts";
@@ -177,13 +178,13 @@ export interface PanelProps {
   operations?: Rack.CrudOperationsOptions;
   primaryKey?: string;
   query?: Rack.CrudQueryOptions;
-  params?: Record<string, unknown>;
+  params?: Record<string, string>;
   queryUrl?: string;
   fields?: FieldDescriptor[];
   softDelete?: boolean;
   deletedAtField?: string;
-  load?: (input: Record<string, unknown>) => Promise<{
-    data: unknown[];
+  load?: (input: Record<string, string>) => Promise<{
+    data: RowData[];
     total: number;
   }>;
 }
@@ -196,12 +197,12 @@ export default async function Panel(props: PanelProps) {
     1,
   );
 
-  let rows: Record<string, unknown>[] = [];
+  let rows: RowData[] = [];
   let total = 0;
   if (props.load) {
     try {
       const result = await props.load(params);
-      rows = result.data as Record<string, unknown>[];
+      rows = result.data;
       total = result.total;
     } catch {
       // keep empty on load failure (e.g., dummy adapter in tests)
@@ -242,7 +243,7 @@ export default async function Panel(props: PanelProps) {
   const allActions = props.actions ?? [];
   const rowActions = allActions.filter((a) => (a.scope ?? "row") === "row");
   const toolbarActions = allActions.filter((a) => a.scope === "toolbar");
-  const includeDeleted = params.includeDeleted === "true" || params.includeDeleted === true;
+  const includeDeleted = params.includeDeleted === "true";
 
   // Load entire tree for sidebar, highlight active panel
   const tree = getRackTree().filter((r) => !r.metadata.hidden);

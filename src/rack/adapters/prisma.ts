@@ -1,18 +1,25 @@
+import { isJsonRecord, type Cell, type JsonValue, type RowData } from "../json.ts";
 import type { ParsedListQuery } from "../query.ts";
 import type { Rack } from "../types/index.ts";
-import { coerceIdValue, type AdapterOptions, type CrudAdapter, type FieldDescriptor, type ListResult } from "./index.ts";
+import { coerceIdValue, type AdapterOptions, type CrudAdapter, type FieldDescriptor, type JsonBody, type ListResult } from "./index.ts";
 
 /**
  * Minimal Prisma delegate surface used by the adapter. Prisma's generated
  * delegates are structurally compatible with these call shapes.
  */
+/**
+ * Prisma delegate arguments: where/data objects may carry `Date` cells
+ * (drizzle- and prisma-native values) alongside JSON scalars.
+ */
+type PrismaArgs = { [key: string]: JsonValue | Date | PrismaArgs };
+
 interface PrismaDelegate {
-  findMany(args: Record<string, unknown>): PromiseLike<unknown[]>;
-  count(args: Record<string, unknown>): PromiseLike<number>;
-  findFirst(args: Record<string, unknown>): PromiseLike<unknown>;
-  create(args: Record<string, unknown>): PromiseLike<unknown>;
-  update(args: Record<string, unknown>): PromiseLike<unknown>;
-  delete(args: Record<string, unknown>): PromiseLike<unknown>;
+  findMany(args: PrismaArgs): PromiseLike<RowData[]>;
+  count(args: PrismaArgs): PromiseLike<number>;
+  findFirst(args: PrismaArgs): PromiseLike<RowData | null>;
+  create(args: PrismaArgs): PromiseLike<RowData>;
+  update(args: PrismaArgs): PromiseLike<RowData>;
+  delete(args: PrismaArgs): PromiseLike<RowData>;
 }
 
 function delegateOf(model: Rack.CrudModel): PrismaDelegate {
@@ -23,7 +30,7 @@ function delegateOf(model: Rack.CrudModel): PrismaDelegate {
 function deletedAtFilter(
   opts: AdapterOptions,
   includeDeleted = false,
-): Record<string, unknown> {
+): Record<string, JsonValue> {
   return opts.softDelete && !includeDeleted
     ? { [opts.deletedAtField ?? "deletedAt"]: null }
     : {};
@@ -32,10 +39,10 @@ function deletedAtFilter(
 function whereFor(
   query: ParsedListQuery,
   opts: AdapterOptions,
-): Record<string, unknown> {
+): Record<string, JsonValue> {
   const hideDeleted = opts.softDelete === true && !query.includeDeleted;
   const deletedField = opts.deletedAtField ?? "deletedAt";
-  const where: Record<string, unknown> = {
+  const where: Record<string, JsonValue> = {
     ...deletedAtFilter(opts, query.includeDeleted),
   };
 
@@ -53,11 +60,13 @@ function whereFor(
   return where;
 }
 
+/** Prisma's not-found error (P2025) — plain-object stand-ins included. */
 function isNotFound(error: unknown): boolean {
   return (
     typeof error === "object" &&
     error !== null &&
-    (error as { code?: unknown }).code === "P2025"
+    "code" in error &&
+    error.code === "P2025"
   );
 }
 
@@ -65,13 +74,13 @@ async function applyUpdate(
   delegate: PrismaDelegate,
   primaryKey: string,
   id: string,
-  body: unknown,
+  body: JsonBody,
   returning?: boolean,
-): Promise<unknown | null> {
+): Promise<RowData | null | undefined> {
   try {
     const row = await delegate.update({
       where: { [primaryKey]: coerceIdValue(id) },
-      data: body,
+      data: isJsonRecord(body) ? body : {},
     });
     return returning === false ? undefined : row;
   } catch (error) {
@@ -117,7 +126,7 @@ export const prismaAdapter: CrudAdapter = {
 
   async create(model, body, opts) {
     const delegate = delegateOf(model);
-    const row = await delegate.create({ data: body });
+    const row = await delegate.create({ data: isJsonRecord(body) ? body : {} });
     return opts.returning === false ? undefined : row;
   },
 

@@ -3,8 +3,8 @@
  * Empty values drop the key (e.g. resetting to page 1).
  */
 export function href(
-  params: Record<string, unknown>,
-  over: Record<string, unknown> = {},
+  params: Record<string, string>,
+  over: Record<string, string | number | undefined> = {},
 ): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries({ ...params, ...over })) {

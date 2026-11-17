@@ -220,25 +220,25 @@ describe("createMemoryIdempotencyStore", () => {
 
   it("expires entries past ttl", async () => {
     const store = createMemoryIdempotencyStore();
-    await store.set("k", { status: 201, body: null }, 0);
+    await store.set("k", { status: 201, body: { retry: true } }, 0);
     expect(await store.get("k")).toBeUndefined();
   });
 
   it("keeps live entries within ttl and overwrites in place", async () => {
     const store = createMemoryIdempotencyStore(1);
-    await store.set("a", { status: 201, body: 1 });
-    await store.set("b", { status: 201, body: 2 });
-    expect(await store.get("a")).toEqual({ status: 201, body: 1 });
-    expect(await store.get("b")).toEqual({ status: 201, body: 2 });
-    await store.set("b", { status: 201, body: 3 });
-    expect(await store.get("b")).toEqual({ status: 201, body: 3 });
+    await store.set("a", { status: 201, body: { n: 1 } });
+    await store.set("b", { status: 201, body: { n: 2 } });
+    expect(await store.get("a")).toEqual({ status: 201, body: { n: 1 } });
+    expect(await store.get("b")).toEqual({ status: 201, body: { n: 2 } });
+    await store.set("b", { status: 201, body: { n: 3 } });
+    expect(await store.get("b")).toEqual({ status: 201, body: { n: 3 } });
   });
 
   it("purges expired entries when full", async () => {
     const store = createMemoryIdempotencyStore(1);
-    await store.set("old", { status: 201, body: 1 }, 0);
-    await store.set("new", { status: 201, body: 2 });
+    await store.set("old", { status: 201, body: { n: 1 } }, 0);
+    await store.set("new", { status: 201, body: { n: 2 } });
     expect(await store.get("old")).toBeUndefined();
-    expect(await store.get("new")).toEqual({ status: 201, body: 2 });
+    expect(await store.get("new")).toEqual({ status: 201, body: { n: 2 } });
   });
 });

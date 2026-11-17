@@ -4,7 +4,7 @@
  * can be inferred from the model.
  */
 export interface CrudDrizzleModel<
-  TDatabase = unknown,
+  TDatabase = object,
   TTable extends object = object,
 > {
   db: TDatabase;
@@ -18,7 +18,7 @@ export interface CrudDrizzleModel<
  * `$inferSelect`, `$inferInsert`, and `getSQL`.
  */
 export type CrudDrizzleFieldNames<TTable> = TTable extends {
-  _: { columns: Record<string, unknown> };
+  _: { columns: infer TColumns };
 }
-  ? keyof TTable["_"]["columns"] & string
+  ? keyof TColumns & string
   : string;

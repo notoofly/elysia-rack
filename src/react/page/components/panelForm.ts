@@ -3,17 +3,24 @@
  * Used directly by the browser bundle (client/panel.ts).
  */
 
+import { isJsonRecord, type JsonValue, type RowData } from "../../../rack/json.ts";
+
 type FormControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 function controls(form: HTMLFormElement): FormControl[] {
-  return Array.from(form.elements) as FormControl[];
+  return Array.from(form.elements).filter(
+    (el): el is FormControl =>
+      el instanceof HTMLInputElement ||
+      el instanceof HTMLSelectElement ||
+      el instanceof HTMLTextAreaElement,
+  );
 }
 
 export function collectFormBody(form: HTMLFormElement): {
-  body?: Record<string, unknown>;
+  body?: Record<string, JsonValue>;
   error?: string;
 } {
-  const body: Record<string, unknown> = {};
+  const body: Record<string, JsonValue> = {};
   for (const el of controls(form)) {
     if (!el.name || el.disabled) continue;
     if (el instanceof HTMLInputElement && el.type === "checkbox") {
@@ -22,11 +29,11 @@ export function collectFormBody(form: HTMLFormElement): {
     }
     if (el.value === "") continue;
     if (el.hasAttribute("data-json")) {
-      try {
-        body[el.name] = JSON.parse(el.value);
-      } catch {
+      const parsed: JsonValue = JSON.parse(el.value);
+      if (!isJsonRecord(parsed)) {
         return { error: `Invalid JSON in ${el.name}` };
       }
+      body[el.name] = parsed;
       continue;
     }
     body[el.name] = el.value;
@@ -34,10 +41,7 @@ export function collectFormBody(form: HTMLFormElement): {
   return { body };
 }
 
-export function fillForm(
-  form: HTMLFormElement,
-  row: Record<string, unknown>,
-): void {
+export function fillForm(form: HTMLFormElement, row: RowData): void {
   for (const el of controls(form)) {
     if (!el.name) continue;
     const v = row[el.name];

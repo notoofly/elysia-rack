@@ -13,6 +13,7 @@ import {
   or,
   type SQL,
 } from "drizzle-orm";
+import { isJsonRecord, type Cell, type JsonValue, type RowData } from "../json.ts";
 import type { ParsedListQuery } from "../query.ts";
 import type { Rack } from "../types/index.ts";
 import {
@@ -22,6 +23,7 @@ import {
   type CrudAdapter,
   type FieldDescriptor,
   type FieldKind,
+  type JsonBody,
   type ListResult,
 } from "./index.ts";
 
@@ -37,30 +39,31 @@ function columnOf(table: DrizzleTable, name: string): Column {
   return table[name] as Column;
 }
 
-type DrizzleRow = Record<string, unknown>;
-
 /**
  * Minimal query-builder surface the adapter uses. Drizzle's real builders
  * are structurally compatible (and thenable), so they satisfy this at
  * runtime without importing drizzle's heavyweight generics.
  */
-interface DrizzleExec extends PromiseLike<DrizzleRow[]> {
-  where(condition?: SQL | undefined): DrizzleExec;
-  orderBy(...order: SQL[]): DrizzleExec;
-  limit(n: number): DrizzleExec;
-  offset(n: number): DrizzleExec;
-  returning(): DrizzleExec;
+interface DrizzleExec<TRow> extends PromiseLike<TRow[]> {
+  where(condition?: SQL | undefined): DrizzleExec<TRow>;
+  orderBy(...order: SQL[]): DrizzleExec<TRow>;
+  limit(n: number): DrizzleExec<TRow>;
+  offset(n: number): DrizzleExec<TRow>;
+  returning(): DrizzleExec<TRow>;
 }
 
-interface DrizzleDb {
-  select(...fields: unknown[]): { from(table: DrizzleTable): DrizzleExec };
+interface DrizzleDb<TRow = RowData> {
+  select(): { from(table: DrizzleTable): DrizzleExec<TRow> };
+  select(aggregate: {
+    [alias: string]: SQL;
+  }): { from(table: DrizzleTable): DrizzleExec<Record<string, number>> };
   insert(
     table: DrizzleTable,
-  ): { values(values: Record<string, unknown>): DrizzleExec };
+  ): { values(values: Record<string, Cell>): DrizzleExec<TRow> };
   update(
     table: DrizzleTable,
-  ): { set(values: Record<string, unknown>): DrizzleExec };
-  delete(table: DrizzleTable): DrizzleExec;
+  ): { set(values: Record<string, Cell>): DrizzleExec<TRow> };
+  delete(table: DrizzleTable): DrizzleExec<TRow>;
 }
 
 function tableOf(model: Rack.CrudModel): DrizzleTable {
@@ -69,6 +72,11 @@ function tableOf(model: Rack.CrudModel): DrizzleTable {
 
 function dbOf(model: Rack.CrudModel): DrizzleDb {
   return (model as { drizzle: { db: object } }).drizzle.db as DrizzleDb;
+}
+
+/** A body is a JSON object when provided; anything else is an empty record. */
+function bodyRecord(body: JsonBody): Record<string, JsonValue> {
+  return isJsonRecord(body) ? body : {};
 }
 
 function escapeLike(value: string): string {
@@ -117,7 +125,7 @@ function resolvableId(
   table: DrizzleTable,
   primaryKey: string,
   id: string,
-): unknown {
+): string | number | null {
   const col = table?.[primaryKey];
   const columnType = col?.columnType ?? col?.dataType;
   const value = coerceIdValue(id, columnType);
@@ -178,9 +186,9 @@ function orderFor(table: DrizzleTable, query: ParsedListQuery): SQL | undefined 
   return query.sort.direction === "desc" ? desc(col) : asc(col);
 }
 
-async function firstRow(
-  promise: PromiseLike<DrizzleRow[]>,
-): Promise<DrizzleRow | null> {
+async function firstRow<TRow>(
+  promise: PromiseLike<TRow[]>,
+): Promise<TRow | null> {
   const rows = await promise;
   return Array.isArray(rows) ? (rows[0] ?? null) : null;
 }
@@ -189,8 +197,8 @@ async function applyUpdate(
   db: DrizzleDb,
   table: DrizzleTable,
   cond: SQL | undefined,
-  body: Record<string, unknown>,
-): Promise<DrizzleRow | null> {
+  body: Record<string, Cell>,
+): Promise<RowData | null> {
   return firstRow(
     db
       .update(table)
@@ -203,18 +211,15 @@ async function applyUpdate(
 function keyCondition(
   table: DrizzleTable,
   opts: AdapterOptions,
-  key: unknown,
-  body?: unknown,
+  key: string | number,
+  body?: JsonBody,
 ): SQL | undefined {
   const cond = eq(columnOf(table, opts.primaryKey), key);
   // An explicit `deletedAt: null` write is the restore path and must reach
   // tombstoned rows; every other write is confined to live rows.
   const restoring =
     opts.softDelete === true &&
-    typeof body === "object" &&
-    body !== null &&
-    (body as Record<string, unknown>)[opts.deletedAtField ?? "deletedAt"] ===
-      null;
+    bodyRecord(body)[opts.deletedAtField ?? "deletedAt"] === null;
   const alive = restoring
     ? undefined
     : aliveCondition(table, opts, opts.softDelete ?? false);
@@ -225,8 +230,8 @@ async function findByKey(
   db: DrizzleDb,
   table: DrizzleTable,
   opts: AdapterOptions,
-  key: unknown,
-): Promise<DrizzleRow | null> {
+  key: string | number,
+): Promise<RowData | null> {
   const cond = eq(columnOf(table, opts.primaryKey), key);
   const alive = aliveCondition(table, opts, opts.softDelete ?? false);
   return firstRow(
@@ -238,21 +243,17 @@ async function findByKey(
   );
 }
 
-function isEmptyBody(body: unknown): boolean {
-  return (
-    typeof body === "object" &&
-    body !== null &&
-    Object.keys(body).length === 0
-  );
+function isEmptyBody(body: JsonBody): boolean {
+  return bodyRecord(body).constructor === Object && Object.keys(bodyRecord(body)).length === 0;
 }
 
 // Date-kind columns (e.g. `integer(..., { mode: "timestamp" })`) map with
 // `value.getTime()`, so string bodies from JSON/forms must become `Date`.
 function coerceBodyValues(
   table: DrizzleTable,
-  body: Record<string, unknown>,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
+  body: Record<string, JsonValue>,
+): Record<string, Cell> {
+  const out: Record<string, Cell> = {};
   for (const [key, value] of Object.entries(body)) {
     const col = table[key];
     if (col && col.dataType === "date" && typeof value === "string") {
@@ -280,13 +281,9 @@ export const drizzleAdapter: CrudAdapter = {
         : undefined;
       out.push({
         name,
-        kind: fieldKind(
-          col.columnType as string | undefined,
-          col.dataType as string | undefined,
-          enumValues,
-        ),
+        kind: fieldKind(col.columnType, col.dataType, enumValues),
         primary: col.primary === true,
-        autoIncrement: isAutoIncrement(col, col.columnType as string | undefined),
+        autoIncrement: isAutoIncrement(col, col.columnType),
         nullable: col.notNull !== true,
         ...(enumValues ? { enumValues } : {}),
       });
@@ -315,8 +312,7 @@ export const drizzleAdapter: CrudAdapter = {
     let counted = db.select({ n: count() }).from(table);
     if (where) counted = counted.where(where);
     const totalRows = await counted;
-    const first = totalRows[0] as { n?: number } | undefined;
-    return { data, total: first?.n ?? 0 };
+    return { data, total: totalRows[0]?.["n"] ?? 0 };
   },
 
   async detail(model, id, opts) {
@@ -330,7 +326,7 @@ export const drizzleAdapter: CrudAdapter = {
   async create(model, body, opts) {
     const db = dbOf(model);
     const table = tableOf(model);
-    const values = coerceBodyValues(table, body as Record<string, unknown>);
+    const values = coerceBodyValues(table, bodyRecord(body));
     if (opts.returning === false) {
       await db.insert(table).values(values);
       return undefined;
@@ -348,7 +344,7 @@ export const drizzleAdapter: CrudAdapter = {
       db,
       table,
       keyCondition(table, opts, key, body),
-      coerceBodyValues(table, body as Record<string, unknown>),
+      coerceBodyValues(table, bodyRecord(body)),
     );
     if (row === null) return null;
     return opts.returning === false ? undefined : row;
@@ -364,7 +360,7 @@ export const drizzleAdapter: CrudAdapter = {
       db,
       table,
       keyCondition(table, opts, key, body),
-      coerceBodyValues(table, body as Record<string, unknown>),
+      coerceBodyValues(table, bodyRecord(body)),
     );
     if (row === null) return null;
     return opts.returning === false ? undefined : row;

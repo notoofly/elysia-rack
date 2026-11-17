@@ -9,6 +9,7 @@ import type * as page from "./page.ts";
 import type * as query from "./query.ts";
 import type * as validation from "./validation.ts";
 import type * as idempotency from "./idempotency.ts";
+import type * as json from "../json.ts";
 
 export namespace Rack {
   // ---------------------------------------------------------------------------
@@ -31,11 +32,11 @@ export namespace Rack {
   // ---------------------------------------------------------------------------
 
   export type CrudOperation = authorization.CrudOperation;
-  export type CrudAuthorizationRule<TModel = unknown> =
+  export type CrudAuthorizationRule<TModel extends CrudModel = CrudModel> =
     authorization.CrudAuthorizationRule<TModel>;
-  export type CrudAuthorizationContext<TModel = unknown> =
+  export type CrudAuthorizationContext<TModel extends CrudModel = CrudModel> =
     authorization.CrudAuthorizationContext<TModel>;
-  export type CrudAuthorizationOptions<TModel = unknown> =
+  export type CrudAuthorizationOptions<TModel extends CrudModel = CrudModel> =
     authorization.CrudAuthorizationOptions<TModel>;
 
   export type CrudSortDirection = query.CrudSortDirection;
@@ -63,6 +64,12 @@ export namespace Rack {
     page.CrudSettings<TField>;
 
   export type Awaitable<T> = idempotency.Awaitable<T>;
+  /** JSON-safe dynamic value (parsed bodies, rows, query maps). */
+  export type JsonValue = json.JsonValue;
+  /** Row/request cell: JSON plus `Date` (drizzle timestamp columns). */
+  export type Cell = json.Cell;
+  /** A stored row or dynamic record. */
+  export type RowData = json.RowData;
   export type CrudIdempotencyRecord = idempotency.CrudIdempotencyRecord;
   export type CrudIdempotencyStore = idempotency.CrudIdempotencyStore;
   export type CrudIdempotencyOptions = idempotency.CrudIdempotencyOptions;

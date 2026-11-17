@@ -2,6 +2,7 @@
 // and actions (create/edit/delete/bulk/detail/restore). Without JS, links
 // and forms keep working through plain GET navigation.
 
+import { isJsonRecord, parseJson, type Cell, type JsonValue, type RowData } from "../../../rack/json.ts";
 import { href, pageWindow } from "../components/href.ts";
 import { collectFormBody, fillForm } from "../components/panelForm.ts";
 import {
@@ -18,9 +19,55 @@ interface ListQuery {
 }
 
 interface ListResponse {
-  data: Record<string, unknown>[];
+  data: RowData[];
   total: number;
   query?: ListQuery;
+}
+
+const FIELD_KINDS = new Set<string>([
+  "text",
+  "integer",
+  "number",
+  "boolean",
+  "date",
+  "enum",
+  "json",
+]);
+
+/** Server-serialized `PanelField[]` from the table's data attribute. */
+function isPanelFieldList(value: unknown): value is PanelField[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (entry): entry is PanelField =>
+        isJsonRecord(entry) &&
+        typeof entry["name"] === "string" &&
+        typeof entry["kind"] === "string" &&
+        FIELD_KINDS.has(entry["kind"]),
+    )
+  );
+}
+
+/** Server-serialized `CustomAction[]` from the table's data attribute. */
+function isCustomActionList(value: unknown): value is CustomAction[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (entry): entry is CustomAction =>
+        isJsonRecord(entry) &&
+        typeof entry["label"] === "string" &&
+        typeof entry["href"] === "string",
+    )
+  );
+}
+
+function isListResponse(value: unknown): value is ListResponse {
+  return (
+    isJsonRecord(value) &&
+    Array.isArray(value["data"]) &&
+    value["data"].every(isJsonRecord) &&
+    typeof value["total"] === "number"
+  );
 }
 
 interface CustomAction {
@@ -54,7 +101,7 @@ function debounce<T extends (...args: never[]) => void>(
   };
 }
 
-function esc(value: unknown): string {
+function esc(value: Cell): string {
   return String(value ?? "")
     .split("&")
     .join("&amp;")
@@ -130,25 +177,20 @@ function refresh(root: Element): void {
   void run(root, new URLSearchParams(window.location.search));
 }
 
-function parse<T>(raw: string | null | undefined, fallback: T): T {
-  try {
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 function tableOf(root: Element): HTMLTableElement | null {
   return root.querySelector("table");
 }
 
 function tableConfig(root: Element): TableConfig {
   const tbl = tableOf(root);
-  const fields = parse<PanelField[]>(tbl?.getAttribute("data-rack-fields"), []);
+  const rawFields = parseJson(tbl?.getAttribute("data-rack-fields"));
+  const fields = rawFields !== undefined && isPanelFieldList(rawFields) ? rawFields : [];
+  const rawActions = parseJson(tbl?.getAttribute("data-rack-actions"));
+  const actions = rawActions !== undefined && isCustomActionList(rawActions) ? rawActions : [];
   return {
     fields,
     byName: new Map(fields.map((f) => [f.name, f])),
-    actions: parse<CustomAction[]>(tbl?.getAttribute("data-rack-actions"), []),
+    actions,
     pk: tbl?.getAttribute("data-pk") || "id",
     selectable: !!tbl?.hasAttribute("data-selectable"),
     editable: !!tbl?.hasAttribute("data-editable"),
@@ -159,7 +201,7 @@ function tableConfig(root: Element): TableConfig {
   };
 }
 
-function badgeClass(value: unknown): string {
+function badgeClass(value: Cell): string {
   if (typeof value !== "string")
     return "bg-badge-background text-badge-foreground";
   const text = value.toLowerCase();
@@ -242,7 +284,7 @@ function actionCell(
   return td;
 }
 
-function numericCols(rows: Record<string, unknown>[], cols: string[]): Set<string> {
+function numericCols(rows: RowData[], cols: string[]): Set<string> {
   const out = new Set<string>();
   if (!rows.length) return out;
   for (const col of cols) {
@@ -251,7 +293,7 @@ function numericCols(rows: Record<string, unknown>[], cols: string[]): Set<strin
   return out;
 }
 
-function cellText(field: PanelField | undefined, value: unknown): string {
+function cellText(field: PanelField | undefined, value: Cell): string {
   if (value === null || value === undefined) return "";
   return esc(displayValue(field, value));
 }
@@ -259,7 +301,7 @@ function cellText(field: PanelField | undefined, value: unknown): string {
 function paintRows(
   tbody: HTMLElement,
   cols: string[],
-  rows: Record<string, unknown>[],
+  rows: RowData[],
   cfg: TableConfig,
 ): void {
   const showActions =
@@ -386,7 +428,7 @@ function paint(root: Element, json: ListResponse, sp: URLSearchParams): void {
     const col = a.getAttribute("data-sort-link");
     const active = sort.field === col;
     const order = active && sort.direction === "asc" ? "desc" : "asc";
-    a.setAttribute("href", href(params, { sort: col, order }));
+    a.setAttribute("href", href(params, { sort: col ?? "", order }));
     const ind = a.querySelector("[data-sort-ind]");
     if (ind) ind.textContent = active ? (sort.direction === "asc" ? " ▲" : " ▼") : "";
   });
@@ -406,12 +448,14 @@ async function run(root: Element, sp: URLSearchParams): Promise<void> {
     headers: { Accept: "application/json" },
   });
   if (!res.ok) return;
-  paint(root, (await res.json()) as ListResponse, sp);
+  const json: JsonValue = await res.json();
+  if (!isListResponse(json)) return;
+  paint(root, json, sp);
 }
 
 function formQuery(form: HTMLFormElement): URLSearchParams {
   const clean = new URLSearchParams();
-  for (const el of Array.from(form.elements) as FormControlLike[]) {
+  for (const el of formElements(form)) {
     if (!el.name || el.disabled) continue;
     if (
       el instanceof HTMLInputElement &&
@@ -429,6 +473,15 @@ type FormControlLike =
   | HTMLInputElement
   | HTMLSelectElement
   | HTMLTextAreaElement;
+
+function formElements(form: HTMLFormElement): FormControlLike[] {
+  return Array.from(form.elements).filter(
+    (el): el is FormControlLike =>
+      el instanceof HTMLInputElement ||
+      el instanceof HTMLSelectElement ||
+      el instanceof HTMLTextAreaElement,
+  );
+}
 
 function selectedIds(root: Element): string[] {
   const ids: string[] = [];
@@ -457,7 +510,7 @@ async function createRecord(root: Element, form: HTMLFormElement): Promise<void>
   setBusy(submit, true);
   try {
     const raw = form.querySelector<HTMLTextAreaElement>("[data-create-json]");
-    let body: unknown;
+    let body: JsonValue | Record<string, JsonValue>;
     if (raw) {
       try {
         body = JSON.parse(raw.value);
@@ -471,7 +524,7 @@ async function createRecord(root: Element, form: HTMLFormElement): Promise<void>
         setErr(form, collected.error);
         return;
       }
-      body = collected.body;
+      body = collected.body ?? {};
     }
     const res = await fetch(baseUrl(root), {
       method: "POST",
@@ -538,9 +591,10 @@ async function openEdit(root: Element, id: string): Promise<void> {
     toast(root, `Could not load record ${id}`, true);
     return;
   }
-  const row = ((await res.json()) as { data?: Record<string, unknown> }).data ?? {};
-  const dlg = document.getElementById("rack-edit") as HTMLDialogElement | null;
-  if (!dlg) return;
+  const json: JsonValue = await res.json();
+  const row: RowData = isJsonRecord(json) && isJsonRecord(json["data"]) ? json["data"] : {};
+  const dlg = document.getElementById("rack-edit");
+  if (!(dlg instanceof HTMLDialogElement)) return;
   const form = dlg.querySelector<HTMLFormElement>("[data-edit-form]");
   if (!form) return;
   form.dataset.id = id;
@@ -560,9 +614,10 @@ async function openDetail(root: Element, id: string): Promise<void> {
     toast(root, `Could not load record ${id}`, true);
     return;
   }
-  const row = ((await res.json()) as { data?: Record<string, unknown> }).data ?? {};
-  const dlg = document.getElementById("rack-detail") as HTMLDialogElement | null;
-  if (!dlg) return;
+  const json: JsonValue = await res.json();
+  const row: RowData = isJsonRecord(json) && isJsonRecord(json["data"]) ? json["data"] : {};
+  const dlg = document.getElementById("rack-detail");
+  if (!(dlg instanceof HTMLDialogElement)) return;
   const label = dlg.querySelector("[data-detail-id-label]");
   if (label) label.textContent = `#${id}`;
   const body = dlg.querySelector("[data-detail-body]");
@@ -572,7 +627,7 @@ async function openDetail(root: Element, id: string): Promise<void> {
   dlg.showModal?.();
 }
 
-function renderDetail(root: Element, row: Record<string, unknown>): DocumentFragment {
+function renderDetail(root: Element, row: RowData): DocumentFragment {
   const cfg = tableConfig(root);
   const frag = document.createDocumentFragment();
   const visibleFields = cfg.fields.filter(
@@ -692,9 +747,9 @@ async function runCustomAction(root: Element, el: Element): Promise<void> {
 }
 
 document.addEventListener("click", (e: MouseEvent) => {
-  const t = e.target as Element | null;
-  if (!t?.closest) return;
-  const root = t.closest("[data-query-url]");
+  const t = e.target instanceof Element ? e.target : null;
+  const root = t?.closest("[data-query-url]");
+  if (!t || !root) return;
   if (!root) return;
   const closer = t.closest("[data-close]");
   if (closer) {
@@ -708,8 +763,8 @@ document.addEventListener("click", (e: MouseEvent) => {
     return;
   }
   if (t.closest("[data-open-create]")) {
-    const dlg = document.getElementById("rack-create") as HTMLDialogElement | null;
-    if (dlg) {
+    const dlg = document.getElementById("rack-create");
+    if (dlg instanceof HTMLDialogElement) {
       const cf = dlg.querySelector<HTMLFormElement>("[data-create-form]");
       if (cf) {
         cf.reset();
@@ -763,8 +818,8 @@ document.addEventListener("click", (e: MouseEvent) => {
 });
 
 document.addEventListener("submit", (e: SubmitEvent) => {
-  const f = e.target as HTMLFormElement | null;
-  if (!f || f.tagName !== "FORM") return;
+  const f = e.target instanceof HTMLFormElement ? e.target : null;
+  if (!f) return;
   const root = f.closest("[data-query-url]");
   if (!root) return;
   if (f.hasAttribute("data-create-form")) {
@@ -787,8 +842,8 @@ const debouncedRunForSearch = debounce((form: HTMLFormElement, root: Element) =>
 }, 350);
 
 document.addEventListener("input", (e: Event) => {
-  const t = e.target as Element | null;
-  if (!t?.closest) return;
+  const t = e.target instanceof Element ? e.target : null;
+  if (!t) return;
   const isSearch =
     t.getAttribute("data-search-input") !== null ||
     t.getAttribute("name") === "search";
@@ -800,9 +855,9 @@ document.addEventListener("input", (e: Event) => {
 });
 
 document.addEventListener("change", (e: Event) => {
-  const t = e.target as HTMLInputElement | null;
-  if (!t?.closest) return;
-  const root = t.closest("[data-query-url]");
+  const t = e.target instanceof HTMLInputElement ? e.target : null;
+  const root = t?.closest("[data-query-url]");
+  if (!t || !root) return;
   if (!root) return;
   const all = t.hasAttribute("data-select-all");
   if (!all && !t.hasAttribute("data-select-row")) return;

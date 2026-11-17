@@ -6,7 +6,7 @@ export interface ToolbarProps {
   searchable?: readonly string[];
   filterable?: readonly string[];
   sortable?: readonly string[];
-  params: Record<string, unknown>;
+  params: Record<string, string>;
   softDelete?: boolean;
   includeDeleted?: boolean;
 }
@@ -15,7 +15,7 @@ const inputClass =
   "border-input bg-input-background text-foreground placeholder:text-form-placeholder focus:border-ring h-8 rounded-md border px-2.5 text-sm";
 const labelClass = "flex flex-col gap-1";
 
-function FilterInput({ field, value }: { field?: PanelField; value: unknown }) {
+function FilterInput({ field, value }: { field?: PanelField; value?: string }) {
   const current = value === undefined || value === null ? "" : String(value);
   if (field?.relation) {
     return (

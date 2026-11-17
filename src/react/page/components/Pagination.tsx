@@ -5,7 +5,7 @@ export interface PaginationProps {
   totalPages: number;
   total: number;
   limit: number;
-  params: Record<string, unknown>;
+  params: Record<string, string>;
 }
 
 export { pageWindow };

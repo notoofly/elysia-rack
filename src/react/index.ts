@@ -188,16 +188,24 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
       if (typeof responseValue !== "object" || responseValue === null || !(ReactRack.PAGE in responseValue)) {
         return
       }
-      const descriptor = responseValue as {
-        [ReactRack.PAGE]: true,
-        path: string,
-        props: unknown
-      }
-      return render(descriptor.path, descriptor.props)
+      const path =
+        "path" in responseValue && typeof responseValue.path === "string"
+          ? responseValue.path
+          : undefined
+      const props =
+        "props" in responseValue &&
+        typeof responseValue.props === "object" &&
+        responseValue.props !== null
+          ? responseValue.props
+          : undefined
+      if (path === undefined) return
+      return render(path, props ?? {})
     })
 
+  // `.get()` registers the route in place; reassignment is unnecessary and
+  // its fluent re-typing would drift the instance type across iterations.
   for (const view of views) {
-    app = app.get(view.path, () => render(view.path, view.props)) as unknown as typeof app
+    app.get(view.path, () => render(view.path, view.props ?? {}))
   }
   return app
 }

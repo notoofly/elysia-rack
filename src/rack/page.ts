@@ -1,4 +1,5 @@
 import type { FieldDescriptor } from "./adapters/index.ts";
+import type { RowData } from "./json.ts";
 import type { Rack } from "./types/index.ts";
 
 /**
@@ -16,13 +17,13 @@ export interface PanelPageProps {
   query?: Rack.CrudQueryOptions;
   operations?: Rack.CrudOperationsOptions;
   primaryKey?: string;
-  params?: Record<string, unknown>;
+  params?: Record<string, string>;
   queryUrl?: string;
   fields?: FieldDescriptor[];
   softDelete?: boolean;
   deletedAtField?: string;
-  load?: (input: Record<string, unknown>) => Promise<{
-    data: unknown[];
+  load?: (input: Record<string, string>) => Promise<{
+    data: RowData[];
     total: number;
   }>;
 }

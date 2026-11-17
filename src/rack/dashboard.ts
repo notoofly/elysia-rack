@@ -40,10 +40,7 @@ export function dashboard(options?: DashboardOptions) {
       props: {
         ...(title !== undefined ? { name: title } : {}),
         ...(options?.donate !== undefined ? { donate: options.donate } : {}),
-        resource:
-          typeof (query as Record<string, unknown>).resource === "string"
-            ? ((query as Record<string, unknown>).resource as string)
-            : undefined,
+        resource: typeof query.resource === "string" ? query.resource : undefined,
       },
     }),
   );

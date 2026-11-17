@@ -1,3 +1,4 @@
+import type { CrudModel } from "../models/index.ts";
 import type { Awaitable } from "./idempotency.ts";
 
 export type CrudOperation =
@@ -12,12 +13,12 @@ export type CrudOperation =
  * Authorization rule for one operation. A function receives a typed context
  * with the bound model as `resource`.
  */
-export type CrudAuthorizationRule<TModel = unknown> =
+export type CrudAuthorizationRule<TModel = CrudModel> =
   | boolean
   | string
   | ((context: CrudAuthorizationContext<TModel>) => Awaitable<boolean>);
 
-export interface CrudAuthorizationContext<TModel = unknown> {
+export interface CrudAuthorizationContext<TModel = CrudModel> {
   operation: CrudOperation;
 
   request: Request;
@@ -32,7 +33,7 @@ export interface CrudAuthorizationContext<TModel = unknown> {
   permissions?: readonly string[];
 }
 
-export interface CrudAuthorizationOptions<TModel = unknown> {
+export interface CrudAuthorizationOptions<TModel = CrudModel> {
   list?: CrudAuthorizationRule<TModel>;
   detail?: CrudAuthorizationRule<TModel>;
   create?: CrudAuthorizationRule<TModel>;

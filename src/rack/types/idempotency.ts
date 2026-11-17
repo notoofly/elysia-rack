@@ -1,8 +1,11 @@
+import type { JsonValue, RowData } from "../json.ts";
+
 export type Awaitable<T> = T | Promise<T>;
 
 export interface CrudIdempotencyRecord {
   status: number;
-  body: unknown;
+  /** The stored response envelope (JSON-serializable). */
+  body: object;
 }
 
 /**
@@ -69,6 +72,6 @@ export interface CrudIdempotencyOptions {
   scope?: (context: {
     request: Request;
     permissions?: readonly string[];
-    store?: Record<string, unknown>;
+    store?: Record<string, JsonValue>;
   }) => string | undefined;
 }
