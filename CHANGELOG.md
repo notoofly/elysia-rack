@@ -10,6 +10,7 @@
 - Drizzle field names are extracted from the table's internal `_.columns` record, so only real columns are accepted (not drizzle internals like `$inferSelect` or `getSQL`).
 - Authorization rule functions receive a typed `ctx` with `resource` matching the bound model, plus `permissions` and `store`.
 - All `any` types removed from `src/`; adapters use minimal structural interfaces (drizzle query-builder surface, prisma delegate) instead of untyped handles. The DOM client bundle is fully typed with standard `HTMLElement`/`HTMLDialogElement` DOM types.
+- Zero type-erasing `unknown`: dynamic data (request bodies, rows, query maps, stores, idempotency records) now uses precise `JsonValue`/`Cell`/`RowData` contracts with validating guards (`isJsonValue`, `isJsonRecord`) instead of `Record<string, unknown>`. `unknown` remains only as type-guard parameters — the standard narrowing pattern.
 - Namespace type re-exports (`Rack.CrudOptions<TModel>`, …) forward model generics; `_`-prefixed module aliases removed.
 
 ## [0.6.2] — 2026-11-16
