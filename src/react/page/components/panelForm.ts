@@ -3,22 +3,25 @@
  * Used directly by the browser bundle (client/panel.ts).
  */
 
-export function collectFormBody(form: any): {
+type FormControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+function controls(form: HTMLFormElement): FormControl[] {
+  return Array.from(form.elements) as FormControl[];
+}
+
+export function collectFormBody(form: HTMLFormElement): {
   body?: Record<string, unknown>;
   error?: string;
 } {
   const body: Record<string, unknown> = {};
-  const els = form.elements || [];
-  for (let i = 0; i < els.length; i++) {
-    const el = els[i];
-    if (!el || !el.name || el.disabled) continue;
-    if (el.type === "checkbox") {
+  for (const el of controls(form)) {
+    if (!el.name || el.disabled) continue;
+    if (el instanceof HTMLInputElement && el.type === "checkbox") {
       if (el.checked) body[el.name] = true;
       continue;
     }
-    if (el.value === "" || el.value === undefined || el.value === null)
-      continue;
-    if (el.hasAttribute && el.hasAttribute("data-json")) {
+    if (el.value === "") continue;
+    if (el.hasAttribute("data-json")) {
       try {
         body[el.name] = JSON.parse(el.value);
       } catch {
@@ -32,16 +35,14 @@ export function collectFormBody(form: any): {
 }
 
 export function fillForm(
-  form: any,
+  form: HTMLFormElement,
   row: Record<string, unknown>,
 ): void {
-  const els = form.elements || [];
-  for (let i = 0; i < els.length; i++) {
-    const el = els[i];
-    if (!el || !el.name) continue;
+  for (const el of controls(form)) {
+    if (!el.name) continue;
     const v = row[el.name];
     if (v === undefined || v === null) continue;
-    if (el.type === "checkbox") {
+    if (el instanceof HTMLInputElement && el.type === "checkbox") {
       el.checked = v === true || v === "true" || v === 1;
       continue;
     }

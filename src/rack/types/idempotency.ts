@@ -68,7 +68,7 @@ export interface CrudIdempotencyOptions {
    */
   scope?: (context: {
     request: Request;
-    permissions?: unknown;
+    permissions?: readonly string[];
     store?: Record<string, unknown>;
   }) => string | undefined;
 }

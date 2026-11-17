@@ -56,7 +56,7 @@ function toDescriptor(name: string, primaryKey: string): FieldDescriptor {
 export async function buildPanelFields(input: {
   fields?: FieldDescriptor[];
   columns: string[];
-  config?: Record<string, CrudFieldConfig>;
+  config?: Partial<Record<string, CrudFieldConfig>>;
   hiddenFields?: readonly string[];
   primaryKey: string;
   deletedAtField: string;

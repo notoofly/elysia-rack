@@ -1,11 +1,15 @@
 import { status } from "elysia";
 import type { Rack } from "./types/index.ts";
 
-export interface AuthCheck {
+/**
+ * What route handlers hand to `authorize()`. `resource` is the bound model
+ * object; `permissions` must come from server-trusted sources.
+ */
+export interface AuthCheck<TModel = unknown> {
   request: Request;
   id?: string;
-  resource: unknown;
-  permissions?: unknown;
+  resource: TModel;
+  permissions?: readonly string[];
   store?: Record<string, unknown>;
 }
 
@@ -20,12 +24,12 @@ export interface AuthCheck {
  *   header is never trusted. No source wired → deny (fail closed).
  * - `function` → awaited, `false` → 403
  */
-export async function authorize(
+export async function authorize<TModel>(
   operation: Rack.CrudOperation,
-  rule: Rack.CrudAuthorizationRule | undefined,
-  ctx: AuthCheck,
+  rule: Rack.CrudAuthorizationRule<TModel> | undefined,
+  ctx: AuthCheck<TModel>,
 ) {
-  const forbidden = (extra?: Record<string, unknown>) =>
+  const forbidden = (extra?: Record<string, string>) =>
     status(403, {
       error: "Forbidden",
       operation,
@@ -36,13 +40,13 @@ export async function authorize(
   if (rule === false) return forbidden();
 
   if (typeof rule === "string") {
-    const granted = Array.isArray(ctx.permissions)
+    const granted: readonly string[] | null = Array.isArray(ctx.permissions)
       ? ctx.permissions
       : Array.isArray(ctx.store?.["permissions"])
-        ? (ctx.store?.["permissions"] as unknown[])
+        ? (ctx.store?.["permissions"] as readonly string[])
         : null;
 
-    return granted !== null && (granted as unknown[]).includes(rule)
+    return granted !== null && granted.includes(rule)
       ? null
       : forbidden({ requiredPermission: rule });
   }

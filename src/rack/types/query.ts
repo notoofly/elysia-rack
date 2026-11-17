@@ -1,26 +1,26 @@
 export type CrudSortDirection = "asc" | "desc";
 
-export interface CrudQueryOptions {
+export interface CrudQueryOptions<TField extends string = string> {
   /**
    * Fields allowed for full-text/search query.
    */
-  searchable?: readonly string[];
+  searchable?: readonly TField[];
 
   /**
    * Fields allowed for filtering.
    */
-  filterable?: readonly string[];
+  filterable?: readonly TField[];
 
   /**
    * Fields allowed for sorting.
    */
-  sortable?: readonly string[];
+  sortable?: readonly TField[];
 
   /**
    * Default sort.
    */
   defaultSort?: {
-    field: string;
+    field: TField;
     direction?: CrudSortDirection;
   };
 

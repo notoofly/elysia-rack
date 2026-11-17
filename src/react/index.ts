@@ -82,10 +82,10 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
   ])
   const render = createRenderer(registry)
   const panelCssOverride = pickPanelCssOption(options);
-  let cachedCustomCss: string | Buffer | null = null;
+  let cachedCustomCss: string | null = null;
   let cachedCustomCssLoaded = false;
 
-  async function loadCustomPanelCss(): Promise<string | Buffer | null> {
+  async function loadCustomPanelCss(): Promise<string | null> {
     if (cachedCustomCssLoaded) return cachedCustomCss;
     if (!panelCssOverride) {
       cachedCustomCssLoaded = true;
@@ -102,7 +102,7 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
       if (p) {
         try {
           cachedCustomCssLoaded = true;
-          return (cachedCustomCss = await readFile(p));
+          return (cachedCustomCss = await readFile(p, "utf-8"));
         } catch {
           // fallback to default
         }
@@ -116,7 +116,7 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
       if (filePath) {
         try {
           cachedCustomCssLoaded = true;
-          return (cachedCustomCss = await readFile(filePath));
+          return (cachedCustomCss = await readFile(filePath, "utf-8"));
         } catch {
           // treat as raw below
         }

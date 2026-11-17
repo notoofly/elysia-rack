@@ -1,23 +1,30 @@
+import type { AnySchema } from "elysia";
+
+/**
+ * Validation schemas for CRUD operations. Accepts Elysia/TypeBox schemas
+ * (`t.object({ ... })` and friends); schemas are passed straight through to
+ * the route registration.
+ */
 export interface CrudValidationOptions {
-  create?: unknown;
+  create?: AnySchema;
 
   /**
    * PUT: full replacement.
    */
-  replace?: unknown;
+  replace?: AnySchema;
 
   /**
    * PATCH: partial update.
    */
-  update?: unknown;
+  update?: AnySchema;
 
   /**
    * Validate resource ID.
    */
-  params?: unknown;
+  params?: AnySchema;
 
   /**
    * Validate QUERY body/query definition.
    */
-  query?: unknown;
+  query?: AnySchema;
 }

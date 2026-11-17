@@ -2,8 +2,22 @@ import type { ParsedListQuery } from "../query.ts";
 import type { Rack } from "../types/index.ts";
 import { coerceIdValue, type AdapterOptions, type CrudAdapter, type FieldDescriptor, type ListResult } from "./index.ts";
 
-function delegateOf(model: Rack.CrudModel): any {
-  return (model as { prisma: Rack.CrudPrismaModel }).prisma.model as any;
+/**
+ * Minimal Prisma delegate surface used by the adapter. Prisma's generated
+ * delegates are structurally compatible with these call shapes.
+ */
+interface PrismaDelegate {
+  findMany(args: Record<string, unknown>): PromiseLike<unknown[]>;
+  count(args: Record<string, unknown>): PromiseLike<number>;
+  findFirst(args: Record<string, unknown>): PromiseLike<unknown>;
+  create(args: Record<string, unknown>): PromiseLike<unknown>;
+  update(args: Record<string, unknown>): PromiseLike<unknown>;
+  delete(args: Record<string, unknown>): PromiseLike<unknown>;
+}
+
+function delegateOf(model: Rack.CrudModel): PrismaDelegate {
+  return (model as { prisma: { model: object } }).prisma
+    .model as PrismaDelegate;
 }
 
 function deletedAtFilter(
@@ -48,7 +62,7 @@ function isNotFound(error: unknown): boolean {
 }
 
 async function applyUpdate(
-  delegate: any,
+  delegate: PrismaDelegate,
   primaryKey: string,
   id: string,
   body: unknown,

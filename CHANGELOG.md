@@ -5,6 +5,13 @@
 ### Fixes
 - Drizzle adapter coerces string date values (e.g. from JSON bodies or panel forms) to `Date` for date-kind columns such as `integer(..., { mode: "timestamp" })` on create/replace/update. Previously these produced `500: value.getTime is not a function`.
 
+### Typing
+- `rack()` is now generic over the bound model: field-name types flow from the drizzle table into `query` (`searchable`, `filterable`, `sortable`, `defaultSort.field`), `metadata` (`hiddenFields`, `fields`), and `settings` (`primaryKey`, `deletedAtField`). Unknown keys are compile errors; prisma resources fall back to `string`.
+- Drizzle field names are extracted from the table's internal `_.columns` record, so only real columns are accepted (not drizzle internals like `$inferSelect` or `getSQL`).
+- Authorization rule functions receive a typed `ctx` with `resource` matching the bound model, plus `permissions` and `store`.
+- All `any` types removed from `src/`; adapters use minimal structural interfaces (drizzle query-builder surface, prisma delegate) instead of untyped handles. The DOM client bundle is fully typed with standard `HTMLElement`/`HTMLDialogElement` DOM types.
+- Namespace type re-exports (`Rack.CrudOptions<TModel>`, …) forward model generics; `_`-prefixed module aliases removed.
+
 ## [0.6.2] — 2026-11-16
 
 ### Fixes

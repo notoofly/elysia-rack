@@ -1,3 +1,5 @@
+import type { Awaitable } from "./idempotency.ts";
+
 export type CrudOperation =
   | "list"
   | "detail"
@@ -6,28 +8,35 @@ export type CrudOperation =
   | "update"
   | "delete";
 
-export type CrudAuthorizationRule =
+/**
+ * Authorization rule for one operation. A function receives a typed context
+ * with the bound model as `resource`.
+ */
+export type CrudAuthorizationRule<TModel = unknown> =
   | boolean
   | string
-  | ((context: CrudAuthorizationContext) => boolean | Promise<boolean>);
+  | ((context: CrudAuthorizationContext<TModel>) => Awaitable<boolean>);
 
-export interface CrudAuthorizationContext {
+export interface CrudAuthorizationContext<TModel = unknown> {
   operation: CrudOperation;
 
   request: Request;
 
+  /** Row id for item routes; absent for collection routes. */
   id?: string;
 
-  resource: unknown;
+  /** The model object passed to `rack()`. */
+  resource: TModel;
 
-  permissions?: unknown;
+  /** Server-trusted permission list (context decorations or app state). */
+  permissions?: readonly string[];
 }
 
-export interface CrudAuthorizationOptions {
-  list?: CrudAuthorizationRule;
-  detail?: CrudAuthorizationRule;
-  create?: CrudAuthorizationRule;
-  replace?: CrudAuthorizationRule;
-  update?: CrudAuthorizationRule;
-  delete?: CrudAuthorizationRule;
+export interface CrudAuthorizationOptions<TModel = unknown> {
+  list?: CrudAuthorizationRule<TModel>;
+  detail?: CrudAuthorizationRule<TModel>;
+  create?: CrudAuthorizationRule<TModel>;
+  replace?: CrudAuthorizationRule<TModel>;
+  update?: CrudAuthorizationRule<TModel>;
+  delete?: CrudAuthorizationRule<TModel>;
 }

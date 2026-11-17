@@ -1,8 +1,6 @@
 // Browser-only bundle for the interactive panel: live QUERY, selection,
 // and actions (create/edit/delete/bulk/detail/restore). Without JS, links
 // and forms keep working through plain GET navigation.
-declare const document: any;
-declare const window: any;
 
 import { href, pageWindow } from "../components/href.ts";
 import { collectFormBody, fillForm } from "../components/panelForm.ts";
@@ -45,12 +43,15 @@ interface TableConfig {
   deletedAt: string;
 }
 
-function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T {
-  let id: any;
-  return ((...args: any[]) => {
+function debounce<T extends (...args: never[]) => void>(
+  fn: T,
+  wait: number,
+): (...args: Parameters<T>) => void {
+  let id: ReturnType<typeof setTimeout> | undefined;
+  return (...args: Parameters<T>) => {
     clearTimeout(id);
-    id = setTimeout(() => fn(...(args as any)), wait);
-  }) as T;
+    id = setTimeout(() => fn(...args), wait);
+  };
 }
 
 function esc(value: unknown): string {
@@ -87,7 +88,7 @@ function toParams(sp: URLSearchParams): Record<string, string> {
   return out;
 }
 
-function baseUrl(root: any): string {
+function baseUrl(root: Element): string {
   const q: string = root.getAttribute("data-query-url") || "";
   return q.slice(-5) === "/data" ? q.slice(0, -5) : q || "?";
 }
@@ -101,19 +102,19 @@ function uid(): string {
   return `k-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
 }
 
-function setErr(form: any, msg: string): void {
+function setErr(form: HTMLFormElement, msg: string): void {
   const el = form.querySelector("[data-form-error]");
   if (el) el.textContent = msg;
 }
 
-function setBusy(el: any, busy: boolean): void {
+function setBusy(el: HTMLButtonElement | null, busy: boolean): void {
   if (!el) return;
   el.disabled = busy;
   if (busy) el.setAttribute("aria-busy", "true");
   else el.removeAttribute("aria-busy");
 }
 
-function toast(root: any, message: string, error = false): void {
+function toast(root: Element, message: string, error = false): void {
   const box = root.querySelector("[data-rack-toasts]");
   if (!box) return;
   const el = document.createElement("div");
@@ -125,7 +126,7 @@ function toast(root: any, message: string, error = false): void {
   window.setTimeout(() => el.remove(), 4000);
 }
 
-function refresh(root: any): void {
+function refresh(root: Element): void {
   void run(root, new URLSearchParams(window.location.search));
 }
 
@@ -137,11 +138,11 @@ function parse<T>(raw: string | null | undefined, fallback: T): T {
   }
 }
 
-function tableOf(root: any): any {
+function tableOf(root: Element): HTMLTableElement | null {
   return root.querySelector("table");
 }
 
-function tableConfig(root: any): TableConfig {
+function tableConfig(root: Element): TableConfig {
   const tbl = tableOf(root);
   const fields = parse<PanelField[]>(tbl?.getAttribute("data-rack-fields"), []);
   return {
@@ -167,7 +168,7 @@ function badgeClass(value: unknown): string {
   return "bg-badge-background text-badge-foreground";
 }
 
-function actionButton(action: CustomAction, id: string): any {
+function actionButton(action: CustomAction, id: string): HTMLElement {
   const rawTarget = action.href.replaceAll(":id", encodeURIComponent(id));
   const target = safeHref(rawTarget);
   const cls =
@@ -195,7 +196,7 @@ function actionCell(
   id: string,
   cfg: TableConfig,
   deleted: boolean,
-): any {
+): HTMLTableCellElement {
   const td = document.createElement("td");
   td.className =
     "border-table-border border-t px-3 py-2.5 whitespace-nowrap text-right";
@@ -256,7 +257,7 @@ function cellText(field: PanelField | undefined, value: unknown): string {
 }
 
 function paintRows(
-  tbody: any,
+  tbody: HTMLElement,
   cols: string[],
   rows: Record<string, unknown>[],
   cfg: TableConfig,
@@ -329,7 +330,7 @@ function paintRows(
 }
 
 function paintPages(
-  box: any,
+  box: HTMLElement,
   params: Record<string, string>,
   page: number,
   totalPages: number,
@@ -356,22 +357,19 @@ function paintPages(
   box.innerHTML = html;
 }
 
-function paint(root: any, json: ListResponse, sp: URLSearchParams): void {
+function paint(root: Element, json: ListResponse, sp: URLSearchParams): void {
   const params = toParams(sp);
   const cols: string[] = [];
-  Array.prototype.forEach.call(
-    root.querySelectorAll("thead th[data-col]"),
-    (th: any) => {
-      cols.push(th.getAttribute("data-col"));
-    },
-  );
+  root.querySelectorAll("thead th[data-col]").forEach((th) => {
+    cols.push(th.getAttribute("data-col") ?? "");
+  });
   const q = json.query ?? {};
   const page = q.page ?? 1;
   const limit = q.limit ?? 20;
   const total = json.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const cfg = tableConfig(root);
-  const tbody = root.querySelector("[data-panel-rows]");
+  const tbody = root.querySelector<HTMLElement>("[data-panel-rows]");
   if (tbody) paintRows(tbody, cols, json.data ?? [], cfg);
   const count = root.querySelector("[data-panel-count]");
   if (count) {
@@ -381,20 +379,17 @@ function paint(root: any, json: ListResponse, sp: URLSearchParams): void {
   }
   const totalEl = root.querySelector("[data-panel-total]");
   if (totalEl) totalEl.textContent = `${total} record${total === 1 ? "" : "s"}`;
-  const box = root.querySelector("[data-panel-pages]");
+  const box = root.querySelector<HTMLElement>("[data-panel-pages]");
   if (box) paintPages(box, params, page, totalPages);
   const sort = q.sort ?? {};
-  Array.prototype.forEach.call(
-    root.querySelectorAll("a[data-sort-link]"),
-    (a: any) => {
-      const col = a.getAttribute("data-sort-link");
-      const active = sort.field === col;
-      const order = active && sort.direction === "asc" ? "desc" : "asc";
-      a.setAttribute("href", href(params, { sort: col, order }));
-      const ind = a.querySelector("[data-sort-ind]");
-      if (ind) ind.textContent = active ? (sort.direction === "asc" ? " ▲" : " ▼") : "";
-    },
-  );
+  root.querySelectorAll("a[data-sort-link]").forEach((a) => {
+    const col = a.getAttribute("data-sort-link");
+    const active = sort.field === col;
+    const order = active && sort.direction === "asc" ? "desc" : "asc";
+    a.setAttribute("href", href(params, { sort: col, order }));
+    const ind = a.querySelector("[data-sort-ind]");
+    if (ind) ind.textContent = active ? (sort.direction === "asc" ? " ▲" : " ▼") : "";
+  });
   try {
     window.history.replaceState(null, "", href(params, {}));
   } catch {
@@ -403,7 +398,7 @@ function paint(root: any, json: ListResponse, sp: URLSearchParams): void {
   syncBulk(root);
 }
 
-async function run(root: any, sp: URLSearchParams): Promise<void> {
+async function run(root: Element, sp: URLSearchParams): Promise<void> {
   const base = root.getAttribute("data-query-url") || "";
   const search = sp.toString();
   const res = await fetch(base + (search ? `?${search}` : ""), {
@@ -414,34 +409,54 @@ async function run(root: any, sp: URLSearchParams): Promise<void> {
   paint(root, (await res.json()) as ListResponse, sp);
 }
 
-function selectedIds(root: any): string[] {
+function formQuery(form: HTMLFormElement): URLSearchParams {
+  const clean = new URLSearchParams();
+  for (const el of Array.from(form.elements) as FormControlLike[]) {
+    if (!el.name || el.disabled) continue;
+    if (
+      el instanceof HTMLInputElement &&
+      (el.type === "checkbox" || el.type === "radio") &&
+      !el.checked
+    )
+      continue;
+    if (el.value === "") continue;
+    clean.append(el.name, el.value);
+  }
+  return clean;
+}
+
+type FormControlLike =
+  | HTMLInputElement
+  | HTMLSelectElement
+  | HTMLTextAreaElement;
+
+function selectedIds(root: Element): string[] {
   const ids: string[] = [];
-  Array.prototype.forEach.call(
-    root.querySelectorAll("[data-select-row]:checked"),
-    (c: any) => {
+  root.querySelectorAll<HTMLInputElement>("[data-select-row]:checked").forEach(
+    (c) => {
       ids.push(c.value);
     },
   );
   return ids;
 }
 
-function syncBulk(root: any): void {
+function syncBulk(root: Element): void {
   const ids = selectedIds(root);
-  const bar = root.querySelector("[data-bulk-bar]");
+  const bar = root.querySelector<HTMLElement>("[data-bulk-bar]");
   if (bar) bar.style.display = ids.length ? "" : "none";
   const count = root.querySelector("[data-bulk-count]");
   if (count) count.textContent = `${ids.length} selected`;
   const boxes = root.querySelectorAll("[data-select-row]");
-  const all = root.querySelector("[data-select-all]");
+  const all = root.querySelector<HTMLInputElement>("[data-select-all]");
   if (all) all.checked = boxes.length > 0 && ids.length === boxes.length;
 }
 
-async function createRecord(root: any, form: any): Promise<void> {
+async function createRecord(root: Element, form: HTMLFormElement): Promise<void> {
   setErr(form, "");
-  const submit = form.querySelector('[type="submit"]');
+  const submit = form.querySelector<HTMLButtonElement>('[type="submit"]');
   setBusy(submit, true);
   try {
-    const raw = form.querySelector("[data-create-json]");
+    const raw = form.querySelector<HTMLTextAreaElement>("[data-create-json]");
     let body: unknown;
     if (raw) {
       try {
@@ -479,14 +494,14 @@ async function createRecord(root: any, form: any): Promise<void> {
   }
 }
 
-async function updateRecord(root: any, form: any): Promise<void> {
+async function updateRecord(root: Element, form: HTMLFormElement): Promise<void> {
   setErr(form, "");
   const id = form.dataset?.id || "";
   if (!id) {
     setErr(form, "Missing record id");
     return;
   }
-  const submit = form.querySelector('[type="submit"]');
+  const submit = form.querySelector<HTMLButtonElement>('[type="submit"]');
   setBusy(submit, true);
   try {
     const collected = collectFormBody(form);
@@ -514,7 +529,7 @@ async function updateRecord(root: any, form: any): Promise<void> {
   }
 }
 
-async function openEdit(root: any, id: string): Promise<void> {
+async function openEdit(root: Element, id: string): Promise<void> {
   const res = await fetch(`${baseUrl(root)}/data/${encodeURIComponent(id)}`, {
     method: "QUERY",
     headers: { Accept: "application/json" },
@@ -524,9 +539,9 @@ async function openEdit(root: any, id: string): Promise<void> {
     return;
   }
   const row = ((await res.json()) as { data?: Record<string, unknown> }).data ?? {};
-  const dlg = document.getElementById("rack-edit");
+  const dlg = document.getElementById("rack-edit") as HTMLDialogElement | null;
   if (!dlg) return;
-  const form = dlg.querySelector("[data-edit-form]");
+  const form = dlg.querySelector<HTMLFormElement>("[data-edit-form]");
   if (!form) return;
   form.dataset.id = id;
   const label = dlg.querySelector("[data-edit-id-label]");
@@ -536,7 +551,7 @@ async function openEdit(root: any, id: string): Promise<void> {
   dlg.showModal?.();
 }
 
-async function openDetail(root: any, id: string): Promise<void> {
+async function openDetail(root: Element, id: string): Promise<void> {
   const res = await fetch(`${baseUrl(root)}/data/${encodeURIComponent(id)}`, {
     method: "QUERY",
     headers: { Accept: "application/json" },
@@ -546,7 +561,7 @@ async function openDetail(root: any, id: string): Promise<void> {
     return;
   }
   const row = ((await res.json()) as { data?: Record<string, unknown> }).data ?? {};
-  const dlg = document.getElementById("rack-detail");
+  const dlg = document.getElementById("rack-detail") as HTMLDialogElement | null;
   if (!dlg) return;
   const label = dlg.querySelector("[data-detail-id-label]");
   if (label) label.textContent = `#${id}`;
@@ -557,7 +572,7 @@ async function openDetail(root: any, id: string): Promise<void> {
   dlg.showModal?.();
 }
 
-function renderDetail(root: any, row: Record<string, unknown>): any {
+function renderDetail(root: Element, row: Record<string, unknown>): DocumentFragment {
   const cfg = tableConfig(root);
   const frag = document.createDocumentFragment();
   const visibleFields = cfg.fields.filter(
@@ -592,7 +607,7 @@ function renderDetail(root: any, row: Record<string, unknown>): any {
   return frag;
 }
 
-async function deleteOne(root: any, id: string): Promise<void> {
+async function deleteOne(root: Element, id: string): Promise<void> {
   if (!window.confirm(`Delete record ${id}?`)) return;
   const res = await fetch(`${baseUrl(root)}/${encodeURIComponent(id)}`, {
     method: "DELETE",
@@ -605,7 +620,7 @@ async function deleteOne(root: any, id: string): Promise<void> {
   toast(root, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`, true);
 }
 
-async function restoreOne(root: any, id: string): Promise<void> {
+async function restoreOne(root: Element, id: string): Promise<void> {
   const cfg = tableConfig(root);
   const res = await fetch(`${baseUrl(root)}/${encodeURIComponent(id)}`, {
     method: "PATCH",
@@ -620,7 +635,7 @@ async function restoreOne(root: any, id: string): Promise<void> {
   toast(root, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`, true);
 }
 
-async function bulkDelete(root: any): Promise<void> {
+async function bulkDelete(root: Element): Promise<void> {
   const ids = selectedIds(root);
   if (!ids.length) return;
   if (!window.confirm(`Delete ${ids.length} records?`)) return;
@@ -635,9 +650,9 @@ async function bulkDelete(root: any): Promise<void> {
   refresh(root);
 }
 
-async function bulkApply(root: any): Promise<void> {
-  const field = root.querySelector("[data-bulk-field]");
-  const input = root.querySelector("[data-bulk-value]");
+async function bulkApply(root: Element): Promise<void> {
+  const field = root.querySelector<HTMLSelectElement>("[data-bulk-field]");
+  const input = root.querySelector<HTMLInputElement>("[data-bulk-value]");
   const ids = selectedIds(root);
   if (!field?.value || !input || !ids.length) return;
   const cfg = tableConfig(root);
@@ -664,7 +679,7 @@ async function bulkApply(root: any): Promise<void> {
   refresh(root);
 }
 
-async function runCustomAction(root: any, el: any): Promise<void> {
+async function runCustomAction(root: Element, el: Element): Promise<void> {
   const target = el.getAttribute("data-rack-href");
   if (!target) return;
   const confirmMsg = el.getAttribute("data-rack-confirm");
@@ -676,8 +691,8 @@ async function runCustomAction(root: any, el: any): Promise<void> {
   else toast(root, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`, true);
 }
 
-document.addEventListener("click", (e: any) => {
-  const t = e.target;
+document.addEventListener("click", (e: MouseEvent) => {
+  const t = e.target as Element | null;
   if (!t?.closest) return;
   const root = t.closest("[data-query-url]");
   if (!root) return;
@@ -693,9 +708,9 @@ document.addEventListener("click", (e: any) => {
     return;
   }
   if (t.closest("[data-open-create]")) {
-    const dlg = document.getElementById("rack-create");
+    const dlg = document.getElementById("rack-create") as HTMLDialogElement | null;
     if (dlg) {
-      const cf = dlg.querySelector("[data-create-form]");
+      const cf = dlg.querySelector<HTMLFormElement>("[data-create-form]");
       if (cf) {
         cf.reset();
         setErr(cf, "");
@@ -706,22 +721,22 @@ document.addEventListener("click", (e: any) => {
   }
   const view = t.closest("[data-view-id]");
   if (view) {
-    void openDetail(root, view.getAttribute("data-view-id"));
+    void openDetail(root, view.getAttribute("data-view-id") ?? "");
     return;
   }
   const restore = t.closest("[data-restore-id]");
   if (restore) {
-    void restoreOne(root, restore.getAttribute("data-restore-id"));
+    void restoreOne(root, restore.getAttribute("data-restore-id") ?? "");
     return;
   }
   const eb = t.closest("[data-edit-id]");
   if (eb) {
-    void openEdit(root, eb.getAttribute("data-edit-id"));
+    void openEdit(root, eb.getAttribute("data-edit-id") ?? "");
     return;
   }
   const dbtn = t.closest("[data-delete-id]");
   if (dbtn) {
-    void deleteOne(root, dbtn.getAttribute("data-delete-id"));
+    void deleteOne(root, dbtn.getAttribute("data-delete-id") ?? "");
     return;
   }
   if (t.closest("[data-bulk-delete]")) {
@@ -733,25 +748,24 @@ document.addEventListener("click", (e: any) => {
     return;
   }
   if (t.closest("[data-bulk-clear]")) {
-    Array.prototype.forEach.call(
-      root.querySelectorAll("[data-select-row],[data-select-all]"),
-      (c: any) => {
+    root
+      .querySelectorAll<HTMLInputElement>("[data-select-row],[data-select-all]")
+      .forEach((c) => {
         c.checked = false;
-      },
-    );
+      });
     syncBulk(root);
     return;
   }
   const a = t.closest("a[data-qlink]");
   if (!a) return;
   e.preventDefault();
-  void run(root, new URLSearchParams(a.getAttribute("href").replace(/^\?/, "")));
+  void run(root, new URLSearchParams((a.getAttribute("href") ?? "").replace(/^\?/, "")));
 });
 
-document.addEventListener("submit", (e: any) => {
-  const f = e.target;
+document.addEventListener("submit", (e: SubmitEvent) => {
+  const f = e.target as HTMLFormElement | null;
   if (!f || f.tagName !== "FORM") return;
-  const root = f.closest?.("[data-query-url]");
+  const root = f.closest("[data-query-url]");
   if (!root) return;
   if (f.hasAttribute("data-create-form")) {
     e.preventDefault();
@@ -764,57 +778,40 @@ document.addEventListener("submit", (e: any) => {
     return;
   }
   e.preventDefault();
-  const clean = new URLSearchParams();
-  const els = f.elements ?? [];
-  for (let i = 0; i < els.length; i++) {
-    const el = els[i];
-    if (!el.name || el.disabled) continue;
-    if ((el.type === "checkbox" || el.type === "radio") && !el.checked) continue;
-    if (el.value === "") continue;
-    clean.append(el.name, el.value);
-  }
-  void run(root, clean);
+  void run(root, formQuery(f));
 });
 
 // Debounce search: LIKE '%query%' without waiting for Enter
-const debouncedRunForSearch = debounce((form: any, root: any) => {
-  const clean = new URLSearchParams();
-  const els = form.elements ?? [];
-  for (let i = 0; i < els.length; i++) {
-    const el = els[i];
-    if (!el.name || el.disabled) continue;
-    if ((el.type === "checkbox" || el.type === "radio") && !el.checked) continue;
-    if (el.value === "") continue;
-    clean.append(el.name, el.value);
-  }
-  void run(root, clean);
+const debouncedRunForSearch = debounce((form: HTMLFormElement, root: Element) => {
+  void run(root, formQuery(form));
 }, 350);
 
-document.addEventListener("input", (e: any) => {
-  const t = e.target;
-  if (!t || !t.closest) return;
-  const isSearch = t.getAttribute?.("data-search-input") !== null || t.getAttribute?.("name") === "search";
+document.addEventListener("input", (e: Event) => {
+  const t = e.target as Element | null;
+  if (!t?.closest) return;
+  const isSearch =
+    t.getAttribute("data-search-input") !== null ||
+    t.getAttribute("name") === "search";
   if (!isSearch) return;
   const form = t.closest("form");
-  const root = t.closest("[data-query-url]") || form?.closest?.("[data-query-url]");
+  const root = t.closest("[data-query-url]") ?? form?.closest("[data-query-url]");
   if (!form || !root) return;
   debouncedRunForSearch(form, root);
 });
 
-document.addEventListener("change", (e: any) => {
-  const t = e.target;
+document.addEventListener("change", (e: Event) => {
+  const t = e.target as HTMLInputElement | null;
   if (!t?.closest) return;
   const root = t.closest("[data-query-url]");
   if (!root) return;
   const all = t.hasAttribute("data-select-all");
   if (!all && !t.hasAttribute("data-select-row")) return;
   if (all) {
-    Array.prototype.forEach.call(
-      root.querySelectorAll("[data-select-row]"),
-      (c: any) => {
+    root
+      .querySelectorAll<HTMLInputElement>("[data-select-row]")
+      .forEach((c) => {
         c.checked = t.checked;
-      },
-    );
+      });
   }
   syncBulk(root);
 });
