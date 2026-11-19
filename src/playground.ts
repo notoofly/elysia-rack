@@ -397,10 +397,10 @@ const app = new Elysia()
           if (ctx.permissions?.includes("user") === true) {
             const t = ctx.id
               ? await db
-                  .select()
-                  .from(transactions)
-                  .where(eq(transactions.id, Number(ctx.id)))
-                  .then((r) => r[0])
+                .select()
+                .from(transactions)
+                .where(eq(transactions.id, Number(ctx.id)))
+                .then((r) => r[0])
               : null;
             return t?.userId !== undefined;
           }
@@ -411,10 +411,10 @@ const app = new Elysia()
           if (ctx.permissions?.includes("user") === true) {
             const t = ctx.id
               ? await db
-                  .select()
-                  .from(transactions)
-                  .where(eq(transactions.id, Number(ctx.id)))
-                  .then((r) => r[0])
+                .select()
+                .from(transactions)
+                .where(eq(transactions.id, Number(ctx.id)))
+                .then((r) => r[0])
               : null;
             return t?.userId !== undefined;
           }
