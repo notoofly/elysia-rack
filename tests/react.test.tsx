@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { Elysia } from "elysia";
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
+import { clearRacks, dashboard, rack, type Rack } from "../src/rack/index.ts";
 import { reactPlugin } from "../src/react/index.ts";
 import { createRenderer } from "../src/react/render.tsx";
 import { ReactRack } from "../src/react/types.ts";
@@ -52,6 +53,33 @@ describe("createRenderer", () => {
     });
     const res = await render("/lazy", { name: "Ada" });
     expect(await res.text()).toContain("Hello Ada");
+  });
+});
+
+describe("dashboard rendering", () => {
+  it("does not render racks denied by authorization.list", async () => {
+    clearRacks();
+    const model = { drizzle: { db: {}, table: {} } } as Rack.CrudModel;
+    const app = new Elysia()
+      .use(reactPlugin())
+      .use(dashboard())
+      .use(
+        rack("/visible", {
+          model,
+          metadata: { id: "visible", label: "VisibleLabel" },
+        }),
+      )
+      .use(
+        rack("/locked", {
+          model,
+          metadata: { id: "locked", label: "LockedLabel" },
+          authorization: { list: false },
+        }),
+      );
+    const res = await app.handle(new Request("http://localhost/"));
+    const html = await res.text();
+    expect(html).toContain("VisibleLabel");
+    expect(html).not.toContain("LockedLabel");
   });
 });
 

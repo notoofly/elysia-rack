@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { PANEL_PAGE_KEY } from "./page.ts";
+import { getAuthorizedRackTree } from "./registry.ts";
 
 export interface DashboardOptions {
   /** Mount path for the dashboard page (default "/") */
@@ -34,13 +35,17 @@ export function dashboard(options?: DashboardOptions) {
 
   return new Elysia({ name: "rack:dashboard" }).get(
     path,
-    ({ query }) => ({
+    async (context) => ({
       [Symbol.for(PANEL_PAGE_KEY)]: true as const,
       path: pagePath,
       props: {
+        racks: await getAuthorizedRackTree(context),
         ...(title !== undefined ? { name: title } : {}),
         ...(options?.donate !== undefined ? { donate: options.donate } : {}),
-        resource: typeof query.resource === "string" ? query.resource : undefined,
+        resource:
+          typeof context.query.resource === "string"
+            ? context.query.resource
+            : undefined,
       },
     }),
   );

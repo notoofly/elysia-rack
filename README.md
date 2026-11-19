@@ -175,7 +175,7 @@ authorization: {
 
 ## Dashboard and panels
 
-`dashboard()` renders a navigation overview of every resource registered with `rack()`:
+`dashboard()` renders a navigation overview of the resources registered with `rack()` that the current caller may list:
 
 ```ts
 import { dashboard, rack } from "elysia-rack";
@@ -204,11 +204,11 @@ const app = new Elysia()
   .listen(3000);
 ```
 
-`metadata.parent` nests resources under another id; children render nested in the sidebar, ordered by `order` then label. The panel also shows the full tree sidebar and breadcrumb.
+`metadata.parent` nests resources under another id; children render nested in the sidebar, ordered by `order` then label. The panel also shows the tree sidebar and breadcrumb. Both sidebar trees are filtered server-side by `authorization.list` against the request context (`permissions` from `app.decorate`/`app.state`).
 
 Dashboard options: `path` (default `"/"`), `title` (default `"Panel"`), `pagePath` (default `"/dashboard"`), `donate` (default `true` — shows the Ko-fi link in the footer; set `false` to hide).
 
-Tree helpers exported from `elysia-rack`: `listRacks()`, `getRack(id)`, `getRackTree()`, `flatRackTree()`, `buildRackTree(racks)`, `clearRacks()`.
+Tree helpers exported from `elysia-rack`: `listRacks()`, `getRack(id)`, `getRackTree()`, `getAuthorizedRackTree(ctx)`, `flatRackTree()`, `buildRackTree(racks)`, `clearRacks()`.
 
 ## Pages and theming (`elysia-rack/react`)
 

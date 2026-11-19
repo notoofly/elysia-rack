@@ -1,5 +1,6 @@
 import type { FieldDescriptor } from "./adapters/index.ts";
 import type { RowData } from "./json.ts";
+import type { RackTreeNode } from "./registry.ts";
 import type { Rack } from "./types/index.ts";
 
 /**
@@ -11,6 +12,7 @@ import type { Rack } from "./types/index.ts";
 export const PANEL_PAGE_KEY = "@elysia-panel/react";
 
 export interface PanelPageProps {
+  racks?: RackTreeNode[];
   resource: string;
   metadata?: Rack.CrudMetadata;
   actions?: readonly Rack.CrudAction[];

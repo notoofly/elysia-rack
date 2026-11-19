@@ -17,7 +17,11 @@ import { createMemoryIdempotencyStore } from "./idempotency.ts";
 import { detailFor } from "./openapi.ts";
 import { panelPage, type PanelPageProps } from "./page.ts";
 import { parseListQuery } from "./query.ts";
-import { registerRack } from "./registry.ts";
+import {
+  getAuthorizedRackTree,
+  registerRack,
+  type RackTreeAuthContext,
+} from "./registry.ts";
 import type { Rack } from "./types/index.ts";
 
 export type { Rack } from "./types/index.ts";
@@ -26,11 +30,13 @@ export {
   buildRackTree,
   clearRacks,
   flatRackTree,
+  getAuthorizedRackTree,
   getRack,
   getRackTree,
   listRacks,
   registerRack,
   type RackRegistration,
+  type RackTreeAuthContext,
   type RackTreeNode,
 } from "./registry.ts";
 export { dashboard, type DashboardOptions } from "./dashboard.ts";
@@ -83,11 +89,26 @@ export function rack<TModel extends Rack.CrudModel>(
   const itemPath = `/:${primaryKey}`;
   const resource = options.metadata?.id ?? path;
   const adapter = resolveAdapter(options.model);
-  registerRack({
-    path,
-    metadata: { ...options.metadata, id: resource },
-    operations,
-  });
+  const canList = async (ctx: RackTreeAuthContext) => {
+    const rule = options.authorization?.list;
+    return (
+      rule === undefined ||
+      (await authorize("list", rule, {
+        request: ctx.request,
+        resource: options.model,
+        permissions: ctx.permissions,
+        store: ctx.store,
+      })) === null
+    );
+  };
+  registerRack(
+    {
+      path,
+      metadata: { ...options.metadata, id: resource },
+      operations,
+    },
+    canList,
+  );
   const dataAdapter = getAdapter(options.model);
   const adapterOpts: AdapterOptions = {
     primaryKey,
@@ -147,6 +168,7 @@ export function rack<TModel extends Rack.CrudModel>(
         );
         if (denied) return denied;
         return panelPage(options.page?.path ?? "/panel", {
+          racks: await getAuthorizedRackTree(context),
           resource,
           metadata: options.metadata,
           actions: options.actions,

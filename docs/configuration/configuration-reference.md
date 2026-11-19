@@ -484,6 +484,7 @@ These helpers expose the in-memory resource registry. They are useful for custom
 | `listRacks()` | All registrations in registration order |
 | `getRack(id)` | One registration by `metadata.id`, or `undefined` |
 | `getRackTree()` | Nested tree sorted by `order` then label |
+| `getAuthorizedRackTree(ctx)` | Tree filtered by each rack's `authorization.list` rule against `ctx` |
 | `flatRackTree()` | Depth-first list of registrations |
 | `buildRackTree(racks)` | Tree built from an explicit registration list |
 | `clearRacks()` | Clears the registry, mainly for tests |

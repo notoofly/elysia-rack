@@ -172,6 +172,7 @@ function CustomActionButton({ action }: { action: Rack.CrudAction }) {
 
 export interface PanelProps {
   donate?: boolean;
+  racks?: RackTreeNode[];
   resource?: string;
   metadata?: Rack.CrudMetadata;
   actions?: readonly Rack.CrudAction[];
@@ -246,7 +247,7 @@ export default async function Panel(props: PanelProps) {
   const includeDeleted = params.includeDeleted === "true";
 
   // Load entire tree for sidebar, highlight active panel
-  const tree = getRackTree().filter((r) => !r.metadata.hidden);
+  const tree = (props.racks ?? getRackTree()).filter((r) => !r.metadata.hidden);
   const groups = buildGroupsFromTree(tree, props.resource);
   const donate = resolveDonateProp(props.donate);
   const trail = [

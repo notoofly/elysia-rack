@@ -1,4 +1,14 @@
+import type { JsonValue } from "./json.ts";
 import type { Rack } from "./types/index.ts";
+
+/** Server-trusted context used to filter the registry tree. */
+export interface RackTreeAuthContext {
+  request: Request;
+  permissions?: readonly string[];
+  store?: Record<string, JsonValue>;
+}
+
+type RackListCheck = (ctx: RackTreeAuthContext) => boolean | Promise<boolean>;
 
 export interface RackRegistration {
   /** Mount path, e.g. `/catalog/products`. */
@@ -17,13 +27,16 @@ export interface RackTreeNode extends RackRegistration {
 }
 
 const registrations = new Map<string, RackRegistration>();
+const listChecks = new Map<string, RackListCheck>();
 
 /**
  * Register a rack resource. Called automatically by `rack()`.
  * Re-registering the same path replaces the previous entry.
  */
-export function registerRack(reg: RackRegistration): void {
+export function registerRack(reg: RackRegistration, canList?: RackListCheck): void {
   registrations.set(reg.path, reg);
+  if (canList) listChecks.set(reg.path, canList);
+  else listChecks.delete(reg.path);
 }
 
 /** List all registered rack resources in registration order. */
@@ -75,6 +88,18 @@ export function getRackTree(): RackTreeNode[] {
   return buildRackTree([...registrations.values()]);
 }
 
+/** Build the tree with only resources whose `authorization.list` rule allows `ctx`. */
+export async function getAuthorizedRackTree(
+  ctx: RackTreeAuthContext,
+): Promise<RackTreeNode[]> {
+  const allowed: RackRegistration[] = [];
+  for (const reg of registrations.values()) {
+    const canList = listChecks.get(reg.path);
+    if (canList === undefined || (await canList(ctx))) allowed.push(reg);
+  }
+  return buildRackTree(allowed);
+}
+
 /** Flatten tree into a depth-first ordered list (useful for legacy dashboard). */
 export function flatRackTree(tree = getRackTree()): RackRegistration[] {
   const out: RackRegistration[] = [];
@@ -92,4 +117,5 @@ export function flatRackTree(tree = getRackTree()): RackRegistration[] {
 /** Clear the registry (mainly for tests). */
 export function clearRacks(): void {
   registrations.clear();
+  listChecks.clear();
 }

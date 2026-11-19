@@ -4,10 +4,12 @@ import {
   buildRackTree,
   clearRacks,
   flatRackTree,
+  getAuthorizedRackTree,
   getRack,
   listRacks,
   rack,
   type Rack,
+  type RackTreeAuthContext,
 } from "../src/rack/index.ts";
 import { dashboard } from "../src/rack/dashboard.ts";
 
@@ -126,6 +128,105 @@ describe("rack registry", () => {
       mount("/child", { model, metadata: { id: "child", parent: "root" } });
       const flat = flatRackTree();
       expect(flat.map((r) => r.metadata.id)).toEqual(["root", "child"]);
+    });
+  });
+
+  describe("getAuthorizedRackTree", () => {
+    const authCtx = (overrides: Partial<RackTreeAuthContext> = {}): RackTreeAuthContext => ({
+      request: new Request("http://localhost"),
+      ...overrides,
+    });
+
+    it("keeps only resources allowed by authorization.list", async () => {
+      clearRacks();
+      mount("/open", { model, metadata: { id: "open" }, authorization: { list: true } });
+      mount("/closed", { model, metadata: { id: "closed" }, authorization: { list: false } });
+      mount("/permission", {
+        model,
+        metadata: { id: "permission" },
+        authorization: { list: "rack.view" },
+      });
+      mount("/function", {
+        model,
+        metadata: { id: "function" },
+        authorization: { list: (ctx) => ctx.permissions?.includes("fn") === true },
+      });
+
+      const allowed = await getAuthorizedRackTree(
+        authCtx({ permissions: ["rack.view", "fn"] }),
+      );
+      expect(allowed.map((n) => n.metadata.id)).toEqual([
+        "function",
+        "open",
+        "permission",
+      ]);
+
+      const denied = await getAuthorizedRackTree(authCtx());
+      expect(denied.map((n) => n.metadata.id)).toEqual(["open"]);
+
+      const stored = await getAuthorizedRackTree(
+        authCtx({ store: { permissions: ["rack.view"] } }),
+      );
+      expect(stored.map((n) => n.metadata.id)).toEqual(["open", "permission"]);
+    });
+
+    it("passes the bound model to list rules", async () => {
+      clearRacks();
+      const seen: Rack.CrudAuthorizationContext[] = [];
+      mount("/model", {
+        model,
+        metadata: { id: "model" },
+        authorization: {
+          list: (ctx) => {
+            seen.push(ctx);
+            return true;
+          },
+        },
+      });
+      await getAuthorizedRackTree(authCtx());
+      expect(seen).toHaveLength(1);
+      expect(seen[0]?.operation).toBe("list");
+      expect(seen[0]?.resource).toBe(model);
+      expect(seen[0]?.id).toBeUndefined();
+    });
+
+    it("passes the filtered tree to dashboard props", async () => {
+      clearRacks();
+      mount("/visible", { model, metadata: { id: "visible" } });
+      mount("/locked", {
+        model,
+        metadata: { id: "locked" },
+        authorization: { list: false },
+      });
+      const res = await dashboard().handle(new Request("http://localhost/"));
+      const body = (await res.json()) as {
+        props: { racks: Array<{ metadata: { id: string } }> };
+      };
+      expect(body.props.racks.map((n) => n.metadata.id)).toEqual(["visible"]);
+    });
+
+    it("passes the filtered tree to panel props", async () => {
+      clearRacks();
+      mount("/locked", {
+        model,
+        metadata: { id: "locked" },
+        authorization: { list: false },
+      });
+      const app = new Elysia()
+        .decorate("permissions", ["rack.view"])
+        .use(
+          rack("/visible", {
+            model,
+            metadata: { id: "visible" },
+            authorization: { list: "rack.view" },
+          }),
+        );
+      const res = await app.handle(new Request("http://localhost/visible"));
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        props: { racks: Array<{ metadata: { id: string } }> };
+      };
+      expect(body.props.racks.map((n) => n.metadata.id)).toEqual(["visible"]);
     });
   });
 
