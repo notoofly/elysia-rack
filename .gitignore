@@ -9,6 +9,7 @@ out/
 
 # caches & temp
 .vite/
+docs/.vitepress/cache/
 *.tsbuildinfo
 .cache/
 tmp/
