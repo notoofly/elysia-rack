@@ -9,6 +9,7 @@ export interface DashboardProps {
   name?: string;
   resource?: string;
   donate?: boolean;
+  racks?: RackTreeNode[];
 }
 
 function itemLabel(r: { metadata: { pluralLabel?: string; label?: string; id: string } }): string {
@@ -99,7 +100,7 @@ function ResourceRow({ node, depth = 0 }: { node: RackTreeNode; depth?: number }
 }
 
 export default async function Dashboard(props: DashboardProps) {
-  const tree = getRackTree().filter((r) => !r.metadata.hidden);
+  const tree = (props.racks ?? getRackTree()).filter((r) => !r.metadata.hidden);
   const groups = buildGroupsFromTree(tree, props.resource);
   const totalResources = countNodes(tree);
   const totalGroups = groups.length;
