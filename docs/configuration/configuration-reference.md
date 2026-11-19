@@ -185,6 +185,8 @@ A string rule is checked against these server-trusted sources, in order:
 
 The caller-controlled `x-permissions` request header is never trusted and cannot satisfy a string rule. If neither source is present, the request is denied with `403` (fail closed). Mount a permission source before using string rules.
 
+Use `app.derive` for request-scoped permissions. If the `derive` lives inside a named Elysia plugin, pass `{ as: "global" }` and mount the plugin before routes that read permissions; `.decorate("permissions", fn)` stores the function itself instead of an array.
+
 ### Function rules
 
 A function rule receives an object with:

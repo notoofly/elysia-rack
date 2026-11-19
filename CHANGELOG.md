@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0] — 2026-11-19
+
+### Features
+- Authorization-aware rack tree: `registerRack()` accepts a list check, `getAuthorizedRackTree(ctx)` filters racks by each rack's `authorization.list` rule, and dashboard/panel routes pass the filtered tree to React. Panels fall back to the full tree when no tree is provided.
+- `rack()` now derives the list check from `options.authorization.list`, so sidebar links and pages stay consistent with route authorization.
+
+### Fixes
+- Request-scoped permissions in the playground now come from `.derive({ as: "global" }, ...)` instead of a `.decorate()` function, avoiding `ctx.permissions.includes is not a function`.
+- Playground transactions are admin-only; product reads stay public and the product duplicate action still requires admin.
+- The Show/Hide deleted toggle now updates its label, link, and hidden field after client-side data refreshes, without a page reload.
+
+### Tests & docs
+- Added regression tests for globally derived permissions and authorization-aware rack filtering.
+- Documentation now targets version `0.7.0` and documents `getAuthorizedRackTree(ctx)`.
+
 ## [0.6.3] — 2026-11-16
 
 ### Fixes

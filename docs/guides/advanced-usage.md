@@ -209,7 +209,7 @@ The panel also stores a dark or light preference in the browser and otherwise fo
 5. Restart the application.
 6. Open the panel and dashboard, then verify a list, create, update, and delete operation.
 
-The package is at version `0.6.0`. Configuration names may change between releases, so review the [Configuration reference](../configuration/configuration-reference.md) after an upgrade.
+The package is at version `0.7.0`. Configuration names may change between releases, so review the [Configuration reference](../configuration/configuration-reference.md) after an upgrade.
 
 ## Verify a deployment
 
