@@ -52,7 +52,7 @@ export const transactions = pgTable("transactions", {
   userId: integer("user_id").notNull().references(() => users.id),
   amount: integer("amount").notNull(),
   description: text("description"),
-  status: text("status").notNull().default("pending"),
+  status: text("status", { enum: ["completed", "pending"] }).notNull().default("pending"),
   type: text("type").notNull().default("income"),
   createdAt: timestamp("created_at").default(sql`NOW()`),
   processedAt: timestamp("processed_at"),
@@ -233,11 +233,14 @@ function getAuthPayload(request: Request): AuthPayload | null {
   return { role: session.role, email: session.email };
 }
 
+const isAdmin = (ctx: { permissions?: readonly string[] }) =>
+  ctx.permissions?.includes("admin") === true;
+
 const authPlugin = () =>
   new Elysia({ name: "authPlugin" })
-    .decorate("permissions", (ctx: { request: Request }) => {
-      const payload = getAuthPayload(ctx.request);
-      return payload === null ? undefined : [payload.role];
+    .derive({ as: "global" }, ({ request }) => {
+      const payload = getAuthPayload(request);
+      return { permissions: payload === null ? [] : [payload.role] };
     });
 
 // ---------------------------------------------------------------------------
@@ -246,8 +249,8 @@ const authPlugin = () =>
 
 const app = new Elysia()
   .use(reactPlugin())
-  .use(dashboard({ title: "Elysia Rack", path: "/" }))
   .use(authPlugin())
+  .use(dashboard({ title: "Elysia Rack", path: "/" }))
   .use(
     rack("/catalog/products", {
       model: { drizzle: { db, table: products } },
@@ -263,10 +266,10 @@ const app = new Elysia()
       authorization: {
         list: true,
         detail: true,
-        create: async (ctx) => ctx.permissions?.includes("admin") === true,
-        replace: async (ctx) => ctx.permissions?.includes("admin") === true,
-        update: async (ctx) => ctx.permissions?.includes("admin") === true,
-        delete: async (ctx) => ctx.permissions?.includes("admin") === true,
+        create: isAdmin,
+        replace: isAdmin,
+        update: isAdmin,
+        delete: isAdmin,
       },
 
       query: {
@@ -350,10 +353,10 @@ const app = new Elysia()
       },
 
       operations: {
-        create: false,
+        create: true,
         replace: false,
-        update: false,
-        delete: false,
+        update: true,
+        delete: true,
       },
 
       metadata: {
@@ -387,40 +390,12 @@ const app = new Elysia()
       },
 
       authorization: {
-        list: true,
-        detail: true,
-        create: async (ctx) =>
-          ctx.permissions?.includes("admin") === true ||
-          ctx.permissions?.includes("user") === true,
-        replace: async (ctx) => {
-          if (ctx.permissions?.includes("admin") === true) return true;
-          if (ctx.permissions?.includes("user") === true) {
-            const t = ctx.id
-              ? await db
-                  .select()
-                  .from(transactions)
-                  .where(eq(transactions.id, Number(ctx.id)))
-                  .then((r) => r[0])
-              : null;
-            return t?.userId !== undefined;
-          }
-          return false;
-        },
-        update: async (ctx) => {
-          if (ctx.permissions?.includes("admin") === true) return true;
-          if (ctx.permissions?.includes("user") === true) {
-            const t = ctx.id
-              ? await db
-                  .select()
-                  .from(transactions)
-                  .where(eq(transactions.id, Number(ctx.id)))
-                  .then((r) => r[0])
-              : null;
-            return t?.userId !== undefined;
-          }
-          return false;
-        },
-        delete: async (ctx) => ctx.permissions?.includes("admin") === true,
+        list: isAdmin,
+        detail: isAdmin,
+        create: isAdmin,
+        replace: isAdmin,
+        update: isAdmin,
+        delete: isAdmin,
       },
 
       query: {
@@ -550,7 +525,9 @@ const app = new Elysia()
       },
     });
   })
-  .post("/catalog/products/:id/duplicate", async ({ params, status }) => {
+  .post("/catalog/products/:id/duplicate", async (ctx) => {
+    if (!isAdmin(ctx)) return ctx.status(403, { error: "Forbidden" });
+    const { params, status } = ctx;
     const [source] = await db
       .select()
       .from(products)

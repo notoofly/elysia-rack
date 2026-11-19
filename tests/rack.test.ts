@@ -345,6 +345,32 @@ describe("rack authorization", () => {
     expect(json.requiredPermission).toBe("products.view");
   });
 
+  it("uses permissions derived in a global scoped auth plugin", async () => {
+    const app = new Elysia()
+      .use(
+        new Elysia({ name: "deriveAuthPlugin" }).derive({ as: "global" }, () => ({
+          permissions: ["admin"],
+        })),
+      )
+      .use(
+        rack("/derived", {
+          model: drizzle(),
+          authorization: {
+            create: (ctx) => ctx.permissions?.includes("admin") === true,
+          },
+        }),
+      ) as App;
+
+    const { status } = await call(
+      app,
+      "POST",
+      "/derived",
+      { name: "Derived", price: 1 },
+      { "Idempotency-Key": "derive-key" },
+    );
+    expect(status).toBe(201);
+  });
+
   it("enforces string rule against store permissions", async () => {
     const deny = mount(
       "/s",
