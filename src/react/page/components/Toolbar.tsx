@@ -151,6 +151,7 @@ export function Toolbar({
       {softDelete ? (
         <a
           data-qlink
+          data-deleted-toggle
           href={href(params, {
             includeDeleted: includeDeleted ? undefined : "true",
             page: 1,

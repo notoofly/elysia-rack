@@ -179,6 +179,7 @@ describe("Toolbar filters", () => {
     );
     expect(html).toContain('<select name="status"');
     expect(html).toContain("Show deleted");
+    expect(html).toContain("data-deleted-toggle");
     expect(html).not.toContain('name="includeDeleted"');
   });
 

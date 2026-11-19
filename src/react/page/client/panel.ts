@@ -423,6 +423,31 @@ function paint(root: Element, json: ListResponse, sp: URLSearchParams): void {
   if (totalEl) totalEl.textContent = `${total} record${total === 1 ? "" : "s"}`;
   const box = root.querySelector<HTMLElement>("[data-panel-pages]");
   if (box) paintPages(box, params, page, totalPages);
+
+  const showDeleted = params.includeDeleted === "true";
+  root.querySelectorAll<HTMLAnchorElement>("a[data-deleted-toggle]").forEach((a) => {
+    a.textContent = showDeleted ? "Hide deleted" : "Show deleted";
+    a.setAttribute(
+      "href",
+      href(params, {
+        includeDeleted: showDeleted ? undefined : "true",
+        page: 1,
+      }),
+    );
+    const form = a.closest("form");
+    if (!form) return;
+    const hidden = form.querySelector<HTMLInputElement>("input[name='includeDeleted']");
+    if (showDeleted && !hidden) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "includeDeleted";
+      input.value = "true";
+      form.append(input);
+    } else if (!showDeleted && hidden) {
+      hidden.remove();
+    }
+  });
+
   const sort = q.sort ?? {};
   root.querySelectorAll("a[data-sort-link]").forEach((a) => {
     const col = a.getAttribute("data-sort-link");
