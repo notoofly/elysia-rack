@@ -43,7 +43,7 @@ Without `reactPlugin()`, a panel or dashboard route returns a JSON page descript
 | Enabled operations | `rack({ operations })` |
 | Search, filter, sort, pagination | `rack({ query })` |
 | Input validation | `rack({ validation })` |
-| Access control | `rack({ authorization })` and your application middleware |
+| Access control | [`rack({ authorization })`](../guides/authorization.md) and your application middleware |
 | Panel labels, icons, grouping | `rack({ metadata })` |
 | Panel enable or disable | `rack({ page })` |
 | Create idempotency | `rack({ idempotency })` |

@@ -2,7 +2,7 @@
 
 elysia-rack is a library for the [Elysia](https://elysiajs.com) web framework. It turns a database model into a complete admin resource: a JSON API, search and filtering, validation, authorization, and a browser panel for creating, editing, and deleting records.
 
-The documentation describes version `0.6.0` of the published package.
+The documentation describes version `0.6.3` of the published package.
 
 ## What it does
 
@@ -15,7 +15,7 @@ You describe one database table once. elysia-rack then provides:
 - Idempotent create requests.
 - OpenAPI metadata for the generated routes.
 - A server-rendered browser panel with table, create, edit, delete, and bulk actions.
-- A dashboard page and sidebar built from every resource you register.
+- A dashboard page and sidebar built from the resources the current caller may list.
 
 ## Who should use it
 
@@ -40,7 +40,7 @@ You do not need to build routes, table pages, or forms by hand. You do need to w
 - elysia-rack is a library, not a standalone application. It runs inside your Elysia server.
 - It does not create database tables or run migrations.
 - It does not provide a login system. You add authentication and authorization rules.
-- The dashboard and custom pages have no built-in authorization. Protect them in your application if they must not be public.
+- The dashboard tree is filtered by each resource's `list` rule, but the dashboard URL itself is not protected. Protect it and custom pages in your application if they must not be public.
 - Reads use the non-standard `QUERY` HTTP method. Reverse proxies, load balancers, and CDNs must allow it.
 - The default idempotency store is held in memory and is not shared between processes.
 - String permission rules fail closed: when no server-trusted permission source is configured, the request is denied. Configure a permission source before relying on them.
@@ -58,6 +58,7 @@ You do not need to build routes, table pages, or forms by hand. You do need to w
 | [Configuration reference](configuration/configuration-reference.md) | Every user-facing option with defaults |
 | [Basic usage](guides/basic-usage.md) | Use the panel, API, and dashboard day to day |
 | [Common workflows](guides/common-workflows.md) | Read-only resources, soft delete, navigation, protection, and theming |
+| [Authorization](guides/authorization.md) | Rules, permission sources, denial responses, navigation filtering, and custom actions |
 | [Advanced usage](guides/advanced-usage.md) | Custom pages, registry helpers, shared stores, and production setup |
 | [Common issues](troubleshooting/common-issues.md) | Diagnose installation, configuration, and runtime problems |
 | [FAQ](faq.md) | Short answers about compatibility, usage, and limitations |

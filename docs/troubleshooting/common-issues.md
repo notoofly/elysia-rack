@@ -174,14 +174,16 @@ The panel hides the search box when `searchable` is empty, so users are not offe
 
 - `metadata.hidden` is `true`.
 - `metadata.parent` points to an ID that is not registered, while you expected nesting.
+- The `authorization.list` rule denied the current caller.
 - `rack()` was called after the page rendered, or after startup in a way that does not affect the running process.
 
 **Solution:**
 
 1. Set `metadata.hidden` to `false` or remove it.
 2. Check that `metadata.parent` matches another resource's `metadata.id`.
-3. Register every resource during application startup.
-4. Restart the server after changing registration code.
+3. Check the caller's permissions and the `list` rule; denied resources are removed from the tree.
+4. Register every resource during application startup.
+5. Restart the server after changing registration code.
 
 **Verification:** reload any panel or the dashboard. The resource appears in the expected group and position.
 

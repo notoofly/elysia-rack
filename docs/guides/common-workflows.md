@@ -169,7 +169,7 @@ rack("/catalog/products", {
 
 **Objective:** require a permission or a custom check before users can read or change records.
 
-**Prerequisites:** your application has a way to determine permissions.
+**Prerequisites:** your application has a way to determine permissions. See the [Authorization guide](authorization.md) for the full rule reference.
 
 **Steps:**
 
@@ -197,11 +197,11 @@ rack("/catalog/products", {
 app.decorate("permissions", ["products.view", "products.create"]);
 ```
 
-**Expected result:** the panel page uses the `list` rule. Denied requests return `403` with an error envelope.
+**Expected result:** the panel page uses the `list` rule. Denied requests return `403` with an error envelope, and the dashboard and sidebars show only resources the caller may list.
 
-**Common mistake:** relying on string rules without any permission source. When no source is configured, string rules allow the request.
+**Common mistake:** relying on string rules without any permission source. When no source is configured, string rules deny the request. The `x-permissions` header is never trusted.
 
-**Important:** the dashboard and custom React pages do not use these rules. Protect their URLs separately in your application if needed.
+**Important:** the dashboard URL and custom React pages are not gated by these rules. Protect their URLs separately in your application if needed.
 
 ## Customize the panel stylesheet
 

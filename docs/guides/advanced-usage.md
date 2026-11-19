@@ -99,10 +99,13 @@ To use a custom dashboard, register a page under a new key and point `pagePath` 
 The registry helpers expose the same in-memory data used by the panel sidebar and dashboard.
 
 ```ts
-import { getRackTree } from "elysia-rack";
+import { getAuthorizedRackTree, getRackTree } from "elysia-rack";
 
-const tree = getRackTree();
+const rawTree = getRackTree();
+const callerTree = await getAuthorizedRackTree(context);
 ```
+
+`getRackTree()` is unfiltered. `getAuthorizedRackTree(ctx)` applies each resource's `authorization.list` rule against the request context and returns a promise, because rules can be async. The built-in dashboard and panel use the authorized helper.
 
 Each node contains:
 
@@ -158,7 +161,7 @@ The registry is not persisted. Call `rack()` while the application starts. Resou
 
 ### Protect the dashboard and custom pages
 
-Only `rack()` routes use the authorization rules. The dashboard and custom pages are plain Elysia routes. Add authentication or a network restriction in your application if they expose sensitive navigation or data.
+Authorization rules protect `rack()` routes and filter the dashboard and panel trees. The dashboard URL and custom pages are still plain Elysia routes. Add authentication or a network restriction in your application if they expose sensitive navigation or data.
 
 ### Configure permissions before using string rules
 

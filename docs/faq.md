@@ -116,11 +116,11 @@ No. You add authentication in your application.
 
 ### Does the panel respect authorization rules?
 
-The panel page uses the `list` rule. Panel actions use the matching create, update, and delete rules. Detail loading uses the `detail` rule.
+The panel page uses the `list` rule, and its data calls use the matching operation rules. Buttons are rendered from `operations` flags, so a visible button can still return `403`. See the [Authorization guide](guides/authorization.md) for details.
 
 ### Does the dashboard respect authorization rules?
 
-No. The dashboard and custom pages have no built-in authorization. Protect their URLs yourself.
+Its tree does. The dashboard and panel sidebars show only resources whose `authorization.list` rule allows the current caller. The dashboard URL itself is not gated, so protect it and custom pages in your application if needed.
 
 ### Why do string permission rules deny requests?
 

@@ -50,6 +50,7 @@ export default defineConfig({
           items: [
             { text: 'Basic usage', link: '/guides/basic-usage/' },
             { text: 'Common workflows', link: '/guides/common-workflows/' },
+            { text: 'Authorization', link: '/guides/authorization/' },
             { text: 'Advanced usage', link: '/guides/advanced-usage/' },
           ],
         },

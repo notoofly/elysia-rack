@@ -157,7 +157,7 @@ Validation checks the shape of the data. It does not enforce ownership or busine
 
 ## `authorization`
 
-Each operation accepts a rule. Rules are evaluated independently.
+Each operation accepts a rule. Rules are evaluated independently. For a full walkthrough, see the [Authorization guide](../guides/authorization.md).
 
 ```ts
 authorization: {
@@ -195,12 +195,13 @@ A function rule receives an object with:
 | `request` | The incoming `Request` object |
 | `id` | The item ID for item routes, otherwise `undefined` |
 | `resource` | The model object passed to `rack()` |
+| `permissions` | Server-trusted permissions for this request, when a source is wired |
 
 Return `true` or a truthy value to allow, and `false` to deny with `403`.
 
 ### Panel access
 
-The panel page uses the `list` rule. The dashboard and custom pages have no built-in authorization.
+The panel page uses the `list` rule. The dashboard and panel sidebars filter their trees with the same rule through `getAuthorizedRackTree(context)`. The dashboard URL itself is not protected; protect it and custom pages in your application if needed.
 
 ## `query`
 
@@ -412,9 +413,9 @@ Per-operation values override the resource-level values. If `openapi.tags` is om
 | `pagePath` | string | `"/dashboard"` | React page registry key to render |
 | `donate` | boolean | `true` | Show or hide the Ko-fi link |
 
-The dashboard renders every registered resource as a table with a sidebar. It reads the registry when the page is rendered, so resources can be registered before or after the dashboard is mounted.
+The dashboard renders the resources the caller may list as a table with a sidebar. It reads the registry when the page is rendered, so resources can be registered before or after the dashboard is mounted.
 
-The dashboard has no built-in authorization. Protect its path in your application if it should not be public.
+The dashboard filters its resource tree by `authorization.list`, but its path has no built-in authorization. Protect its path in your application if it should not be public.
 
 ## `reactPlugin(options)`
 
