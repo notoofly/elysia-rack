@@ -1,11 +1,13 @@
-import Elysia from "elysia";
+import { Elysia } from "elysia";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRenderer } from "./render";
-import { ReactRack } from "./types";
-import { setGlobalDonate } from "./donate";
+import { createRenderer } from "./render.tsx";
+import { ReactRack } from "./types.ts";
+import { setGlobalDonate } from "./donate.ts";
+
+export const lazyPage = ReactRack.lazyPage;
 
 /**
  * Static panel assets (dist/panel.css, dist/panel-*.js),
@@ -56,8 +58,8 @@ export function page<Props = Record<string, never>>(path: string, props?: Props)
 }
 
 export const pages: ReactRack.PageRegistry = {
-  "/dashboard": ReactRack.lazyPage(() => import("./page/Dashboard")),
-  "/panel": ReactRack.lazyPage(() => import("./page/Panel"))
+  "/dashboard": ReactRack.lazyPage(() => import("./page/Dashboard.js")),
+  "/panel": ReactRack.lazyPage(() => import("./page/Panel.js"))
 }
 
 const defaultPages = pages
@@ -80,10 +82,10 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
   ])
   const render = createRenderer(registry)
   const panelCssOverride = pickPanelCssOption(options);
-  let cachedCustomCss: string | Buffer | null = null;
+  let cachedCustomCss: string | null = null;
   let cachedCustomCssLoaded = false;
 
-  async function loadCustomPanelCss(): Promise<string | Buffer | null> {
+  async function loadCustomPanelCss(): Promise<string | null> {
     if (cachedCustomCssLoaded) return cachedCustomCss;
     if (!panelCssOverride) {
       cachedCustomCssLoaded = true;
@@ -100,7 +102,7 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
       if (p) {
         try {
           cachedCustomCssLoaded = true;
-          return (cachedCustomCss = await readFile(p));
+          return (cachedCustomCss = await readFile(p, "utf-8"));
         } catch {
           // fallback to default
         }
@@ -114,7 +116,7 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
       if (filePath) {
         try {
           cachedCustomCssLoaded = true;
-          return (cachedCustomCss = await readFile(filePath));
+          return (cachedCustomCss = await readFile(filePath, "utf-8"));
         } catch {
           // treat as raw below
         }
@@ -186,16 +188,24 @@ export function reactPlugin(options: ReactRack.ReactPluginOptions = {}) {
       if (typeof responseValue !== "object" || responseValue === null || !(ReactRack.PAGE in responseValue)) {
         return
       }
-      const descriptor = responseValue as {
-        [ReactRack.PAGE]: true,
-        path: string,
-        props: unknown
-      }
-      return render(descriptor.path, descriptor.props)
+      const path =
+        "path" in responseValue && typeof responseValue.path === "string"
+          ? responseValue.path
+          : undefined
+      const props =
+        "props" in responseValue &&
+        typeof responseValue.props === "object" &&
+        responseValue.props !== null
+          ? responseValue.props
+          : undefined
+      if (path === undefined) return
+      return render(path, props ?? {})
     })
 
+  // `.get()` registers the route in place; reassignment is unnecessary and
+  // its fluent re-typing would drift the instance type across iterations.
   for (const view of views) {
-    app = app.get(view.path, () => render(view.path, view.props)) as unknown as typeof app
+    app.get(view.path, () => render(view.path, view.props ?? {}))
   }
   return app
 }

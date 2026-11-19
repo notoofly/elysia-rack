@@ -7,12 +7,15 @@ import {
   eq,
   ilike,
   inArray,
+  is,
   isNull,
   like,
   or,
+  type SQL,
 } from "drizzle-orm";
-import type { ParsedListQuery } from "../query";
-import type { Rack } from "../types";
+import { isJsonRecord, type Cell, type JsonValue, type RowData } from "../json.ts";
+import type { ParsedListQuery } from "../query.ts";
+import type { Rack } from "../types/index.ts";
 import {
   coerceIdValue,
   isNumericColumn,
@@ -20,22 +23,67 @@ import {
   type CrudAdapter,
   type FieldDescriptor,
   type FieldKind,
+  type JsonBody,
   type ListResult,
-} from "./index";
+} from "./index.ts";
 
-function tableOf(model: Rack.CrudModel): any {
-  return (model as { drizzle: Rack.CrudDrizzleModel }).drizzle.table as any;
+/**
+ * Drizzle `Column` (default generic instantiation) carries every property
+ * the adapter relies on — columnType, dataType, primary, notNull,
+ * enumValues — and satisfies all drizzle operators directly.
+ */
+type DrizzleTable = Record<string, Column | undefined>;
+
+/** The column is expected to exist; missing keys surface drizzle's own error. */
+function columnOf(table: DrizzleTable, name: string): Column {
+  return table[name] as Column;
 }
 
-function dbOf(model: Rack.CrudModel): any {
-  return (model as { drizzle: Rack.CrudDrizzleModel }).drizzle.db as any;
+/**
+ * Minimal query-builder surface the adapter uses. Drizzle's real builders
+ * are structurally compatible (and thenable), so they satisfy this at
+ * runtime without importing drizzle's heavyweight generics.
+ */
+interface DrizzleExec<TRow> extends PromiseLike<TRow[]> {
+  where(condition?: SQL | undefined): DrizzleExec<TRow>;
+  orderBy(...order: SQL[]): DrizzleExec<TRow>;
+  limit(n: number): DrizzleExec<TRow>;
+  offset(n: number): DrizzleExec<TRow>;
+  returning(): DrizzleExec<TRow>;
+}
+
+interface DrizzleDb<TRow = RowData> {
+  select(): { from(table: DrizzleTable): DrizzleExec<TRow> };
+  select(aggregate: {
+    [alias: string]: SQL;
+  }): { from(table: DrizzleTable): DrizzleExec<Record<string, number>> };
+  insert(
+    table: DrizzleTable,
+  ): { values(values: Record<string, Cell>): DrizzleExec<TRow> };
+  update(
+    table: DrizzleTable,
+  ): { set(values: Record<string, Cell>): DrizzleExec<TRow> };
+  delete(table: DrizzleTable): DrizzleExec<TRow>;
+}
+
+function tableOf(model: Rack.CrudModel): DrizzleTable {
+  return (model as { drizzle: { table: object } }).drizzle.table as DrizzleTable;
+}
+
+function dbOf(model: Rack.CrudModel): DrizzleDb {
+  return (model as { drizzle: { db: object } }).drizzle.db as DrizzleDb;
+}
+
+/** A body is a JSON object when provided; anything else is an empty record. */
+function bodyRecord(body: JsonBody): Record<string, JsonValue> {
+  return isJsonRecord(body) ? body : {};
 }
 
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (m) => `\\${m}`);
 }
 
-function searchCondition(col: any, pattern: string) {
+function searchCondition(col: Column, pattern: string): SQL {
   // SQLite and MySQL use `LIKE` (case-insensitive for ASCII); `ILIKE` is Postgres-only.
   const columnType = typeof col?.columnType === "string" ? col.columnType : "";
   return columnType.startsWith("Pg") ? ilike(col, pattern) : like(col, pattern);
@@ -58,7 +106,7 @@ function fieldKind(
   return "text";
 }
 
-function isAutoIncrement(col: any, columnType: string | undefined): boolean {
+function isAutoIncrement(col: Column, columnType: string | undefined): boolean {
   if (columnType && /serial/i.test(columnType)) return true;
   if (col.generated !== undefined && col.generated !== null) return true;
   // SQLite `INTEGER PRIMARY KEY` is a rowid alias (auto-increment).
@@ -74,10 +122,10 @@ function isAutoIncrement(col: any, columnType: string | undefined): boolean {
  * can short-circuit to a 404 instead of erroring the query.
  */
 function resolvableId(
-  table: any,
+  table: DrizzleTable,
   primaryKey: string,
   id: string,
-): unknown {
+): string | number | null {
   const col = table?.[primaryKey];
   const columnType = col?.columnType ?? col?.dataType;
   const value = coerceIdValue(id, columnType);
@@ -87,22 +135,22 @@ function resolvableId(
 }
 
 function aliveCondition(
-  table: any,
+  table: DrizzleTable,
   opts: AdapterOptions,
   withSoftDelete: boolean,
-) {
+): SQL | undefined {
   if (!withSoftDelete) return undefined;
   const col = table[opts.deletedAtField ?? "deletedAt"];
   return col ? isNull(col) : undefined;
 }
 
 function whereFor(
-  table: any,
+  table: DrizzleTable,
   query: ParsedListQuery,
   opts: AdapterOptions,
   withSoftDelete: boolean,
-) {
-  const conds: any[] = [];
+): SQL | undefined {
+  const conds: SQL[] = [];
   const alive = aliveCondition(table, opts, withSoftDelete);
   if (alive) conds.push(alive);
 
@@ -123,47 +171,68 @@ function whereFor(
         if (!col) return undefined;
         return searchCondition(col, pattern);
       })
-      .filter((c) => c !== undefined);
-    if (ors.length > 0) conds.push(or(...ors));
+      .filter((c): c is SQL => c !== undefined);
+    const combined = ors.length > 0 ? or(...ors) : undefined;
+    if (combined) conds.push(combined);
   }
 
   return conds.length > 0 ? and(...conds) : undefined;
 }
 
-function orderFor(table: any, query: ParsedListQuery) {
+function orderFor(table: DrizzleTable, query: ParsedListQuery): SQL | undefined {
   if (!query.sort) return undefined;
   const col = table[query.sort.field];
   if (!col) return undefined;
   return query.sort.direction === "desc" ? desc(col) : asc(col);
 }
 
-async function firstRow(promise: Promise<unknown>): Promise<any | null> {
-  const rows = (await promise) as any[];
+async function firstRow<TRow>(
+  promise: PromiseLike<TRow[]>,
+): Promise<TRow | null> {
+  const rows = await promise;
   return Array.isArray(rows) ? (rows[0] ?? null) : null;
 }
 
 async function applyUpdate(
-  db: any,
-  table: any,
-  cond: any,
-  body: unknown,
-): Promise<any | null> {
+  db: DrizzleDb,
+  table: DrizzleTable,
+  cond: SQL | undefined,
+  body: Record<string, Cell>,
+): Promise<RowData | null> {
   return firstRow(
     db
       .update(table)
-      .set(body as any)
+      .set(body)
       .where(cond)
       .returning(),
   );
 }
 
-async function findByKey(
-  db: any,
-  table: any,
+function keyCondition(
+  table: DrizzleTable,
   opts: AdapterOptions,
-  key: unknown,
-): Promise<any | null> {
-  const cond = eq(table[opts.primaryKey], key);
+  key: string | number,
+  body?: JsonBody,
+): SQL | undefined {
+  const cond = eq(columnOf(table, opts.primaryKey), key);
+  // An explicit `deletedAt: null` write is the restore path and must reach
+  // tombstoned rows; every other write is confined to live rows.
+  const restoring =
+    opts.softDelete === true &&
+    bodyRecord(body)[opts.deletedAtField ?? "deletedAt"] === null;
+  const alive = restoring
+    ? undefined
+    : aliveCondition(table, opts, opts.softDelete ?? false);
+  return alive ? and(cond, alive) : cond;
+}
+
+async function findByKey(
+  db: DrizzleDb,
+  table: DrizzleTable,
+  opts: AdapterOptions,
+  key: string | number,
+): Promise<RowData | null> {
+  const cond = eq(columnOf(table, opts.primaryKey), key);
   const alive = aliveCondition(table, opts, opts.softDelete ?? false);
   return firstRow(
     db
@@ -174,12 +243,27 @@ async function findByKey(
   );
 }
 
-function isEmptyBody(body: unknown): boolean {
-  return (
-    typeof body === "object" &&
-    body !== null &&
-    Object.keys(body).length === 0
-  );
+function isEmptyBody(body: JsonBody): boolean {
+  return bodyRecord(body).constructor === Object && Object.keys(bodyRecord(body)).length === 0;
+}
+
+// Date-kind columns (e.g. `integer(..., { mode: "timestamp" })`) map with
+// `value.getTime()`, so string bodies from JSON/forms must become `Date`.
+function coerceBodyValues(
+  table: DrizzleTable,
+  body: Record<string, JsonValue>,
+): Record<string, Cell> {
+  const out: Record<string, Cell> = {};
+  for (const [key, value] of Object.entries(body)) {
+    const col = table[key];
+    if (col && col.dataType === "date" && typeof value === "string") {
+      const date = new Date(value);
+      out[key] = Number.isNaN(date.getTime()) ? value : date;
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
 }
 
 export const drizzleAdapter: CrudAdapter = {
@@ -189,25 +273,18 @@ export const drizzleAdapter: CrudAdapter = {
     const table = tableOf(model);
     const out: FieldDescriptor[] = [];
     for (const [name, col] of Object.entries(table)) {
-      if (!(col instanceof Column)) continue;
-      const column = col as unknown as Record<string, unknown>;
-      const columnType =
-        typeof column["columnType"] === "string"
-          ? (column["columnType"] as string)
-          : undefined;
-      const dataType =
-        typeof column["dataType"] === "string"
-          ? (column["dataType"] as string)
-          : undefined;
-      const enumValues = Array.isArray(column["enumValues"])
-        ? ([...(column["enumValues"] as unknown[])] as string[])
+      // `is` compares drizzle's global entityKind symbol, so it still works
+      // when the app and this package resolve separate drizzle-orm copies.
+      if (!col || !is(col, Column)) continue;
+      const enumValues = col.enumValues
+        ? ([...col.enumValues] as string[])
         : undefined;
       out.push({
         name,
-        kind: fieldKind(columnType, dataType, enumValues),
-        primary: column["primary"] === true,
-        autoIncrement: isAutoIncrement(column, columnType),
-        nullable: column["notNull"] !== true,
+        kind: fieldKind(col.columnType, col.dataType, enumValues),
+        primary: col.primary === true,
+        autoIncrement: isAutoIncrement(col, col.columnType),
+        nullable: col.notNull !== true,
         ...(enumValues ? { enumValues } : {}),
       });
     }
@@ -225,17 +302,17 @@ export const drizzleAdapter: CrudAdapter = {
     );
     const order = orderFor(table, query);
 
-    let select: any = db.select().from(table);
+    let select = db.select().from(table);
     if (where) select = select.where(where);
     if (order) select = select.orderBy(order);
-    const data = (await select
+    const data = await select
       .limit(query.limit)
-      .offset((query.page - 1) * query.limit)) as unknown[];
+      .offset((query.page - 1) * query.limit);
 
-    let counted: any = db.select({ n: count() }).from(table);
+    let counted = db.select({ n: count() }).from(table);
     if (where) counted = counted.where(where);
-    const totalRows = (await counted) as { n: number }[];
-    return { data, total: totalRows[0]?.n ?? 0 };
+    const totalRows = await counted;
+    return { data, total: totalRows[0]?.["n"] ?? 0 };
   },
 
   async detail(model, id, opts) {
@@ -249,11 +326,12 @@ export const drizzleAdapter: CrudAdapter = {
   async create(model, body, opts) {
     const db = dbOf(model);
     const table = tableOf(model);
+    const values = coerceBodyValues(table, bodyRecord(body));
     if (opts.returning === false) {
-      await db.insert(table).values(body as any);
+      await db.insert(table).values(values);
       return undefined;
     }
-    return firstRow(db.insert(table).values(body as any).returning());
+    return firstRow(db.insert(table).values(values).returning());
   },
 
   async replace(model, id, body, opts) {
@@ -265,8 +343,8 @@ export const drizzleAdapter: CrudAdapter = {
     const row = await applyUpdate(
       db,
       table,
-      eq(table[opts.primaryKey], key),
-      body,
+      keyCondition(table, opts, key, body),
+      coerceBodyValues(table, bodyRecord(body)),
     );
     if (row === null) return null;
     return opts.returning === false ? undefined : row;
@@ -281,8 +359,8 @@ export const drizzleAdapter: CrudAdapter = {
     const row = await applyUpdate(
       db,
       table,
-      eq(table[opts.primaryKey], key),
-      body,
+      keyCondition(table, opts, key, body),
+      coerceBodyValues(table, bodyRecord(body)),
     );
     if (row === null) return null;
     return opts.returning === false ? undefined : row;
@@ -293,12 +371,12 @@ export const drizzleAdapter: CrudAdapter = {
     const table = tableOf(model);
     const key = resolvableId(table, opts.primaryKey, id);
     if (key === null) return null;
-    const cond = eq(table[opts.primaryKey], key);
+    const cond = eq(columnOf(table, opts.primaryKey), key);
     const row = await firstRow(
       opts.softDelete
         ? db
             .update(table)
-            .set({ [opts.deletedAtField ?? "deletedAt"]: new Date() } as any)
+            .set({ [opts.deletedAtField ?? "deletedAt"]: new Date() })
             .where(cond)
             .returning()
         : db.delete(table).where(cond).returning(),

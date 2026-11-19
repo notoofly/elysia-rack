@@ -1,4 +1,4 @@
-import type { CrudOperation } from "./authorization";
+import type { CrudOperation } from "./authorization.ts";
 
 export interface CrudOpenAPIOptions {
   /**

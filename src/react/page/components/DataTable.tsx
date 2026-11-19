@@ -1,12 +1,14 @@
-import type { CrudAction } from "../../../rack/types/actions";
-import { href } from "./href";
-import { displayValue, isNumericField, type PanelField } from "./panelFields";
+import type { Cell } from "../../../rack/json.ts";
+import type { RowData } from "../../../rack/json.ts";
+import type { CrudAction } from "../../../rack/types/actions.ts";
+import { href } from "./href.ts";
+import { displayValue, isNumericField, type PanelField } from "./panelFields.ts";
 
 export interface DataTableProps {
   fields: PanelField[];
-  rows: Record<string, unknown>[];
+  rows: RowData[];
   sortable?: readonly string[];
-  params: Record<string, unknown>;
+  params: Record<string, string>;
   selectable?: boolean;
   editable?: boolean;
   viewable?: boolean;
@@ -21,7 +23,7 @@ function actionHref(action: CrudAction, id: string): string {
   return action.href.replaceAll(":id", encodeURIComponent(id));
 }
 
-function badgeClass(value: unknown): string {
+function badgeClass(value: Cell | undefined): string {
   if (typeof value !== "string")
     return "bg-badge-background text-badge-foreground";
   const text = value.toLowerCase();

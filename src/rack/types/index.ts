@@ -1,95 +1,78 @@
-import type {
-  CrudAuthorizationContext as _CrudAuthorizationContext,
-  CrudAuthorizationOptions as _CrudAuthorizationOptions,
-  CrudAuthorizationRule as _CrudAuthorizationRule,
-  CrudOperation as _CrudOperation,
-} from "./authorization";
-import type {
-  CrudAction as _CrudAction,
-} from "./actions";
-import type {
-  CrudFieldConfig as _CrudFieldConfig,
-  CrudFieldFormat as _CrudFieldFormat,
-  CrudFieldOption as _CrudFieldOption,
-  CrudFieldRelation as _CrudFieldRelation,
-} from "./fields";
-import type {
-  CrudMetadata as _CrudMetadata,
-} from "./metadata";
-import type {
-  CrudOpenAPIOperation as _CrudOpenAPIOperation,
-  CrudOpenAPIOptions as _CrudOpenAPIOptions,
-} from "./openapi";
-import type {
-  CrudOperationsOptions as _CrudOperationsOptions,
-} from "./operations";
-import type {
-  CrudPageOptions as _CrudPageOptions,
-  CrudSettings as _CrudSettings,
-} from "./page";
-import type {
-  CrudPaginationOptions as _CrudPaginationOptions,
-  CrudQueryOptions as _CrudQueryOptions,
-  CrudSortDirection as _CrudSortDirection,
-} from "./query";
-import type {
-  CrudValidationOptions as _CrudValidationOptions,
-} from "./validation";
-import type {
-  Awaitable as _Awaitable,
-  CrudIdempotencyOptions as _CrudIdempotencyOptions,
-  CrudIdempotencyRecord as _CrudIdempotencyRecord,
-  CrudIdempotencyStore as _CrudIdempotencyStore,
-} from "./idempotency";
-import type {
-  CrudDrizzleModel as _CrudDrizzleModel,
-  CrudModel as _CrudModel,
-  CrudPrismaModel as _CrudPrismaModel,
-} from "../models";
+import type * as models from "../models/index.ts";
+import type * as authorization from "./authorization.ts";
+import type * as actions from "./actions.ts";
+import type * as fields from "./fields.ts";
+import type * as metadata from "./metadata.ts";
+import type * as openapi from "./openapi.ts";
+import type * as operations from "./operations.ts";
+import type * as page from "./page.ts";
+import type * as query from "./query.ts";
+import type * as validation from "./validation.ts";
+import type * as idempotency from "./idempotency.ts";
+import type * as json from "../json.ts";
 
 export namespace Rack {
   // ---------------------------------------------------------------------------
   // Model (single source of truth di ../models)
   // ---------------------------------------------------------------------------
 
-  export type CrudDrizzleModel = _CrudDrizzleModel;
-  export type CrudPrismaModel = _CrudPrismaModel;
-  export type CrudModel = _CrudModel;
+  export type CrudDrizzleModel = models.CrudDrizzleModel;
+  export type CrudPrismaModel = models.CrudPrismaModel;
+  export type CrudModel = models.CrudModel;
+
+  /**
+   * Field names inherited from the bound model. Drizzle tables expose their
+   * column names; Prisma resources fall back to `string`.
+   */
+  export type CrudFieldName<TModel extends CrudModel = CrudModel> =
+    models.CrudFieldName<TModel>;
 
   // ---------------------------------------------------------------------------
   // Domain types (single source of truth di file per-domain)
   // ---------------------------------------------------------------------------
 
-  export type CrudOperation = _CrudOperation;
-  export type CrudAuthorizationRule = _CrudAuthorizationRule;
-  export type CrudAuthorizationContext = _CrudAuthorizationContext;
-  export type CrudAuthorizationOptions = _CrudAuthorizationOptions;
+  export type CrudOperation = authorization.CrudOperation;
+  export type CrudAuthorizationRule<TModel extends CrudModel = CrudModel> =
+    authorization.CrudAuthorizationRule<TModel>;
+  export type CrudAuthorizationContext<TModel extends CrudModel = CrudModel> =
+    authorization.CrudAuthorizationContext<TModel>;
+  export type CrudAuthorizationOptions<TModel extends CrudModel = CrudModel> =
+    authorization.CrudAuthorizationOptions<TModel>;
 
-  export type CrudSortDirection = _CrudSortDirection;
-  export type CrudQueryOptions = _CrudQueryOptions;
-  export type CrudPaginationOptions = _CrudPaginationOptions;
+  export type CrudSortDirection = query.CrudSortDirection;
+  export type CrudQueryOptions<TField extends string = string> =
+    query.CrudQueryOptions<TField>;
+  export type CrudPaginationOptions = query.CrudPaginationOptions;
 
-  export type CrudOperationsOptions = _CrudOperationsOptions;
+  export type CrudOperationsOptions = operations.CrudOperationsOptions;
 
-  export type CrudMetadata = _CrudMetadata;
-  export type CrudAction = _CrudAction;
-  export type CrudFieldConfig = _CrudFieldConfig;
-  export type CrudFieldFormat = _CrudFieldFormat;
-  export type CrudFieldOption = _CrudFieldOption;
-  export type CrudFieldRelation = _CrudFieldRelation;
+  export type CrudMetadata<TField extends string = string> =
+    metadata.CrudMetadata<TField>;
+  export type CrudAction = actions.CrudAction;
+  export type CrudFieldConfig = fields.CrudFieldConfig;
+  export type CrudFieldFormat = fields.CrudFieldFormat;
+  export type CrudFieldOption = fields.CrudFieldOption;
+  export type CrudFieldRelation = fields.CrudFieldRelation;
 
-  export type CrudOpenAPIOptions = _CrudOpenAPIOptions;
-  export type CrudOpenAPIOperation = _CrudOpenAPIOperation;
+  export type CrudOpenAPIOptions = openapi.CrudOpenAPIOptions;
+  export type CrudOpenAPIOperation = openapi.CrudOpenAPIOperation;
 
-  export type CrudValidationOptions = _CrudValidationOptions;
+  export type CrudValidationOptions = validation.CrudValidationOptions;
 
-  export type CrudPageOptions = _CrudPageOptions;
-  export type CrudSettings = _CrudSettings;
+  export type CrudPageOptions = page.CrudPageOptions;
+  export type CrudSettings<TField extends string = string> =
+    page.CrudSettings<TField>;
 
-  export type Awaitable<T> = _Awaitable<T>;
-  export type CrudIdempotencyRecord = _CrudIdempotencyRecord;
-  export type CrudIdempotencyStore = _CrudIdempotencyStore;
-  export type CrudIdempotencyOptions = _CrudIdempotencyOptions;
+  export type Awaitable<T> = idempotency.Awaitable<T>;
+  /** JSON-safe dynamic value (parsed bodies, rows, query maps). */
+  export type JsonValue = json.JsonValue;
+  /** Row/request cell: JSON plus `Date` (drizzle timestamp columns). */
+  export type Cell = json.Cell;
+  /** A stored row or dynamic record. */
+  export type RowData = json.RowData;
+  export type CrudIdempotencyRecord = idempotency.CrudIdempotencyRecord;
+  export type CrudIdempotencyStore = idempotency.CrudIdempotencyStore;
+  export type CrudIdempotencyOptions = idempotency.CrudIdempotencyOptions;
 
   // ---------------------------------------------------------------------------
   // CrudOptions (root)
@@ -112,14 +95,16 @@ export namespace Rack {
     validation?: CrudValidationOptions;
 
     /**
-     * Authorization rules for each operation.
+     * Authorization rules for each operation. The rule function context
+     * carries the bound model as `resource`.
      */
-    authorization?: CrudAuthorizationOptions;
+    authorization?: authorization.CrudAuthorizationOptions<TModel>;
 
     /**
-     * Configure list/query capabilities.
+     * Configure list/query capabilities. Field names are inherited from the
+     * model.
      */
-    query?: CrudQueryOptions;
+    query?: query.CrudQueryOptions<CrudFieldName<TModel>>;
 
     /**
      * Enable, disable, or configure CRUD operations.
@@ -128,9 +113,9 @@ export namespace Rack {
 
     /**
      * Metadata used by Panel, navigation, breadcrumbs,
-     * registry, and generated UI.
+     * registry, and generated UI. Field names are inherited from the model.
      */
-    metadata?: CrudMetadata;
+    metadata?: metadata.CrudMetadata<CrudFieldName<TModel>>;
 
     /**
      * Extra custom action buttons rendered in the generated Panel.
@@ -156,7 +141,7 @@ export namespace Rack {
      *
      * Avoid using this for core CRUD behavior.
      */
-    settings?: CrudSettings;
+    settings?: page.CrudSettings<CrudFieldName<TModel>>;
 
     /**
      * Idempotency for POST create.

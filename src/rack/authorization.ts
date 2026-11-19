@@ -1,12 +1,17 @@
 import { status } from "elysia";
-import type { Rack } from "./types";
+import type { JsonValue } from "./json.ts";
+import type { Rack } from "./types/index.ts";
 
-export interface AuthCheck {
+/**
+ * What route handlers hand to `authorize()`. `resource` is the bound model
+ * object; `permissions` must come from server-trusted sources.
+ */
+export interface AuthCheck<TModel = Rack.CrudModel> {
   request: Request;
   id?: string;
-  resource: unknown;
-  permissions?: unknown;
-  store?: Record<string, unknown>;
+  resource: TModel;
+  permissions?: readonly string[];
+  store?: Record<string, JsonValue>;
 }
 
 /**
@@ -14,18 +19,23 @@ export interface AuthCheck {
  *
  * - `undefined` / `true` → allow
  * - `false` → 403
- * - `string` → treated as required permission. Checked against
- *   `permissions` decorated on context (e.g. by an auth plugin) or the
- *   `x-permissions` header (comma-separated). Allowed when no auth source
- *   is wired yet (TODO: strict mode once auth plugin lands).
+ * - `string` → required permission. Satisfied only by a server-trusted
+ *   source: `permissions` decorated on context (e.g. by an auth plugin) or
+ *   `permissions` in `app.state`. The caller-controlled `x-permissions`
+ *   header is never trusted. No source wired → deny (fail closed).
  * - `function` → awaited, `false` → 403
  */
-export async function authorize(
+/** String-permission lists decorated on the store. */
+function isStringArray(value: JsonValue | undefined): value is readonly string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+
+export async function authorize<TModel extends Rack.CrudModel>(
   operation: Rack.CrudOperation,
-  rule: Rack.CrudAuthorizationRule | undefined,
-  ctx: AuthCheck,
+  rule: Rack.CrudAuthorizationRule<TModel> | undefined,
+  ctx: AuthCheck<TModel>,
 ) {
-  const forbidden = (extra?: Record<string, unknown>) =>
+  const forbidden = (extra?: Record<string, string>) =>
     status(403, {
       error: "Forbidden",
       operation,
@@ -36,27 +46,15 @@ export async function authorize(
   if (rule === false) return forbidden();
 
   if (typeof rule === "string") {
-    const fromContext = Array.isArray(ctx.permissions)
+    const granted: readonly string[] | null = Array.isArray(ctx.permissions)
       ? ctx.permissions
-      : Array.isArray(ctx.store?.["permissions"])
-        ? (ctx.store?.["permissions"] as unknown[])
+      : isStringArray(ctx.store?.["permissions"])
+        ? ctx.store["permissions"]
         : null;
 
-    if (fromContext !== null)
-      return (fromContext as unknown[]).includes(rule)
-        ? null
-        : forbidden({ requiredPermission: rule });
-
-    const header = ctx.request.headers.get("x-permissions");
-    if (typeof header === "string" && header.length > 0) {
-      const granted = header.split(",").map((s) => s.trim());
-      return granted.includes(rule)
-        ? null
-        : forbidden({ requiredPermission: rule });
-    }
-
-    // TODO(auth): deny-by-default once the auth plugin provides permissions.
-    return null;
+    return granted !== null && granted.includes(rule)
+      ? null
+      : forbidden({ requiredPermission: rule });
   }
 
   const allowed = await rule({
@@ -64,6 +62,7 @@ export async function authorize(
     request: ctx.request,
     id: ctx.id,
     resource: ctx.resource,
+    permissions: ctx.permissions,
   });
   return allowed ? null : forbidden();
 }

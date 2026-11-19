@@ -150,6 +150,8 @@ The default store is per process and in memory. With two or more instances, a cl
 
 Use `idempotency.store` with a shared backend and the same TTL on every instance. See [Make idempotency optional](common-workflows.md) for the store contract.
 
+Keys are also shared across callers by default. When several principals or tenants use the same rack instance, set `idempotency.scope` so keys are namespaced per caller and one caller cannot replay another's stored response.
+
 ### Register resources during startup
 
 The registry is not persisted. Call `rack()` while the application starts. Resources added later are not available to already-rendered pages and may produce inconsistent navigation.
@@ -160,7 +162,7 @@ Only `rack()` routes use the authorization rules. The dashboard and custom pages
 
 ### Configure permissions before using string rules
 
-String rules allow requests when no permission source exists. In production, mount your authentication or authorization plugin so `permissions` is available on the context, or use function rules.
+String rules deny requests when no server-trusted permission source exists. In production, mount your authentication or authorization plugin so `permissions` is available on the context, or use function rules.
 
 ### Keep validation separate from business rules
 
@@ -207,7 +209,7 @@ The panel also stores a dark or light preference in the browser and otherwise fo
 5. Restart the application.
 6. Open the panel and dashboard, then verify a list, create, update, and delete operation.
 
-The package is at version `0.2.2`. Configuration names may change between releases, so review the [Configuration reference](../configuration/configuration-reference.md) after an upgrade.
+The package is at version `0.6.0`. Configuration names may change between releases, so review the [Configuration reference](../configuration/configuration-reference.md) after an upgrade.
 
 ## Verify a deployment
 

@@ -1,8 +1,10 @@
 // Browser-only bundle (loaded via <script type="module">).
-// DOM globals are declared manually so tsconfig without the DOM lib still passes.
-declare const document: any;
-declare const window: any;
-declare const localStorage: any;
+
+declare global {
+  interface Window {
+    __koranToggle?: () => void;
+  }
+}
 
 const STORAGE_KEY = "koran-theme";
 

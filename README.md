@@ -144,7 +144,7 @@ curl -X POST localhost:3000/catalog/products \
   -d '{"name":"Keyboard"}'
 ```
 
-Replays with the same key return the stored `201` with an `Idempotent-Replayed: true` header instead of re-executing. Missing keys are rejected with `400`. Tune with `idempotency: { required, header, ttl, store }` — pass a shared store (e.g. Redis) for multi-instance deploys; the default is an in-memory store bounded to 1,000 entries.
+Replays with the same key return the stored `201` with an `Idempotent-Replayed: true` header instead of re-executing. Missing keys are rejected with `400`. Tune with `idempotency: { required, header, ttl, store, scope }` — pass a shared store (e.g. Redis) for multi-instance deploys, and set `scope` to namespace keys per caller. The default is an in-memory store that keeps live entries for their full TTL (it does not survive a restart).
 
 ### Soft delete
 
@@ -161,7 +161,7 @@ Replays with the same key return the stored `201` with an `Idempotent-Replayed: 
 
 - `true` / `undefined` — allow
 - `false` — 403
-- A permission string such as `"products.delete"` — checked against `x-permissions` (comma-separated header) or context permissions; allowed when no auth source is wired yet
+- A permission string such as `"products.delete"` — checked against context `permissions` (`app.decorate`/`app.state`); fails closed when no server-trusted source is wired. The `x-permissions` header is not trusted.
 - A function receiving `{ operation, request, id, resource }` — return truthy to allow, falsy for 403
 
 ```ts

@@ -1,6 +1,6 @@
-import type { CrudFieldConfig } from "./fields";
+import type { CrudFieldConfig } from "./fields.ts";
 
-export interface CrudMetadata {
+export interface CrudMetadata<TField extends string = string> {
   /**
    * Internal unique resource ID.
    */
@@ -48,11 +48,11 @@ export interface CrudMetadata {
    * Field names hidden from the generated panel (table columns,
    * create/edit forms, and bulk field picker).
    */
-  hiddenFields?: readonly string[];
+  hiddenFields?: readonly TField[];
 
   /**
    * Per-field display configuration: labels, formatters, order,
    * read-only, table/form visibility, and relations.
    */
-  fields?: Record<string, CrudFieldConfig>;
+  fields?: Partial<Record<TField, CrudFieldConfig>>;
 }

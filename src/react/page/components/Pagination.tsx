@@ -1,11 +1,11 @@
-import { href, pageWindow } from "./href";
+import { href, pageWindow } from "./href.ts";
 
 export interface PaginationProps {
   page: number;
   totalPages: number;
   total: number;
   limit: number;
-  params: Record<string, unknown>;
+  params: Record<string, string>;
 }
 
 export { pageWindow };

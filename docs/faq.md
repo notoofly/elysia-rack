@@ -86,7 +86,7 @@ Create requests use idempotency keys by default to prevent duplicates when a cli
 
 ### Can I reuse the same idempotency key on different resources?
 
-Yes. Keys are scoped per resource.
+Yes. Keys are scoped per resource, and per caller when `idempotency.scope` is set. Without `scope`, all callers share one namespace, so set it when multiple principals use the same rack instance.
 
 ### How long are idempotency keys remembered?
 
@@ -122,9 +122,9 @@ The panel page uses the `list` rule. Panel actions use the matching create, upda
 
 No. The dashboard and custom pages have no built-in authorization. Protect their URLs yourself.
 
-### Why do string permission rules allow requests?
+### Why do string permission rules deny requests?
 
-If no permission source is configured, string rules allow the request. Configure `app.decorate`, `app.state`, or the `x-permissions` header before relying on them.
+String rules fail closed: when no server-trusted permission source exists, the request is denied. Provide `permissions` through `app.decorate` or `app.state` before relying on them. The `x-permissions` header is not trusted.
 
 ## Deployment and updates
 
@@ -164,7 +164,7 @@ The record is timestamped in the configured column and hidden from reads. It is 
 
 ### Can I use a custom stylesheet?
 
-Yes. Pass `css` or `panelCss` to `reactPlugin`. The override replaces the default panel stylesheet.
+Yes. Pass `css` or `panelCss` to `reactPlugin`. The override is appended after the default panel stylesheet, so custom rules cascade over the base.
 
 ### Can I hide the donate link?
 

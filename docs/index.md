@@ -2,7 +2,7 @@
 
 elysia-rack is a library for the [Elysia](https://elysiajs.com) web framework. It turns a database model into a complete admin resource: a JSON API, search and filtering, validation, authorization, and a browser panel for creating, editing, and deleting records.
 
-The documentation describes version `0.2.2` of the published package.
+The documentation describes version `0.6.0` of the published package.
 
 ## What it does
 
@@ -43,7 +43,7 @@ You do not need to build routes, table pages, or forms by hand. You do need to w
 - The dashboard and custom pages have no built-in authorization. Protect them in your application if they must not be public.
 - Reads use the non-standard `QUERY` HTTP method. Reverse proxies, load balancers, and CDNs must allow it.
 - The default idempotency store is held in memory and is not shared between processes.
-- String permission rules allow requests when no permission source is configured. Configure a permission source before relying on them.
+- String permission rules fail closed: when no server-trusted permission source is configured, the request is denied. Configure a permission source before relying on them.
 - Search with the Drizzle adapter may fail on SQLite because the adapter uses the PostgreSQL `ILIKE` operator. See [Common issues](troubleshooting/common-issues.md).
 - Prisma does not expose schema information at runtime, so Prisma-backed panels fall back to row columns and a raw JSON form.
 

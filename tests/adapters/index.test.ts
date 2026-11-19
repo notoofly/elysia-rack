@@ -3,12 +3,12 @@ import {
   coerceIdValue,
   getAdapter,
   isNumericColumn,
-} from "../../src/rack/adapters/index";
+} from "../../src/rack/adapters/index.ts";
 
 describe("getAdapter", () => {
   it("resolves drizzle and prisma", async () => {
-    const { drizzleAdapter } = await import("../../src/rack/adapters/drizzle");
-    const { prismaAdapter } = await import("../../src/rack/adapters/prisma");
+    const { drizzleAdapter } = await import("../../src/rack/adapters/drizzle.ts");
+    const { prismaAdapter } = await import("../../src/rack/adapters/prisma.ts");
     expect(
       getAdapter({ drizzle: { db: {}, table: {} } } as any).name,
     ).toBe("drizzle");

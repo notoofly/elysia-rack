@@ -1,9 +1,10 @@
-import type { FieldDescriptor, FieldKind } from "../../../rack/adapters/index";
+import type { Cell } from "../../../rack/json.ts";
+import type { FieldDescriptor, FieldKind } from "../../../rack/adapters/index.ts";
 import type {
   CrudFieldConfig,
   CrudFieldFormat,
   CrudFieldOption,
-} from "../../../rack/types/fields";
+} from "../../../rack/types/fields.ts";
 
 /**
  * Serializable per-field descriptor shared by the server renderer,
@@ -56,7 +57,7 @@ function toDescriptor(name: string, primaryKey: string): FieldDescriptor {
 export async function buildPanelFields(input: {
   fields?: FieldDescriptor[];
   columns: string[];
-  config?: Record<string, CrudFieldConfig>;
+  config?: Partial<Record<string, CrudFieldConfig>>;
   hiddenFields?: readonly string[];
   primaryKey: string;
   deletedAtField: string;
@@ -120,14 +121,17 @@ export function isNumericField(field: PanelField): boolean {
   );
 }
 
-function formatDate(value: unknown, withTime: boolean): string {
+function formatDate(value: Cell, withTime: boolean): string {
   const date = new Date(String(value));
   if (Number.isNaN(date.getTime())) return String(value);
   return withTime ? date.toLocaleString("en-US") : date.toLocaleDateString("en-US");
 }
 
 /** Human-readable cell text for a field value. */
-export function displayValue(field: PanelField | undefined, value: unknown): string {
+export function displayValue(
+  field: PanelField | undefined,
+  value: Cell | undefined,
+): string {
   if (value === null || value === undefined) return "";
   if (field?.relation) {
     const match = field.relation.find((o) => String(o.value) === String(value));
@@ -161,7 +165,7 @@ export function displayValue(field: PanelField | undefined, value: unknown): str
 export function coerceFieldValue(
   field: PanelField | undefined,
   raw: string,
-): { value?: unknown; error?: string } {
+): { value?: Cell; error?: string } {
   if (!field) return { value: raw };
   switch (field.kind) {
     case "integer":

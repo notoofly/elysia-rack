@@ -17,13 +17,13 @@ export interface CrudPageOptions {
   component?: string;
 }
 
-export interface CrudSettings {
+export interface CrudSettings<TField extends string = string> {
   /**
    * Primary key field.
    *
    * Default should be resolved by the ORM adapter.
    */
-  primaryKey?: string;
+  primaryKey?: TField;
 
   /**
    * Soft delete support.
@@ -38,7 +38,7 @@ export interface CrudSettings {
    *
    * Default: 'deletedAt'.
    */
-  deletedAtField?: string;
+  deletedAtField?: TField;
 
   /**
    * Return representation after mutation.

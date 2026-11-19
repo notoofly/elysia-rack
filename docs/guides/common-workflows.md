@@ -174,7 +174,7 @@ rack("/catalog/products", {
 **Steps:**
 
 1. Add authorization rules per operation.
-2. Use a string when your application provides permissions through `app.decorate` or `app.state`, or through the `x-permissions` header.
+2. Use a string when your application provides permissions through `app.decorate` or `app.state`.
 3. Use a function when the check needs the request or record ID.
 
 ```ts
@@ -229,7 +229,7 @@ app.use(reactPlugin({ css: "./panel-overrides.css" }));
 
 2. Restart the server and reload the panel.
 
-**Expected result:** `/__rack/panel.css` serves your override. The default stylesheet is replaced, not appended.
+**Expected result:** `/__rack/panel.css` serves your override. The default stylesheet is served first and your custom CSS is appended after it, so custom rules cascade over the base.
 
 **Common mistake:** passing a path that does not exist. If the string is not a valid file and does not look like CSS, the default stylesheet is used.
 

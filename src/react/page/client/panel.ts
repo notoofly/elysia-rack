@@ -1,17 +1,16 @@
 // Browser-only bundle for the interactive panel: live QUERY, selection,
 // and actions (create/edit/delete/bulk/detail/restore). Without JS, links
 // and forms keep working through plain GET navigation.
-declare const document: any;
-declare const window: any;
 
-import { href, pageWindow } from "../components/href";
-import { collectFormBody, fillForm } from "../components/panelForm";
+import { isJsonRecord, parseJson, type Cell, type JsonValue, type RowData } from "../../../rack/json.ts";
+import { href, pageWindow } from "../components/href.ts";
+import { collectFormBody, fillForm } from "../components/panelForm.ts";
 import {
   coerceFieldValue,
   displayValue,
   isNumericField,
   type PanelField,
-} from "../components/panelFields";
+} from "../components/panelFields.ts";
 
 interface ListQuery {
   page?: number;
@@ -20,9 +19,55 @@ interface ListQuery {
 }
 
 interface ListResponse {
-  data: Record<string, unknown>[];
+  data: RowData[];
   total: number;
   query?: ListQuery;
+}
+
+const FIELD_KINDS = new Set<string>([
+  "text",
+  "integer",
+  "number",
+  "boolean",
+  "date",
+  "enum",
+  "json",
+]);
+
+/** Server-serialized `PanelField[]` from the table's data attribute. */
+function isPanelFieldList(value: unknown): value is PanelField[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (entry): entry is PanelField =>
+        isJsonRecord(entry) &&
+        typeof entry["name"] === "string" &&
+        typeof entry["kind"] === "string" &&
+        FIELD_KINDS.has(entry["kind"]),
+    )
+  );
+}
+
+/** Server-serialized `CustomAction[]` from the table's data attribute. */
+function isCustomActionList(value: unknown): value is CustomAction[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (entry): entry is CustomAction =>
+        isJsonRecord(entry) &&
+        typeof entry["label"] === "string" &&
+        typeof entry["href"] === "string",
+    )
+  );
+}
+
+function isListResponse(value: unknown): value is ListResponse {
+  return (
+    isJsonRecord(value) &&
+    Array.isArray(value["data"]) &&
+    value["data"].every(isJsonRecord) &&
+    typeof value["total"] === "number"
+  );
 }
 
 interface CustomAction {
@@ -45,15 +90,18 @@ interface TableConfig {
   deletedAt: string;
 }
 
-function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T {
-  let id: any;
-  return ((...args: any[]) => {
+function debounce<T extends (...args: never[]) => void>(
+  fn: T,
+  wait: number,
+): (...args: Parameters<T>) => void {
+  let id: ReturnType<typeof setTimeout> | undefined;
+  return (...args: Parameters<T>) => {
     clearTimeout(id);
-    id = setTimeout(() => fn(...(args as any)), wait);
-  }) as T;
+    id = setTimeout(() => fn(...args), wait);
+  };
 }
 
-function esc(value: unknown): string {
+function esc(value: Cell): string {
   return String(value ?? "")
     .split("&")
     .join("&amp;")
@@ -65,6 +113,20 @@ function esc(value: unknown): string {
     .join("&quot;");
 }
 
+function safeHref(raw: string): string {
+  const value = String(raw ?? "").trim();
+  if (!value) return "#";
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.href;
+    }
+  } catch {
+    return "#";
+  }
+  return "#";
+}
+
 function toParams(sp: URLSearchParams): Record<string, string> {
   const out: Record<string, string> = {};
   sp.forEach((v, k) => {
@@ -73,7 +135,7 @@ function toParams(sp: URLSearchParams): Record<string, string> {
   return out;
 }
 
-function baseUrl(root: any): string {
+function baseUrl(root: Element): string {
   const q: string = root.getAttribute("data-query-url") || "";
   return q.slice(-5) === "/data" ? q.slice(0, -5) : q || "?";
 }
@@ -87,19 +149,19 @@ function uid(): string {
   return `k-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
 }
 
-function setErr(form: any, msg: string): void {
+function setErr(form: HTMLFormElement, msg: string): void {
   const el = form.querySelector("[data-form-error]");
   if (el) el.textContent = msg;
 }
 
-function setBusy(el: any, busy: boolean): void {
+function setBusy(el: HTMLButtonElement | null, busy: boolean): void {
   if (!el) return;
   el.disabled = busy;
   if (busy) el.setAttribute("aria-busy", "true");
   else el.removeAttribute("aria-busy");
 }
 
-function toast(root: any, message: string, error = false): void {
+function toast(root: Element, message: string, error = false): void {
   const box = root.querySelector("[data-rack-toasts]");
   if (!box) return;
   const el = document.createElement("div");
@@ -111,29 +173,24 @@ function toast(root: any, message: string, error = false): void {
   window.setTimeout(() => el.remove(), 4000);
 }
 
-function refresh(root: any): void {
+function refresh(root: Element): void {
   void run(root, new URLSearchParams(window.location.search));
 }
 
-function parse<T>(raw: string | null | undefined, fallback: T): T {
-  try {
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function tableOf(root: any): any {
+function tableOf(root: Element): HTMLTableElement | null {
   return root.querySelector("table");
 }
 
-function tableConfig(root: any): TableConfig {
+function tableConfig(root: Element): TableConfig {
   const tbl = tableOf(root);
-  const fields = parse<PanelField[]>(tbl?.getAttribute("data-rack-fields"), []);
+  const rawFields = parseJson(tbl?.getAttribute("data-rack-fields"));
+  const fields = rawFields !== undefined && isPanelFieldList(rawFields) ? rawFields : [];
+  const rawActions = parseJson(tbl?.getAttribute("data-rack-actions"));
+  const actions = rawActions !== undefined && isCustomActionList(rawActions) ? rawActions : [];
   return {
     fields,
     byName: new Map(fields.map((f) => [f.name, f])),
-    actions: parse<CustomAction[]>(tbl?.getAttribute("data-rack-actions"), []),
+    actions,
     pk: tbl?.getAttribute("data-pk") || "id",
     selectable: !!tbl?.hasAttribute("data-selectable"),
     editable: !!tbl?.hasAttribute("data-editable"),
@@ -144,7 +201,7 @@ function tableConfig(root: any): TableConfig {
   };
 }
 
-function badgeClass(value: unknown): string {
+function badgeClass(value: Cell): string {
   if (typeof value !== "string")
     return "bg-badge-background text-badge-foreground";
   const text = value.toLowerCase();
@@ -153,37 +210,81 @@ function badgeClass(value: unknown): string {
   return "bg-badge-background text-badge-foreground";
 }
 
-function actionButton(action: CustomAction, id: string): string {
-  const target = esc(action.href.replaceAll(":id", encodeURIComponent(id)));
+function actionButton(action: CustomAction, id: string): HTMLElement {
+  const rawTarget = action.href.replaceAll(":id", encodeURIComponent(id));
+  const target = safeHref(rawTarget);
   const cls =
     "text-link hover:text-link-hover ml-3 px-1 text-sm font-medium hover:underline";
   if (action.method) {
-    const confirm = action.confirm
-      ? ` data-rack-confirm="${esc(action.confirm)}"`
-      : "";
-    return `<button type="button" data-rack-href="${target}" data-rack-method="${esc(action.method)}"${confirm} class="${cls}">${esc(action.label)}</button>`;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.rackHref = target;
+    btn.dataset.rackMethod = esc(action.method);
+    btn.className = cls;
+    if (action.confirm) {
+      btn.dataset.rackConfirm = esc(action.confirm);
+    }
+    btn.textContent = esc(action.label);
+    return btn;
   }
-  return `<a href="${target}" class="${cls}">${esc(action.label)}</a>`;
+  const a = document.createElement("a");
+  a.href = target;
+  a.className = cls;
+  a.textContent = esc(action.label);
+  return a;
 }
 
-function actionCell(id: string, cfg: TableConfig, deleted: boolean): string {
-  let inner = "";
+function actionCell(
+  id: string,
+  cfg: TableConfig,
+  deleted: boolean,
+): HTMLTableCellElement {
+  const td = document.createElement("td");
+  td.className =
+    "border-table-border border-t px-3 py-2.5 whitespace-nowrap text-right";
+  const cls =
+    "text-link hover:text-link-hover px-1 text-sm font-medium hover:underline";
   if (deleted) {
-    if (cfg.restorable)
-      inner = `<button type="button" data-restore-id="${esc(id)}" class="text-link hover:text-link-hover px-1 text-sm font-medium hover:underline">Restore</button>`;
+    if (cfg.restorable) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.restoreId = esc(id);
+      btn.className = cls;
+      btn.textContent = "Restore";
+      td.appendChild(btn);
+    }
   } else {
-    if (cfg.viewable)
-      inner += `<button type="button" data-view-id="${esc(id)}" class="text-link hover:text-link-hover px-1 text-sm font-medium hover:underline">View</button>`;
-    if (cfg.editable)
-      inner +=
-        `<button type="button" data-edit-id="${esc(id)}" class="text-link hover:text-link-hover ${cfg.viewable ? "ml-3 " : ""}px-1 text-sm font-medium hover:underline">Edit</button>` +
-        `<button type="button" data-delete-id="${esc(id)}" class="text-destructive ml-3 px-1 text-sm font-medium hover:underline">Delete</button>`;
-    for (const action of cfg.actions) inner += actionButton(action, id);
+    if (cfg.viewable) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.viewId = esc(id);
+      btn.className = cls;
+      btn.textContent = "View";
+      td.appendChild(btn);
+    }
+    if (cfg.editable) {
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.dataset.editId = esc(id);
+      editBtn.className = `text-link hover:text-link-hover${cfg.viewable ? " ml-3" : ""} px-1 text-sm font-medium hover:underline`;
+      editBtn.textContent = "Edit";
+      td.appendChild(editBtn);
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.dataset.deleteId = esc(id);
+      delBtn.className =
+        "text-destructive ml-3 px-1 text-sm font-medium hover:underline";
+      delBtn.textContent = "Delete";
+      td.appendChild(delBtn);
+    }
+    for (const action of cfg.actions) {
+      td.appendChild(actionButton(action, id));
+    }
   }
-  return `<td class="border-table-border border-t px-3 py-2.5 whitespace-nowrap text-right">${inner}</td>`;
+  return td;
 }
 
-function numericCols(rows: Record<string, unknown>[], cols: string[]): Set<string> {
+function numericCols(rows: RowData[], cols: string[]): Set<string> {
   const out = new Set<string>();
   if (!rows.length) return out;
   for (const col of cols) {
@@ -192,53 +293,86 @@ function numericCols(rows: Record<string, unknown>[], cols: string[]): Set<strin
   return out;
 }
 
-function cellHtml(field: PanelField | undefined, value: unknown): string {
+function cellText(field: PanelField | undefined, value: Cell): string {
   if (value === null || value === undefined) return "";
-  const text = esc(displayValue(field, value));
-  if (field?.format === "badge" || field?.name === "status")
-    return `<span class="rounded-sm px-1.5 py-0.5 text-xs font-medium ${badgeClass(value)}">${text}</span>`;
-  return text;
+  return esc(displayValue(field, value));
 }
 
 function paintRows(
-  tbody: any,
+  tbody: HTMLElement,
   cols: string[],
-  rows: Record<string, unknown>[],
+  rows: RowData[],
   cfg: TableConfig,
 ): void {
   const showActions =
     cfg.editable || cfg.viewable || cfg.softDelete || cfg.actions.length > 0;
   const span = cols.length + (cfg.selectable ? 1 : 0) + (showActions ? 1 : 0);
+  const numeric = numericCols(rows, cols);
+
   if (!rows.length) {
-    tbody.innerHTML =
-      `<tr><td colspan="${span || 1}" class="text-text-muted px-4 py-10 text-center">No records found.</td></tr>`;
+    tbody.replaceChildren();
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = span || 1;
+    td.className = "text-text-muted px-4 py-10 text-center";
+    td.textContent = "No records found.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
     return;
   }
-  const numeric = numericCols(rows, cols);
-  tbody.innerHTML = rows
-    .map((row) => {
-      const id = row[cfg.pk] == null ? "" : String(row[cfg.pk]);
-      const deleted = cfg.softDelete && row[cfg.deletedAt] != null;
-      let html = `<tr class="hover:bg-table-row-hover">`;
-      if (cfg.selectable)
-        html += `<td class="border-table-border border-t px-3 py-2.5"><input type="checkbox" data-select-row value="${esc(id)}" aria-label="Select row ${esc(id)}" class="accent-primary size-4"></td>`;
-      html += cols
-        .map((col) => {
-          const field = cfg.byName.get(col);
-          const align = numeric.has(col) || (field && isNumericField(field))
-            ? " text-right tabular-nums"
-            : "";
-          return `<td class="border-table-border border-t px-3 py-2.5${align}">${cellHtml(field, row[col])}</td>`;
-        })
-        .join("");
-      if (showActions) html += actionCell(id, cfg, Boolean(deleted));
-      return html + "</tr>";
-    })
-    .join("");
+
+  tbody.replaceChildren();
+  for (const row of rows) {
+    const id = row[cfg.pk] == null ? "" : String(row[cfg.pk]);
+    const deleted = cfg.softDelete && row[cfg.deletedAt] != null;
+    const tr = document.createElement("tr");
+    tr.className = "hover:bg-table-row-hover";
+
+    if (cfg.selectable) {
+      const td = document.createElement("td");
+      td.className = "border-table-border border-t px-3 py-2.5";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.dataset.selectRow = "";
+      input.value = id;
+      input.setAttribute("aria-label", `Select row ${esc(id)}`);
+      input.className = "accent-primary size-4";
+      td.appendChild(input);
+      tr.appendChild(td);
+    }
+
+    for (const col of cols) {
+      const field = cfg.byName.get(col);
+      const align = numeric.has(col) || (field && isNumericField(field))
+        ? " text-right tabular-nums"
+        : "";
+      const td = document.createElement("td");
+      td.className = `border-table-border border-t px-3 py-2.5${align}`;
+      const value = row[col];
+      const badge = field?.format === "badge" || field?.name === "status";
+      if (value === null || value === undefined) {
+        td.textContent = "";
+      } else if (badge) {
+        const span = document.createElement("span");
+        span.className = `rounded-sm px-1.5 py-0.5 text-xs font-medium ${badgeClass(value)}`;
+        span.textContent = displayValue(field, value);
+        td.appendChild(span);
+      } else {
+        td.textContent = cellText(field, value);
+      }
+      tr.appendChild(td);
+    }
+
+    if (showActions) {
+      tr.appendChild(actionCell(id, cfg, Boolean(deleted)));
+    }
+
+    tbody.appendChild(tr);
+  }
 }
 
 function paintPages(
-  box: any,
+  box: HTMLElement,
   params: Record<string, string>,
   page: number,
   totalPages: number,
@@ -265,22 +399,19 @@ function paintPages(
   box.innerHTML = html;
 }
 
-function paint(root: any, json: ListResponse, sp: URLSearchParams): void {
+function paint(root: Element, json: ListResponse, sp: URLSearchParams): void {
   const params = toParams(sp);
   const cols: string[] = [];
-  Array.prototype.forEach.call(
-    root.querySelectorAll("thead th[data-col]"),
-    (th: any) => {
-      cols.push(th.getAttribute("data-col"));
-    },
-  );
+  root.querySelectorAll("thead th[data-col]").forEach((th) => {
+    cols.push(th.getAttribute("data-col") ?? "");
+  });
   const q = json.query ?? {};
   const page = q.page ?? 1;
   const limit = q.limit ?? 20;
   const total = json.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const cfg = tableConfig(root);
-  const tbody = root.querySelector("[data-panel-rows]");
+  const tbody = root.querySelector<HTMLElement>("[data-panel-rows]");
   if (tbody) paintRows(tbody, cols, json.data ?? [], cfg);
   const count = root.querySelector("[data-panel-count]");
   if (count) {
@@ -290,20 +421,17 @@ function paint(root: any, json: ListResponse, sp: URLSearchParams): void {
   }
   const totalEl = root.querySelector("[data-panel-total]");
   if (totalEl) totalEl.textContent = `${total} record${total === 1 ? "" : "s"}`;
-  const box = root.querySelector("[data-panel-pages]");
+  const box = root.querySelector<HTMLElement>("[data-panel-pages]");
   if (box) paintPages(box, params, page, totalPages);
   const sort = q.sort ?? {};
-  Array.prototype.forEach.call(
-    root.querySelectorAll("a[data-sort-link]"),
-    (a: any) => {
-      const col = a.getAttribute("data-sort-link");
-      const active = sort.field === col;
-      const order = active && sort.direction === "asc" ? "desc" : "asc";
-      a.setAttribute("href", href(params, { sort: col, order }));
-      const ind = a.querySelector("[data-sort-ind]");
-      if (ind) ind.textContent = active ? (sort.direction === "asc" ? " ▲" : " ▼") : "";
-    },
-  );
+  root.querySelectorAll("a[data-sort-link]").forEach((a) => {
+    const col = a.getAttribute("data-sort-link");
+    const active = sort.field === col;
+    const order = active && sort.direction === "asc" ? "desc" : "asc";
+    a.setAttribute("href", href(params, { sort: col ?? "", order }));
+    const ind = a.querySelector("[data-sort-ind]");
+    if (ind) ind.textContent = active ? (sort.direction === "asc" ? " ▲" : " ▼") : "";
+  });
   try {
     window.history.replaceState(null, "", href(params, {}));
   } catch {
@@ -312,7 +440,7 @@ function paint(root: any, json: ListResponse, sp: URLSearchParams): void {
   syncBulk(root);
 }
 
-async function run(root: any, sp: URLSearchParams): Promise<void> {
+async function run(root: Element, sp: URLSearchParams): Promise<void> {
   const base = root.getAttribute("data-query-url") || "";
   const search = sp.toString();
   const res = await fetch(base + (search ? `?${search}` : ""), {
@@ -320,38 +448,69 @@ async function run(root: any, sp: URLSearchParams): Promise<void> {
     headers: { Accept: "application/json" },
   });
   if (!res.ok) return;
-  paint(root, (await res.json()) as ListResponse, sp);
+  const json: JsonValue = await res.json();
+  if (!isListResponse(json)) return;
+  paint(root, json, sp);
 }
 
-function selectedIds(root: any): string[] {
+function formQuery(form: HTMLFormElement): URLSearchParams {
+  const clean = new URLSearchParams();
+  for (const el of formElements(form)) {
+    if (!el.name || el.disabled) continue;
+    if (
+      el instanceof HTMLInputElement &&
+      (el.type === "checkbox" || el.type === "radio") &&
+      !el.checked
+    )
+      continue;
+    if (el.value === "") continue;
+    clean.append(el.name, el.value);
+  }
+  return clean;
+}
+
+type FormControlLike =
+  | HTMLInputElement
+  | HTMLSelectElement
+  | HTMLTextAreaElement;
+
+function formElements(form: HTMLFormElement): FormControlLike[] {
+  return Array.from(form.elements).filter(
+    (el): el is FormControlLike =>
+      el instanceof HTMLInputElement ||
+      el instanceof HTMLSelectElement ||
+      el instanceof HTMLTextAreaElement,
+  );
+}
+
+function selectedIds(root: Element): string[] {
   const ids: string[] = [];
-  Array.prototype.forEach.call(
-    root.querySelectorAll("[data-select-row]:checked"),
-    (c: any) => {
+  root.querySelectorAll<HTMLInputElement>("[data-select-row]:checked").forEach(
+    (c) => {
       ids.push(c.value);
     },
   );
   return ids;
 }
 
-function syncBulk(root: any): void {
+function syncBulk(root: Element): void {
   const ids = selectedIds(root);
-  const bar = root.querySelector("[data-bulk-bar]");
+  const bar = root.querySelector<HTMLElement>("[data-bulk-bar]");
   if (bar) bar.style.display = ids.length ? "" : "none";
   const count = root.querySelector("[data-bulk-count]");
   if (count) count.textContent = `${ids.length} selected`;
   const boxes = root.querySelectorAll("[data-select-row]");
-  const all = root.querySelector("[data-select-all]");
+  const all = root.querySelector<HTMLInputElement>("[data-select-all]");
   if (all) all.checked = boxes.length > 0 && ids.length === boxes.length;
 }
 
-async function createRecord(root: any, form: any): Promise<void> {
+async function createRecord(root: Element, form: HTMLFormElement): Promise<void> {
   setErr(form, "");
-  const submit = form.querySelector('[type="submit"]');
+  const submit = form.querySelector<HTMLButtonElement>('[type="submit"]');
   setBusy(submit, true);
   try {
-    const raw = form.querySelector("[data-create-json]");
-    let body: unknown;
+    const raw = form.querySelector<HTMLTextAreaElement>("[data-create-json]");
+    let body: JsonValue | Record<string, JsonValue>;
     if (raw) {
       try {
         body = JSON.parse(raw.value);
@@ -365,7 +524,7 @@ async function createRecord(root: any, form: any): Promise<void> {
         setErr(form, collected.error);
         return;
       }
-      body = collected.body;
+      body = collected.body ?? {};
     }
     const res = await fetch(baseUrl(root), {
       method: "POST",
@@ -388,14 +547,14 @@ async function createRecord(root: any, form: any): Promise<void> {
   }
 }
 
-async function updateRecord(root: any, form: any): Promise<void> {
+async function updateRecord(root: Element, form: HTMLFormElement): Promise<void> {
   setErr(form, "");
   const id = form.dataset?.id || "";
   if (!id) {
     setErr(form, "Missing record id");
     return;
   }
-  const submit = form.querySelector('[type="submit"]');
+  const submit = form.querySelector<HTMLButtonElement>('[type="submit"]');
   setBusy(submit, true);
   try {
     const collected = collectFormBody(form);
@@ -423,7 +582,7 @@ async function updateRecord(root: any, form: any): Promise<void> {
   }
 }
 
-async function openEdit(root: any, id: string): Promise<void> {
+async function openEdit(root: Element, id: string): Promise<void> {
   const res = await fetch(`${baseUrl(root)}/data/${encodeURIComponent(id)}`, {
     method: "QUERY",
     headers: { Accept: "application/json" },
@@ -432,10 +591,11 @@ async function openEdit(root: any, id: string): Promise<void> {
     toast(root, `Could not load record ${id}`, true);
     return;
   }
-  const row = ((await res.json()) as { data?: Record<string, unknown> }).data ?? {};
+  const json: JsonValue = await res.json();
+  const row: RowData = isJsonRecord(json) && isJsonRecord(json["data"]) ? json["data"] : {};
   const dlg = document.getElementById("rack-edit");
-  if (!dlg) return;
-  const form = dlg.querySelector("[data-edit-form]");
+  if (!(dlg instanceof HTMLDialogElement)) return;
+  const form = dlg.querySelector<HTMLFormElement>("[data-edit-form]");
   if (!form) return;
   form.dataset.id = id;
   const label = dlg.querySelector("[data-edit-id-label]");
@@ -445,7 +605,7 @@ async function openEdit(root: any, id: string): Promise<void> {
   dlg.showModal?.();
 }
 
-async function openDetail(root: any, id: string): Promise<void> {
+async function openDetail(root: Element, id: string): Promise<void> {
   const res = await fetch(`${baseUrl(root)}/data/${encodeURIComponent(id)}`, {
     method: "QUERY",
     headers: { Accept: "application/json" },
@@ -454,28 +614,55 @@ async function openDetail(root: any, id: string): Promise<void> {
     toast(root, `Could not load record ${id}`, true);
     return;
   }
-  const row = ((await res.json()) as { data?: Record<string, unknown> }).data ?? {};
+  const json: JsonValue = await res.json();
+  const row: RowData = isJsonRecord(json) && isJsonRecord(json["data"]) ? json["data"] : {};
   const dlg = document.getElementById("rack-detail");
-  if (!dlg) return;
+  if (!(dlg instanceof HTMLDialogElement)) return;
   const label = dlg.querySelector("[data-detail-id-label]");
   if (label) label.textContent = `#${id}`;
   const body = dlg.querySelector("[data-detail-body]");
-  if (body) body.innerHTML = renderDetail(root, row);
+  if (body) {
+    body.replaceChildren(renderDetail(root, row));
+  }
   dlg.showModal?.();
 }
 
-function renderDetail(root: any, row: Record<string, unknown>): string {
+function renderDetail(root: Element, row: RowData): DocumentFragment {
   const cfg = tableConfig(root);
-  const items = cfg.fields
-    .filter((field) => row[field.name] !== undefined && !field.hideInTable)
-    .map(
-      (field) =>
-        `<div class="flex flex-col gap-0.5"><dt class="text-text-muted text-xs font-medium">${esc(field.label)}</dt><dd class="text-foreground text-sm">${esc(displayValue(field, row[field.name])) || "—"}</dd></div>`,
-    );
-  return items.join("") || `<p class="text-text-muted text-sm">No fields</p>`;
+  const frag = document.createDocumentFragment();
+  const visibleFields = cfg.fields.filter(
+    (field) => row[field.name] !== undefined && !field.hideInTable,
+  );
+
+  if (!visibleFields.length) {
+    const p = document.createElement("p");
+    p.className = "text-text-muted text-sm";
+    p.textContent = "No fields";
+    frag.appendChild(p);
+    return frag;
+  }
+
+  for (const field of visibleFields) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "flex flex-col gap-0.5";
+
+    const dt = document.createElement("dt");
+    dt.className = "text-text-muted text-xs font-medium";
+    dt.textContent = String(field.label ?? "");
+
+    const dd = document.createElement("dd");
+    dd.className = "text-foreground text-sm";
+    dd.textContent = displayValue(field, row[field.name]) || "—";
+
+    wrapper.appendChild(dt);
+    wrapper.appendChild(dd);
+    frag.appendChild(wrapper);
+  }
+
+  return frag;
 }
 
-async function deleteOne(root: any, id: string): Promise<void> {
+async function deleteOne(root: Element, id: string): Promise<void> {
   if (!window.confirm(`Delete record ${id}?`)) return;
   const res = await fetch(`${baseUrl(root)}/${encodeURIComponent(id)}`, {
     method: "DELETE",
@@ -488,7 +675,7 @@ async function deleteOne(root: any, id: string): Promise<void> {
   toast(root, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`, true);
 }
 
-async function restoreOne(root: any, id: string): Promise<void> {
+async function restoreOne(root: Element, id: string): Promise<void> {
   const cfg = tableConfig(root);
   const res = await fetch(`${baseUrl(root)}/${encodeURIComponent(id)}`, {
     method: "PATCH",
@@ -503,7 +690,7 @@ async function restoreOne(root: any, id: string): Promise<void> {
   toast(root, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`, true);
 }
 
-async function bulkDelete(root: any): Promise<void> {
+async function bulkDelete(root: Element): Promise<void> {
   const ids = selectedIds(root);
   if (!ids.length) return;
   if (!window.confirm(`Delete ${ids.length} records?`)) return;
@@ -518,9 +705,9 @@ async function bulkDelete(root: any): Promise<void> {
   refresh(root);
 }
 
-async function bulkApply(root: any): Promise<void> {
-  const field = root.querySelector("[data-bulk-field]");
-  const input = root.querySelector("[data-bulk-value]");
+async function bulkApply(root: Element): Promise<void> {
+  const field = root.querySelector<HTMLSelectElement>("[data-bulk-field]");
+  const input = root.querySelector<HTMLInputElement>("[data-bulk-value]");
   const ids = selectedIds(root);
   if (!field?.value || !input || !ids.length) return;
   const cfg = tableConfig(root);
@@ -547,7 +734,7 @@ async function bulkApply(root: any): Promise<void> {
   refresh(root);
 }
 
-async function runCustomAction(root: any, el: any): Promise<void> {
+async function runCustomAction(root: Element, el: Element): Promise<void> {
   const target = el.getAttribute("data-rack-href");
   if (!target) return;
   const confirmMsg = el.getAttribute("data-rack-confirm");
@@ -559,10 +746,10 @@ async function runCustomAction(root: any, el: any): Promise<void> {
   else toast(root, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`, true);
 }
 
-document.addEventListener("click", (e: any) => {
-  const t = e.target;
-  if (!t?.closest) return;
-  const root = t.closest("[data-query-url]");
+document.addEventListener("click", (e: MouseEvent) => {
+  const t = e.target instanceof Element ? e.target : null;
+  const root = t?.closest("[data-query-url]");
+  if (!t || !root) return;
   if (!root) return;
   const closer = t.closest("[data-close]");
   if (closer) {
@@ -577,8 +764,8 @@ document.addEventListener("click", (e: any) => {
   }
   if (t.closest("[data-open-create]")) {
     const dlg = document.getElementById("rack-create");
-    if (dlg) {
-      const cf = dlg.querySelector("[data-create-form]");
+    if (dlg instanceof HTMLDialogElement) {
+      const cf = dlg.querySelector<HTMLFormElement>("[data-create-form]");
       if (cf) {
         cf.reset();
         setErr(cf, "");
@@ -589,22 +776,22 @@ document.addEventListener("click", (e: any) => {
   }
   const view = t.closest("[data-view-id]");
   if (view) {
-    void openDetail(root, view.getAttribute("data-view-id"));
+    void openDetail(root, view.getAttribute("data-view-id") ?? "");
     return;
   }
   const restore = t.closest("[data-restore-id]");
   if (restore) {
-    void restoreOne(root, restore.getAttribute("data-restore-id"));
+    void restoreOne(root, restore.getAttribute("data-restore-id") ?? "");
     return;
   }
   const eb = t.closest("[data-edit-id]");
   if (eb) {
-    void openEdit(root, eb.getAttribute("data-edit-id"));
+    void openEdit(root, eb.getAttribute("data-edit-id") ?? "");
     return;
   }
   const dbtn = t.closest("[data-delete-id]");
   if (dbtn) {
-    void deleteOne(root, dbtn.getAttribute("data-delete-id"));
+    void deleteOne(root, dbtn.getAttribute("data-delete-id") ?? "");
     return;
   }
   if (t.closest("[data-bulk-delete]")) {
@@ -616,25 +803,24 @@ document.addEventListener("click", (e: any) => {
     return;
   }
   if (t.closest("[data-bulk-clear]")) {
-    Array.prototype.forEach.call(
-      root.querySelectorAll("[data-select-row],[data-select-all]"),
-      (c: any) => {
+    root
+      .querySelectorAll<HTMLInputElement>("[data-select-row],[data-select-all]")
+      .forEach((c) => {
         c.checked = false;
-      },
-    );
+      });
     syncBulk(root);
     return;
   }
   const a = t.closest("a[data-qlink]");
   if (!a) return;
   e.preventDefault();
-  void run(root, new URLSearchParams(a.getAttribute("href").replace(/^\?/, "")));
+  void run(root, new URLSearchParams((a.getAttribute("href") ?? "").replace(/^\?/, "")));
 });
 
-document.addEventListener("submit", (e: any) => {
-  const f = e.target;
-  if (!f || f.tagName !== "FORM") return;
-  const root = f.closest?.("[data-query-url]");
+document.addEventListener("submit", (e: SubmitEvent) => {
+  const f = e.target instanceof HTMLFormElement ? e.target : null;
+  if (!f) return;
+  const root = f.closest("[data-query-url]");
   if (!root) return;
   if (f.hasAttribute("data-create-form")) {
     e.preventDefault();
@@ -647,57 +833,40 @@ document.addEventListener("submit", (e: any) => {
     return;
   }
   e.preventDefault();
-  const clean = new URLSearchParams();
-  const els = f.elements ?? [];
-  for (let i = 0; i < els.length; i++) {
-    const el = els[i];
-    if (!el.name || el.disabled) continue;
-    if ((el.type === "checkbox" || el.type === "radio") && !el.checked) continue;
-    if (el.value === "") continue;
-    clean.append(el.name, el.value);
-  }
-  void run(root, clean);
+  void run(root, formQuery(f));
 });
 
 // Debounce search: LIKE '%query%' without waiting for Enter
-const debouncedRunForSearch = debounce((form: any, root: any) => {
-  const clean = new URLSearchParams();
-  const els = form.elements ?? [];
-  for (let i = 0; i < els.length; i++) {
-    const el = els[i];
-    if (!el.name || el.disabled) continue;
-    if ((el.type === "checkbox" || el.type === "radio") && !el.checked) continue;
-    if (el.value === "") continue;
-    clean.append(el.name, el.value);
-  }
-  void run(root, clean);
+const debouncedRunForSearch = debounce((form: HTMLFormElement, root: Element) => {
+  void run(root, formQuery(form));
 }, 350);
 
-document.addEventListener("input", (e: any) => {
-  const t = e.target;
-  if (!t || !t.closest) return;
-  const isSearch = t.getAttribute?.("data-search-input") !== null || t.getAttribute?.("name") === "search";
+document.addEventListener("input", (e: Event) => {
+  const t = e.target instanceof Element ? e.target : null;
+  if (!t) return;
+  const isSearch =
+    t.getAttribute("data-search-input") !== null ||
+    t.getAttribute("name") === "search";
   if (!isSearch) return;
   const form = t.closest("form");
-  const root = t.closest("[data-query-url]") || form?.closest?.("[data-query-url]");
+  const root = t.closest("[data-query-url]") ?? form?.closest("[data-query-url]");
   if (!form || !root) return;
   debouncedRunForSearch(form, root);
 });
 
-document.addEventListener("change", (e: any) => {
-  const t = e.target;
-  if (!t?.closest) return;
-  const root = t.closest("[data-query-url]");
+document.addEventListener("change", (e: Event) => {
+  const t = e.target instanceof HTMLInputElement ? e.target : null;
+  const root = t?.closest("[data-query-url]");
+  if (!t || !root) return;
   if (!root) return;
   const all = t.hasAttribute("data-select-all");
   if (!all && !t.hasAttribute("data-select-row")) return;
   if (all) {
-    Array.prototype.forEach.call(
-      root.querySelectorAll("[data-select-row]"),
-      (c: any) => {
+    root
+      .querySelectorAll<HTMLInputElement>("[data-select-row]")
+      .forEach((c) => {
         c.checked = t.checked;
-      },
-    );
+      });
   }
   syncBulk(root);
 });

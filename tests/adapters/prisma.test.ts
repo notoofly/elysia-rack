@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { prismaAdapter } from "../../src/rack/adapters/prisma";
-import type { Rack } from "../../src/rack/index";
+import { prismaAdapter } from "../../src/rack/adapters/prisma.ts";
+import type { Rack } from "../../src/rack/index.ts";
 
 const ROW = { id: 1, name: "Phone", price: 500, status: "active" };
 
@@ -93,6 +93,16 @@ describe("prismaAdapter.list", () => {
       deletedAt: null,
       status: { in: ["a", "b"] },
     });
+  });
+
+  it("keeps the alive predicate when the caller filters on deletedAt", async () => {
+    const { calls, model } = mockDelegate();
+    await prismaAdapter.list(
+      model,
+      { ...baseQuery(), filters: { deletedAt: { not: null } } },
+      { ...opts, softDelete: true },
+    );
+    expect(called(calls, "findMany").where).toEqual({ deletedAt: null });
   });
 });
 

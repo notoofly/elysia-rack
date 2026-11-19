@@ -1,11 +1,12 @@
-import type { Rack } from "./types";
+import type { JsonValue } from "./json.ts";
+import type { Rack } from "./types/index.ts";
 
 /**
  * Normalized list query produced by {@link parseListQuery}.
  */
 export interface ParsedListQuery {
   search?: { value: string; fields: readonly string[] };
-  filters: Record<string, unknown>;
+  filters: Record<string, JsonValue>;
   sort?: { field: string; direction: Rack.CrudSortDirection };
   page: number;
   limit: number;
@@ -18,7 +19,7 @@ export interface ParsedListQuery {
  * honoring `CrudQueryOptions` whitelists and pagination.
  */
 export function parseListQuery(
-  raw: Record<string, unknown>,
+  raw: Record<string, JsonValue>,
   queryOptions?: Rack.CrudQueryOptions,
 ): ParsedListQuery {
   const pagination = queryOptions?.pagination ?? {};
@@ -82,7 +83,7 @@ export function parseListQuery(
     "perPage",
     "includeDeleted",
   ]);
-  const filters: Record<string, unknown> = {};
+  const filters: Record<string, JsonValue> = {};
   for (const [key, value] of Object.entries(raw)) {
     if (reserved.has(key)) continue;
     if (

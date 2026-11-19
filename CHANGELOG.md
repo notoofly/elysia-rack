@@ -1,5 +1,63 @@
 # Changelog
 
+## [0.6.3] — 2026-11-16
+
+### Fixes
+- Drizzle adapter coerces string date values (e.g. from JSON bodies or panel forms) to `Date` for date-kind columns such as `integer(..., { mode: "timestamp" })` on create/replace/update. Previously these produced `500: value.getTime is not a function`.
+
+### Typing
+- `rack()` is now generic over the bound model: field-name types flow from the drizzle table into `query` (`searchable`, `filterable`, `sortable`, `defaultSort.field`), `metadata` (`hiddenFields`, `fields`), and `settings` (`primaryKey`, `deletedAtField`). Unknown keys are compile errors; prisma resources fall back to `string`.
+- Drizzle field names are extracted from the table's internal `_.columns` record, so only real columns are accepted (not drizzle internals like `$inferSelect` or `getSQL`).
+- Authorization rule functions receive a typed `ctx` with `resource` matching the bound model, plus `permissions` and `store`.
+- All `any` types removed from `src/`; adapters use minimal structural interfaces (drizzle query-builder surface, prisma delegate) instead of untyped handles. The DOM client bundle is fully typed with standard `HTMLElement`/`HTMLDialogElement` DOM types.
+- Zero type-erasing `unknown`: dynamic data (request bodies, rows, query maps, stores, idempotency records) now uses precise `JsonValue`/`Cell`/`RowData` contracts with validating guards (`isJsonValue`, `isJsonRecord`) instead of `Record<string, unknown>`. `unknown` remains only as type-guard parameters — the standard narrowing pattern.
+- Namespace type re-exports (`Rack.CrudOptions<TModel>`, …) forward model generics; `_`-prefixed module aliases removed.
+
+## [0.6.2] — 2026-11-16
+
+### Fixes
+- Drizzle `describe()` now uses drizzle's `is()` helper instead of `instanceof`, so panel create/edit forms render correctly even when the app and elysia-rack resolve separate `drizzle-orm` copies (duplicate class identity broke the `instanceof` check and caused a JSON-textarea fallback in the "New record" dialog).
+
+## [0.6.1] — 2026-11-16
+
+### Build & module system
+- Switch `tsconfig.json` to `moduleResolution: "NodeNext"` and `module: "NodeNext"` for standard Node.js ESM resolution.
+- All relative imports now use explicit `.ts` / `.tsx` extensions; dynamic imports use `.js` for `bun build` runtime resolution.
+- `tsconfig.build.json` updated to `module: "NodeNext"` with `allowImportingTsExtensions: true` for declaration emission.
+
+### Authorization context
+- `CrudAuthorizationContext` now includes `permissions?: unknown`, so authorization rule functions can access auth payloads decorated on the Elysia context (e.g. by an auth plugin).
+- `authorize()` passes `permissions` through to rule functions.
+
+### Fixes
+- Playground: explicit `ctx` types on authorization callbacks and route handlers (`params`, `status`, `body`).
+- `tests/react.test.tsx`: corrected `.tsx` extensions for React component imports.
+- `src/react/render.tsx` and `src/react/page/*`: corrected `.tsx` extensions for component imports.
+- Dashboard request handler tests with typed `res.json()` casts.
+
+### Coverage
+- Added tests for `getRack`, `buildRackTree`, `flatRackTree`, and `dashboard` request handling.
+- `src/rack/dashboard.ts` and `src/rack/registry.ts` now at 100% line coverage.
+
+## [0.6.0] — 2026-11-15
+
+Security fixes from the run-1 audit. Some changes are breaking.
+
+### Authorization (breaking)
+- String permission rules now fail closed and trust only server-side sources: `permissions` decorated on the context (`app.decorate`) or `app.state`. The caller-controlled `x-permissions` header is no longer accepted, and a string rule with no permission source now returns `403` instead of allowing the request. Mount a permission source before using string rules.
+
+### Soft delete
+- Drizzle: `update` and `replace` now include the alive predicate (`deletedAt IS NULL`), so soft-deleted rows return `404` and cannot be mutated. Restoring a row still requires an explicit authorized write.
+- Prisma: caller filters can no longer overwrite the `deletedAt` alive predicate, so list/count cannot reveal soft-deleted rows.
+
+### Idempotency
+- New `idempotency.scope` callback namespaces keys per server-trusted caller (e.g. principal or tenant). Keys become `<resource>::<scope>::<key>`. Without `scope`, callers share one namespace; set it when multiple principals use a rack instance.
+- The in-memory store no longer evicts live entries within their TTL, so the execute-once guarantee holds for the process lifetime. `maxEntries` is a soft ceiling that triggers an expired-entry purge. Use a durable shared store for strict execute-once across restarts or multiple instances.
+
+## [0.5.8] — 2026-11-14
+
+- Bump to 0.5.8.
+
 ## [0.5.5] — 2026-11-13
 
 - Fix custom `panel.css`: previously replaced the default stylesheet entirely; now it is appended after the default `panel.css`, so custom rules cascade over and override specific tokens/rules without losing the base panel styles.

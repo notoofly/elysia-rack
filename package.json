@@ -1,13 +1,13 @@
 {
   "name": "elysia-rack",
-  "version": "0.5.5",
+  "version": "0.6.3",
   "description": "Model-driven CRUD rack for Elysia: REST + QUERY routes, validation, authorization, OpenAPI metadata, and React panel rendering.",
   "type": "module",
   "license": "MIT",
   "author": "notoofly",
   "repository": {
     "type": "git",
-    "url": "https://github.com/notoofly/elysia-rack.git"
+    "url": "git+https://github.com/notoofly/elysia-rack.git"
   },
   "homepage": "https://github.com/notoofly/elysia-rack#readme",
   "bugs": {
@@ -81,6 +81,7 @@
     "@tailwindcss/cli": "4.3.3",
     "@types/bun": "latest",
     "@types/react": "^19.2.18",
+    "vitepress": "1",
     "@types/react-dom": "^19.2.5",
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.30",

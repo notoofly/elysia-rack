@@ -1,10 +1,14 @@
-import type { ParsedListQuery } from "../query";
-import type { Rack } from "../types";
-import { drizzleAdapter } from "./drizzle";
-import { prismaAdapter } from "./prisma";
+import type { JsonValue, RowData } from "../json.ts";
+import type { ParsedListQuery } from "../query.ts";
+import type { Rack } from "../types/index.ts";
+import { drizzleAdapter } from "./drizzle.ts";
+import { prismaAdapter } from "./prisma.ts";
 
-export { drizzleAdapter } from "./drizzle";
-export { prismaAdapter } from "./prisma";
+export { drizzleAdapter } from "./drizzle.ts";
+export { prismaAdapter } from "./prisma.ts";
+
+/** A parsed request body: JSON value, or `undefined` when absent. */
+export type JsonBody = JsonValue | undefined;
 
 export interface AdapterOptions {
   primaryKey: string;
@@ -14,7 +18,7 @@ export interface AdapterOptions {
 }
 
 export interface ListResult {
-  data: unknown[];
+  data: RowData[];
   total: number;
 }
 
@@ -61,33 +65,33 @@ export interface CrudAdapter {
     model: Rack.CrudModel,
     id: string,
     opts: AdapterOptions,
-  ): Promise<unknown | null>;
+  ): Promise<RowData | null>;
 
   create(
     model: Rack.CrudModel,
-    body: unknown,
+    body: JsonBody,
     opts: AdapterOptions,
-  ): Promise<unknown>;
+  ): Promise<RowData | null | undefined>;
 
   replace(
     model: Rack.CrudModel,
     id: string,
-    body: unknown,
+    body: JsonBody,
     opts: AdapterOptions,
-  ): Promise<unknown | null>;
+  ): Promise<RowData | null | undefined>;
 
   update(
     model: Rack.CrudModel,
     id: string,
-    body: unknown,
+    body: JsonBody,
     opts: AdapterOptions,
-  ): Promise<unknown | null>;
+  ): Promise<RowData | null | undefined>;
 
   remove(
     model: Rack.CrudModel,
     id: string,
     opts: AdapterOptions & { softDelete?: boolean },
-  ): Promise<unknown | null>;
+  ): Promise<RowData | null | undefined>;
 }
 
 export function getAdapter(model: Rack.CrudModel): CrudAdapter {
@@ -114,7 +118,7 @@ export function isNumericColumn(columnType?: string): boolean {
  * Integer-like columns (or unknown columns, e.g. Prisma delegates)
  * turn numeric strings into numbers; everything else passes through.
  */
-export function coerceIdValue(id: string, columnType?: string): unknown {
+export function coerceIdValue(id: string, columnType?: string): string | number {
   if (!isNumericColumn(columnType)) return id;
   if (id.trim() === "") return id;
   const n = Number(id);

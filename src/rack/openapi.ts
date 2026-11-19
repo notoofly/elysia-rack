@@ -1,13 +1,14 @@
-import type { Rack } from "./types";
+import type { DocumentDecoration } from "elysia";
+import type { Rack } from "./types/index.ts";
 
 /**
  * Merge resource-level `options.openapi` with per-operation overrides
  * into an Elysia `detail` hook.
  */
-export function detailFor(
-  options: Rack.CrudOptions,
+export function detailFor<TModel extends Rack.CrudModel>(
+  options: Rack.CrudOptions<TModel>,
   operation: Rack.CrudOperation,
-): Record<string, unknown> {
+): DocumentDecoration {
   const baseTags =
     options.openapi?.tags ??
     (options.metadata?.label !== undefined
@@ -18,7 +19,7 @@ export function detailFor(
   const baseDescription = options.openapi?.description;
   const over = options.openapi?.operations?.[operation];
 
-  const detail: Record<string, unknown> = {};
+  const detail: DocumentDecoration = {};
   const tags = over?.tags ?? baseTags;
   if (tags !== undefined) detail["tags"] = [...tags];
   const description = over?.description ?? baseDescription;

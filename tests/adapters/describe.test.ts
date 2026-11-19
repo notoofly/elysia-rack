@@ -10,8 +10,8 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-import { drizzleAdapter } from "../../src/rack/adapters/drizzle";
-import { prismaAdapter } from "../../src/rack/adapters/prisma";
+import { drizzleAdapter } from "../../src/rack/adapters/drizzle.ts";
+import { prismaAdapter } from "../../src/rack/adapters/prisma.ts";
 
 const mood = pgEnum("mood", ["happy", "grumpy"]);
 

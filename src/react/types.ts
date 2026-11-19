@@ -2,13 +2,13 @@ import type { ComponentType } from "react";
 
 export namespace ReactRack {
   export const PAGE = Symbol.for("@elysia-panel/react")
-  export interface PageDescriptor<Props = unknown> {
+  export interface PageDescriptor<Props = object> {
     [PAGE]: true;
     path: string;
     props?: Props
   }
 
-  export type PageComponent<Props = any> = ComponentType<Props>
+  export type PageComponent<Props = never> = ComponentType<Props>
   export type PageLoader = () => Promise<{
     default: PageComponent
   }>
@@ -30,7 +30,7 @@ export namespace ReactRack {
   }
 
   /** A page registered directly with its URL — no `page()` call needed. */
-  export interface ReactView<Props = any> {
+  export interface ReactView<Props = object> {
     /** URL path the route is mounted at. */
     path: string
     component: PageEntry

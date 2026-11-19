@@ -195,12 +195,12 @@ The panel hides the search box when `searchable` is empty, so users are not offe
 
 1. Check the `operation` and `requiredPermission` fields in the response body.
 2. For a `false` rule, change it to `true`, a function, or a valid permission.
-3. For a string rule, provide the permission through `app.decorate`, `app.state`, or the `x-permissions` header.
+3. For a string rule, provide the permission through `app.decorate` or `app.state`.
 4. Confirm that your permission source is mounted before the resource routes.
 
 **Verification:** repeat the request with the required permission. The response should no longer be `403`.
 
-**Note:** if no permission source is configured at all, string rules allow the request. A `403` from a string rule means a source exists and did not contain the permission.
+**Note:** string rules fail closed. If no permission source is configured, the request is denied; the `x-permissions` header is not trusted. A `403` from a string rule means no trusted source granted the permission.
 
 ## Requests return 422
 

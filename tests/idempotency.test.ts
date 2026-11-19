@@ -4,14 +4,14 @@ import {
   createMemoryIdempotencyStore,
   rack,
   type Rack,
-} from "../src/rack/index";
+} from "../src/rack/index.ts";
 import {
   countProducts,
   createTestDb,
   drizzleModel,
   seedProducts,
   type TestDb,
-} from "./helpers";
+} from "./helpers.ts";
 
 type App = Elysia<any, any, any, any, any, any, any>;
 
@@ -192,6 +192,22 @@ describe("POST idempotency key", () => {
     expect(b.status).toBe(201);
     expect(a.json.data).toEqual(b.json.data);
   });
+
+  it("isolates callers that share a key via the scope callback", async () => {
+    let caller = "A";
+    const app = mount("/scoped", {
+      model: model(),
+      idempotency: { scope: () => caller },
+    });
+    const a = await call(app, "/scoped", { name: "A-record" }, "shared");
+    caller = "B";
+    const b = await call(app, "/scoped", { name: "B-record" }, "shared");
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(201);
+    expect(b.json.data.name).toBe("B-record");
+    expect(b.json).not.toEqual(a.json);
+    expect(await countProducts(db)).toBe(5);
+  });
 });
 
 describe("createMemoryIdempotencyStore", () => {
@@ -204,17 +220,25 @@ describe("createMemoryIdempotencyStore", () => {
 
   it("expires entries past ttl", async () => {
     const store = createMemoryIdempotencyStore();
-    await store.set("k", { status: 201, body: null }, 0);
+    await store.set("k", { status: 201, body: { retry: true } }, 0);
     expect(await store.get("k")).toBeUndefined();
   });
 
-  it("evicts oldest entries when full and overwrites in place", async () => {
+  it("keeps live entries within ttl and overwrites in place", async () => {
     const store = createMemoryIdempotencyStore(1);
-    await store.set("a", { status: 201, body: 1 });
-    await store.set("b", { status: 201, body: 2 });
-    expect(await store.get("a")).toBeUndefined();
-    expect(await store.get("b")).toEqual({ status: 201, body: 2 });
-    await store.set("b", { status: 201, body: 3 });
-    expect(await store.get("b")).toEqual({ status: 201, body: 3 });
+    await store.set("a", { status: 201, body: { n: 1 } });
+    await store.set("b", { status: 201, body: { n: 2 } });
+    expect(await store.get("a")).toEqual({ status: 201, body: { n: 1 } });
+    expect(await store.get("b")).toEqual({ status: 201, body: { n: 2 } });
+    await store.set("b", { status: 201, body: { n: 3 } });
+    expect(await store.get("b")).toEqual({ status: 201, body: { n: 3 } });
+  });
+
+  it("purges expired entries when full", async () => {
+    const store = createMemoryIdempotencyStore(1);
+    await store.set("old", { status: 201, body: { n: 1 } }, 0);
+    await store.set("new", { status: 201, body: { n: 2 } });
+    expect(await store.get("old")).toBeUndefined();
+    expect(await store.get("new")).toEqual({ status: 201, body: { n: 2 } });
   });
 });

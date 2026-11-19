@@ -178,13 +178,12 @@ authorization: {
 
 ### String permissions
 
-A string rule is checked against these sources, in order:
+A string rule is checked against these server-trusted sources, in order:
 
 1. `permissions` decorated on the Elysia context, for example `app.decorate("permissions", ["products.view"])`.
 2. `permissions` stored with `app.state("permissions", ["products.view"])`.
-3. The `x-permissions` request header, as a comma-separated list such as `products.view, products.create`.
 
-If none of these sources is present, the request is allowed. This is a development convenience and a security limitation. Configure a permission source before relying on string rules in production.
+The caller-controlled `x-permissions` request header is never trusted and cannot satisfy a string rule. If neither source is present, the request is denied with `403` (fail closed). Mount a permission source before using string rules.
 
 ### Function rules
 
@@ -335,8 +334,9 @@ Controls the panel page mounted at `GET {path}`.
 |---|---|---|---|
 | `path` | string | `"/panel"` | React page registry key to render |
 | `enabled` | boolean | `true` | Set to `false` to remove the panel page |
+| `component` | string | None | Declared per-resource page customization (a type-level field; not yet applied by `rack()`). |
 
-`page.path` is a key in the React page registry, not an additional URL. The panel is always mounted at the resource path. To render a custom component, register a page under a new key and point `page.path` at it.
+`page.path` is a key in the React page registry, not an additional URL. The panel is always mounted at the resource path. To render a custom component, register a page under a new key and point `page.path` (or `page.component`) at it.
 
 Disabling the panel keeps the data API available.
 
@@ -351,14 +351,16 @@ Controls replay protection for `POST` create requests.
 | `header` | string | `"Idempotency-Key"` | Header that carries the client key |
 | `ttl` | number | `86400` | Replay window in seconds |
 | `store` | object | In-memory store | Custom shared store |
+| `scope` | function | none | Derive a server-trusted caller scope (e.g. principal/tenant id) |
 
 Behavior:
 
 - Keys are scoped per resource, so the same key can be used on different resources.
+- When `scope` returns a value, keys are also scoped per caller: two callers that send the same key do not see each other's stored response.
+- Without `scope`, all callers of a rack instance share one namespace. Only rely on that when keys are unguessable and never reused across callers.
 - A replay returns the stored status and body with the header `Idempotent-Replayed: true`.
 - Concurrent requests with the same key in one process share a single insert.
-- The default memory store holds up to 1000 entries and evicts the oldest.
-- The default store is per process. Use a shared store when running more than one instance.
+- The default memory store never evicts live entries within their TTL, so execute-once holds for the process lifetime. It does not survive a restart and is not shared between processes.
 
 Custom store contract:
 
@@ -375,7 +377,7 @@ const store: Rack.CrudIdempotencyStore = {
 };
 ```
 
-The store receives keys that are already scoped to the resource. It must honor the TTL when one is provided.
+The store receives keys that are already scoped to the resource (and to the caller when `idempotency.scope` is set). It must honor the TTL when one is provided.
 
 ## `openapi`
 
@@ -419,6 +421,7 @@ The dashboard has no built-in authorization. Protect its path in your applicatio
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `pages` | object or array | Built-in pages | Additional React pages, merged with the defaults |
+| `views` | array | None | Pages auto-mounted at their `path`; `page()` is not needed for these. Each entry: `{ path, component, props? }` |
 | `css` | string or object | `dist/panel.css` | Override the panel stylesheet |
 | `panelCss` | string or object | None | Alias for `css` |
 | `donate` | boolean | `true` | Show or hide the Ko-fi link globally |
@@ -456,6 +459,8 @@ reactPlugin({ panelCss: "body{padding:0}" });
 | `{ content }` | Always treated as raw CSS |
 | Missing or unreadable file | Falls back to the default stylesheet |
 
+Custom CSS is **appended** after the default `panel.css`, so custom rules cascade over and override specific tokens or rules without losing the base panel styles. It does not replace the default stylesheet.
+
 ## `page(path, props)`
 
 `page()` describes a page for `reactPlugin()` to render. Custom routes can return it:
@@ -484,3 +489,34 @@ These helpers expose the in-memory resource registry. They are useful for custom
 | `clearRacks()` | Clears the registry, mainly for tests |
 
 The registry lives in memory and is filled when `rack()` runs during startup. It is not persisted.
+
+## Exported utilities
+
+These helpers are exported from `elysia-rack` and are useful when you need direct access to the adapter layer or the idempotency store.
+
+### ORM adapters
+
+| Export | Source | Purpose |
+|---|---|---|
+| `drizzleAdapter` | `elysia-rack` | Drizzle ORM adapter (Postgres, SQLite, …) |
+| `prismaAdapter` | `elysia-rack` | Prisma adapter |
+| `getAdapter(model)` | `elysia-rack` | Returns the `CrudAdapter` for a model |
+| `resolveAdapter(model)` | `elysia-rack` | Returns `"drizzle"` or `"prisma"` for a model |
+
+Each adapter implements the `CrudAdapter` contract: `describe`, `list`, `detail`, `create`, `replace`, `update`, and `remove`. The `rack()` function selects the adapter automatically based on the `model` shape (`{ drizzle }` or `{ prisma }`).
+
+### Idempotency store
+
+| Export | Source | Purpose |
+|---|---|---|
+| `createMemoryIdempotencyStore(maxEntries?)` | `elysia-rack` | Default in-memory idempotency store (soft ceiling of 1,000 live entries by default; expired entries are purged) |
+
+Pass the result to `idempotency.store` if you want to control the store size or reuse the same store across racks within one process. The memory store never evicts live entries within their TTL, so memory grows with the number of unique keys issued in that window. For strict execute-once across restarts or multi-instance deploys, use a durable shared store (e.g. Redis) that implements the `CrudIdempotencyStore` contract instead.
+
+### React page utilities
+
+| Export | Source | Purpose |
+|---|---|---|
+| `page(path, props)` | `elysia-rack/react` | Describes a React page to render from a custom route |
+| `lazyPage(loader)` | `elysia-rack/react` | Marks a `() => import(...)` loader as lazy so it is not treated as a component |
+| `pages` | `elysia-rack/react` | Built-in page registry with `"/dashboard"` and `"/panel"` |

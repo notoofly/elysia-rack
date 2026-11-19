@@ -2,6 +2,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import {
+  boolean,
   integer,
   pgEnum,
   pgTable,
@@ -10,8 +11,8 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { Elysia, t } from "elysia";
-import { dashboard, rack } from "./rack/index";
-import { reactPlugin } from "./react/index";
+import { dashboard, rack } from "./rack/index.ts";
+import { reactPlugin } from "./react/index.ts";
 
 // ---------------------------------------------------------------------------
 // Schema (drizzle pg-core, PGlite in-memory)
@@ -36,6 +37,28 @@ export const categories = pgTable("categories", {
   title: text("title").notNull(),
 });
 
+export const userRole = pgEnum("user_role", ["admin", "user"]);
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: userRole("role").notNull().default("user"),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  amount: integer("amount").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("pending"),
+  type: text("type").notNull().default("income"),
+  createdAt: timestamp("created_at").default(sql`NOW()`),
+  processedAt: timestamp("processed_at"),
+  processedByAdmin: boolean("processed_by_admin").default(false),
+});
+
 // ---------------------------------------------------------------------------
 // Database + seed
 // ---------------------------------------------------------------------------
@@ -46,6 +69,12 @@ const db = drizzle(client);
 await db.execute(sql`
   DO $$ BEGIN
     CREATE TYPE product_status AS ENUM ('active', 'archived');
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$;
+`);
+await db.execute(sql`
+  DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('admin', 'user');
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$;
 `);
@@ -65,8 +94,34 @@ await db.execute(sql`
     title TEXT NOT NULL
   )
 `);
+await db.execute(sql`
+  CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role user_role NOT NULL DEFAULT 'user',
+    deleted_at TIMESTAMP
+  )
+`);
+await db.execute(sql`
+  CREATE TABLE IF NOT EXISTS transactions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    amount INTEGER NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    type TEXT NOT NULL DEFAULT 'income',
+    created_at TIMESTAMP DEFAULT NOW(),
+    processed_at TIMESTAMP,
+    processed_by_admin BOOLEAN DEFAULT FALSE
+  )
+`);
+
 await db.execute(sql`TRUNCATE products RESTART IDENTITY`);
 await db.execute(sql`TRUNCATE categories`);
+await db.execute(sql`TRUNCATE transactions RESTART IDENTITY CASCADE`);
+await db.execute(sql`TRUNCATE users RESTART IDENTITY CASCADE`);
+
 await db.insert(products).values([
   { name: "Keyboard", price: 850_000, status: "active", categorySlug: "peripherals" },
   { name: "Mouse", price: 250_000, status: "active", categorySlug: "peripherals" },
@@ -75,6 +130,21 @@ await db.insert(products).values([
 await db.insert(categories).values([
   { slug: "peripherals", title: "Peripherals" },
   { slug: "display", title: "Display" },
+]);
+
+const crypto = await import("crypto");
+function hashPassword(password: string): string {
+  return crypto.createHash("sha256").update(password).digest("hex");
+}
+
+await db.insert(users).values([
+  { email: "admin@example.com", passwordHash: hashPassword("admin123"), role: "admin" },
+  { email: "user@example.com", passwordHash: hashPassword("user123"), role: "user" },
+]);
+
+await db.insert(transactions).values([
+  { userId: 1, amount: 100000, description: "Sales #001", status: "completed", type: "income", processedAt: new Date(), processedByAdmin: true },
+  { userId: 2, amount: 50000, description: "Payment", status: "pending", type: "income" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -101,24 +171,83 @@ const ProductQuery = t.Optional(
   }),
 );
 
+const CreateTransaction = t.Object({
+  userId: t.Numeric(),
+  amount: t.Numeric({ minimum: 1 }),
+  description: t.Optional(t.String()),
+  type: t.Optional(t.Union([t.Literal("income"), t.Literal("expense")])),
+});
+const UpdateTransaction = t.Partial(CreateTransaction);
+const TransactionParams = t.Object({ id: t.String() });
+const TransactionQuery = t.Optional(
+  t.Object({
+    search: t.Optional(t.String()),
+    status: t.Optional(t.String()),
+    type: t.Optional(t.String()),
+    sort: t.Optional(t.String()),
+    page: t.Optional(t.Numeric()),
+    limit: t.Optional(t.Numeric()),
+  }),
+);
+
+const LoginSchema = t.Object({
+  email: t.String({ format: "email" }),
+  password: t.String({ minLength: 1 }),
+});
+const SessionSchema = t.Object({
+  sessionId: t.String(),
+});
+
+// ---------------------------------------------------------------------------
+// Session store (in-memory)
+// ---------------------------------------------------------------------------
+
+type Session = { sessionId: string; email: string; role: "admin" | "user"; createdAt: number };
+const sessions = new Map<string, Session>();
+
+function createSession(email: string, role: "admin" | "user"): string {
+  const sessionId = crypto.randomBytes(32).toString("hex");
+  sessions.set(sessionId, { sessionId, email, role, createdAt: Date.now() });
+  return sessionId;
+}
+
+function getSession(sessionId: string): Session | undefined {
+  return sessions.get(sessionId);
+}
+
+function deleteSession(sessionId: string): void {
+  sessions.delete(sessionId);
+}
+
+// ---------------------------------------------------------------------------
+// Auth plugin
+// ---------------------------------------------------------------------------
+
+type AuthPayload = { role: "admin" | "user"; email: string };
+
+function getAuthPayload(request: Request): AuthPayload | null {
+  const sessionId = request.headers.get("Authorization")?.replace("Bearer ", "");
+  if (!sessionId) return null;
+  const session = getSession(sessionId);
+  if (!session) return null;
+  return { role: session.role, email: session.email };
+}
+
+const authPlugin = () =>
+  new Elysia({ name: "authPlugin" })
+    .decorate("permissions", (ctx: { request: Request }) => {
+      const payload = getAuthPayload(ctx.request);
+      return payload === null ? undefined : [payload.role];
+    });
+
 // ---------------------------------------------------------------------------
 // App
 // ---------------------------------------------------------------------------
 
 const app = new Elysia()
-  // Recommended setup: react() -> dashboard() -> rack()
-  // - react() pages are optional (defaults to dashboard + panel) and can be merged:
-  //   reactPlugin() // uses default pages
-  //   reactPlugin({ pages: myPages }) // merged with defaults
-  //   reactPlugin({ pages: [pages, myPages] }) // array will be merged
-  // - rack() stores tree metadata in memory; panel now shows sidebar + breadcrumb
-  // - dashboard() is now Coming Soon
-  // Override panel.css via react config (see README: "Panel CSS override"):
-  //   reactPlugin({ css: "./my-panel.css" })
-  //   reactPlugin({ css: { path: "./my-panel.css" } })
-  //   reactPlugin({ css: { content: ":root{--color-primary:red}" } })
   .use(reactPlugin())
   .use(dashboard({ title: "Elysia Rack", path: "/" }))
+  .use(authPlugin())
   .use(
     rack("/catalog/products", {
       model: { drizzle: { db, table: products } },
@@ -131,17 +260,13 @@ const app = new Elysia()
         query: ProductQuery,
       },
 
-      // Example string-permission (needs x-permissions header) or function:
-      // delete: "products.delete",
-      // delete: async ({ request }) =>
-      //   request.headers.get("x-api-key") === "secret",
       authorization: {
         list: true,
         detail: true,
-        create: true,
-        replace: true,
-        update: true,
-        delete: true,
+        create: async (ctx) => ctx.permissions?.includes("admin") === true,
+        replace: async (ctx) => ctx.permissions?.includes("admin") === true,
+        update: async (ctx) => ctx.permissions?.includes("admin") === true,
+        delete: async (ctx) => ctx.permissions?.includes("admin") === true,
       },
 
       query: {
@@ -189,6 +314,14 @@ const app = new Elysia()
           scope: "toolbar",
           icon: "download",
         },
+        {
+          label: "Logout",
+          href: "/auth/logout",
+          method: "POST",
+          scope: "toolbar",
+          icon: "log-out",
+          confirm: "Yakin ingin keluar?",
+        },
       ],
 
       openapi: {
@@ -216,7 +349,6 @@ const app = new Elysia()
         params: t.Object({ slug: t.String({ minLength: 1 }) }),
       },
 
-      // Read-only: only list + detail are enabled.
       operations: {
         create: false,
         replace: false,
@@ -242,7 +374,167 @@ const app = new Elysia()
       settings: { primaryKey: "slug", returning: true },
     }),
   )
-  // Custom action: export products as CSV (toolbar action).
+  .use(
+    rack("/finance/transactions", {
+      model: { drizzle: { db, table: transactions } },
+
+      validation: {
+        create: CreateTransaction,
+        replace: CreateTransaction,
+        update: UpdateTransaction,
+        params: TransactionParams,
+        query: TransactionQuery,
+      },
+
+      authorization: {
+        list: true,
+        detail: true,
+        create: async (ctx) =>
+          ctx.permissions?.includes("admin") === true ||
+          ctx.permissions?.includes("user") === true,
+        replace: async (ctx) => {
+          if (ctx.permissions?.includes("admin") === true) return true;
+          if (ctx.permissions?.includes("user") === true) {
+            const t = ctx.id
+              ? await db
+                  .select()
+                  .from(transactions)
+                  .where(eq(transactions.id, Number(ctx.id)))
+                  .then((r) => r[0])
+              : null;
+            return t?.userId !== undefined;
+          }
+          return false;
+        },
+        update: async (ctx) => {
+          if (ctx.permissions?.includes("admin") === true) return true;
+          if (ctx.permissions?.includes("user") === true) {
+            const t = ctx.id
+              ? await db
+                  .select()
+                  .from(transactions)
+                  .where(eq(transactions.id, Number(ctx.id)))
+                  .then((r) => r[0])
+              : null;
+            return t?.userId !== undefined;
+          }
+          return false;
+        },
+        delete: async (ctx) => ctx.permissions?.includes("admin") === true,
+      },
+
+      query: {
+        searchable: ["description"],
+        filterable: ["status", "type", "processedByAdmin"],
+        sortable: ["amount", "createdAt"],
+        defaultSort: { field: "createdAt", direction: "desc" },
+        pagination: { default: 20, max: 100 },
+      },
+
+      metadata: {
+        id: "transactions",
+        label: "Transaction",
+        pluralLabel: "Transactions",
+        group: "Finance",
+        order: 1,
+        icon: "receipt",
+        fields: {
+          id: { label: "ID", order: 0 },
+          userId: { label: "User ID", order: 1, hideInTable: true },
+          amount: { label: "Amount", format: "currency", currency: "IDR", order: 2 },
+          description: { label: "Description", order: 3 },
+          status: { label: "Status", format: "badge", order: 4 },
+          type: { label: "Type", order: 5 },
+          processedByAdmin: { label: "Processed by Admin", format: "badge", order: 6, readOnly: true },
+        },
+      },
+
+      openapi: {
+        tags: ["Finance"],
+        description: "Financial transactions",
+        operations: {
+          list: { summary: "List transactions" },
+          create: { summary: "Create transaction" },
+        },
+      },
+
+      settings: {
+        primaryKey: "id",
+        returning: true,
+      },
+    }),
+  )
+  .post("/auth/login", async ({ body, status }) => {
+    const { email, password } = body;
+    const results = await db.select().from(users).where(eq(users.email, email));
+    const user = results[0];
+    if (!user) return status(401, { error: "Invalid credentials" });
+    if (user.passwordHash !== hashPassword(password))
+      return status(401, { error: "Invalid credentials" });
+    const sessionId = createSession(email, user.role);
+    return { sessionId, role: user.role };
+  }, { body: LoginSchema })
+  .get("/auth/login", async () => {
+    return new Response(
+      `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login - Elysia Rack</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #f3f4f6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .card { background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 320px; }
+  h1 { font-size: 1.25rem; margin: 0 0 1.5rem; color: #111827; text-align: center; }
+  label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #374151; }
+  input { width: 100%; padding: 0.625rem; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-size: 1rem; margin-bottom: 1rem; }
+  button { width: 100%; padding: 0.625rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  button:hover { background: #1d4ed8; }
+  .hint { text-align: center; font-size: 0.875rem; color: #6b7280; margin-top: 1rem; }
+  .hint code { color: #111827; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Masuk ke Elysia Rack</h1>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="admin@example.com" required />
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="••••••••" required />
+      <button type="submit">Masuk</button>
+    </form>
+    <p class="hint">Coba: <code>admin@example.com / admin123</code> atau <code>user@example.com / user123</code></p>
+  </div>
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (res.ok) {
+        const { sessionId } = await res.json();
+        localStorage.setItem("rack_session", sessionId);
+        window.location.href = "/";
+      } else {
+        alert("Login gagal: cek email dan password");
+      }
+    });
+  </script>
+</body>
+</html>`,
+      { headers: { "content-type": "text/html; charset=utf-8" } },
+    );
+  })
+  .post("/auth/logout", async (ctx) => {
+    const sessionId = ctx.request.headers.get("Authorization")?.replace("Bearer ", "");
+    if (sessionId) deleteSession(sessionId);
+    return { ok: true };
+  })
   .get("/catalog/products/export", async () => {
     const rows = await db.select().from(products);
     const header = ["id", "name", "price", "status", "category_slug"];
@@ -258,7 +550,6 @@ const app = new Elysia()
       },
     });
   })
-  // Custom action: duplicate a product (row action, POST + refresh).
   .post("/catalog/products/:id/duplicate", async ({ params, status }) => {
     const [source] = await db
       .select()
@@ -272,7 +563,6 @@ const app = new Elysia()
       .returning();
     return { data: created };
   })
-  // legacy manual: .get("/", ({ query }) => page("/dashboard", { name: "Elysia Rack", resource: query.resource }))
   .listen(5000);
 
 console.log("Playground ready:");
@@ -285,5 +575,9 @@ console.log("  Duplicate action   POST  http://localhost:5000/catalog/products/1
 console.log("  Export action      GET   http://localhost:5000/catalog/products/export");
 console.log("  Categories (read-only) QUERY http://localhost:5000/catalog/categories/data");
 console.log("  Dashboard          GET   http://localhost:5000/");
+console.log("  Login page         GET   http://localhost:5000/auth/login");
+console.log("  Login              POST  http://localhost:5000/auth/login (email: admin@example.com / admin123 atau user@example.com / user123)");
+console.log("  Logout action      POST  http://localhost:5000/auth/logout (via toolbar action)");
+console.log("  Transactions         GET   http://localhost:5000/finance/transactions");
 
 export type App = typeof app;

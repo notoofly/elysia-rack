@@ -1,15 +1,16 @@
-import type { FieldDescriptor } from "../../rack/adapters/index";
-import type { Rack } from "../../rack/types";
-import { getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry";
-import { Breadcrumb } from "./components/Breadcrumb";
-import { DataTable } from "./components/DataTable";
-import { RackIcon } from "./components/Icon";
-import { Masthead } from "./components/Masthead";
-import { buildPanelFields, type PanelField } from "./components/panelFields";
-import { Pagination } from "./components/Pagination";
-import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar";
-import { Toolbar } from "./components/Toolbar";
-import { resolveDonateProp } from "../donate";
+import type { RowData } from "../../rack/json.ts";
+import type { FieldDescriptor } from "../../rack/adapters/index.ts";
+import type { Rack } from "../../rack/types/index.ts";
+import { getRackTree, type RackRegistration, type RackTreeNode } from "../../rack/registry.ts";
+import { Breadcrumb } from "./components/Breadcrumb.tsx";
+import { DataTable } from "./components/DataTable.tsx";
+import { RackIcon } from "./components/Icon.tsx";
+import { Masthead } from "./components/Masthead.tsx";
+import { buildPanelFields, type PanelField } from "./components/panelFields.ts";
+import { Pagination } from "./components/Pagination.tsx";
+import { Sidebar, type SidebarGroup, type SidebarItem } from "./components/Sidebar.tsx";
+import { Toolbar } from "./components/Toolbar.tsx";
+import { resolveDonateProp } from "../donate.ts";
 
 const inputClass =
   "border-input bg-input-background text-foreground placeholder:text-form-placeholder h-9 rounded-md border px-2.5 text-sm";
@@ -177,13 +178,13 @@ export interface PanelProps {
   operations?: Rack.CrudOperationsOptions;
   primaryKey?: string;
   query?: Rack.CrudQueryOptions;
-  params?: Record<string, unknown>;
+  params?: Record<string, string>;
   queryUrl?: string;
   fields?: FieldDescriptor[];
   softDelete?: boolean;
   deletedAtField?: string;
-  load?: (input: Record<string, unknown>) => Promise<{
-    data: unknown[];
+  load?: (input: Record<string, string>) => Promise<{
+    data: RowData[];
     total: number;
   }>;
 }
@@ -196,12 +197,12 @@ export default async function Panel(props: PanelProps) {
     1,
   );
 
-  let rows: Record<string, unknown>[] = [];
+  let rows: RowData[] = [];
   let total = 0;
   if (props.load) {
     try {
       const result = await props.load(params);
-      rows = result.data as Record<string, unknown>[];
+      rows = result.data;
       total = result.total;
     } catch {
       // keep empty on load failure (e.g., dummy adapter in tests)
@@ -242,7 +243,7 @@ export default async function Panel(props: PanelProps) {
   const allActions = props.actions ?? [];
   const rowActions = allActions.filter((a) => (a.scope ?? "row") === "row");
   const toolbarActions = allActions.filter((a) => a.scope === "toolbar");
-  const includeDeleted = params.includeDeleted === "true" || params.includeDeleted === true;
+  const includeDeleted = params.includeDeleted === "true";
 
   // Load entire tree for sidebar, highlight active panel
   const tree = getRackTree().filter((r) => !r.metadata.hidden);

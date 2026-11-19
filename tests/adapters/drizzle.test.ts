@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { drizzleAdapter } from "../../src/rack/adapters/drizzle";
+import { drizzleAdapter } from "../../src/rack/adapters/drizzle.ts";
 import {
   createTestDb,
   drizzleModel,
   seedProducts,
   type TestDb,
-} from "../helpers";
+} from "../helpers.ts";
 
 let db!: TestDb;
 
@@ -185,5 +185,30 @@ describe("drizzleAdapter mutations", () => {
       softDelete: true,
     });
     expect(listed.total).toBe(1);
+  });
+
+  it("does not mutate soft-deleted rows via update/replace", async () => {
+    const soft = { ...opts, softDelete: true };
+    await drizzleAdapter.remove(model(), "1", soft);
+    expect(await drizzleAdapter.update(model(), "1", { name: "X" }, soft)).toBeNull();
+    expect(await drizzleAdapter.replace(model(), "1", { name: "Y" }, soft)).toBeNull();
+    expect(await drizzleAdapter.detail(model(), "1", opts)).toMatchObject({
+      name: "Phone",
+    });
+  });
+
+  it("restores a soft-deleted row via an explicit deletedAt null write", async () => {
+    const soft = { ...opts, softDelete: true };
+    await drizzleAdapter.remove(model(), "1", soft);
+    const restored = (await drizzleAdapter.update(
+      model(),
+      "1",
+      { deletedAt: null },
+      soft,
+    )) as any;
+    expect(restored.deletedAt).toBeNull();
+    expect(await drizzleAdapter.detail(model(), "1", soft)).toMatchObject({
+      name: "Phone",
+    });
   });
 });

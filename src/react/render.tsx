@@ -2,17 +2,35 @@ import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
+import type { ComponentType } from "react";
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server"
-import { RackIcon } from "./page/components/Icon"
-import { ReactRack } from "./types"
+import { RackIcon } from "./page/components/Icon.tsx"
+import { ReactRack } from "./types.ts"
 
 type PageMetadata = { pluralLabel?: string; label?: string; icon?: string };
 
-function pageMeta(props: unknown): PageMetadata {
-  return (props as { metadata?: PageMetadata } | null)?.metadata ?? {};
+function pageMeta(props: object): PageMetadata {
+  const metadata =
+    "metadata" in props && typeof props.metadata === "object" && props.metadata !== null
+      ? props.metadata
+      : {};
+  return {
+    pluralLabel:
+      "pluralLabel" in metadata && typeof metadata.pluralLabel === "string"
+        ? metadata.pluralLabel
+        : undefined,
+    label:
+      "label" in metadata && typeof metadata.label === "string"
+        ? metadata.label
+        : undefined,
+    icon:
+      "icon" in metadata && typeof metadata.icon === "string"
+        ? metadata.icon
+        : undefined,
+  };
 }
 
-function pageTitle(path: string, props: unknown): string {
+function pageTitle(path: string, props: object): string {
   const metadata = pageMeta(props);
   return metadata.pluralLabel ?? metadata.label ?? path;
 }
@@ -94,7 +112,7 @@ function isLazyPage(entry: ReactRack.PageEntry): entry is ReactRack.PageLoader {
 export function createRenderer(pages: ReactRack.PageRegistry) {
   return async function render(
     path: string,
-    props: unknown
+    props: object
   ): Promise<Response> {
     const entry = pages[path]
     if (!entry) {
@@ -102,12 +120,10 @@ export function createRenderer(pages: ReactRack.PageRegistry) {
         status: 404
       })
     }
-    const Component = isLazyPage(entry)
+    const Component = (isLazyPage(entry)
       ? (await entry()).default
-      : entry
-    const stream = await renderToReadableStream(
-      <Component {...(props as object)} />
-    )
+      : entry) as ComponentType<object>
+    const stream = await renderToReadableStream(<Component {...props} />)
     const template = await loadTemplate()
     const { head, tail } = buildShell(
       template,
@@ -120,7 +136,7 @@ export function createRenderer(pages: ReactRack.PageRegistry) {
         controller.enqueue(encoder.encode(head));
         const reader = stream.getReader();
         try {
-          for (;;) {
+          for (; ;) {
             const { done, value } = await reader.read();
             if (done) break;
             controller.enqueue(value);
