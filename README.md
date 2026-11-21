@@ -13,7 +13,7 @@ elysia-rack turns a single database table or model into a complete admin resourc
 - **Routes**: `GET /` (panel), `QUERY /data` (list), `QUERY /data/:id` (detail), `POST /` (create), `PUT /:id` (replace), `PATCH /:id` (update), `DELETE /:id` (delete).
 - **A React panel**: table, create/edit/detail dialogs, soft-delete restore, bulk delete and field updates, search, filtering, sorting, and pagination.
 - **Safety**: per-operation validation (TypeBox via Elysia), per-operation authorization, idempotent creates, and OpenAPI metadata for generated routes.
-- **ORM support**: Drizzle (Postgres, SQLite, …) or Prisma. Panel assets are served under `/__rack/*` after `bun run build`.
+- **Data source support**: Drizzle (Postgres, SQLite, …), Prisma, ExcelJS workbooks (`.xlsx`), and Google Sheets. Panel assets are served under `/__rack/*` after `bun run build`.
 
 The panel reads and writes through the custom `QUERY` HTTP method, so reverse proxies, load balancers, and CDNs must allow it. There is no built-in login system — you add authentication and authorization rules yourself.
 
@@ -25,7 +25,7 @@ bun add elysia-rack elysia react react-dom
 npm i elysia-rack elysia react react-dom
 ```
 
-`elysia`, `react`, and `react-dom` are peer dependencies. `drizzle-orm` is an optional peer (only needed for the Drizzle adapter).
+`elysia`, `react`, and `react-dom` are peer dependencies. `drizzle-orm`, `exceljs`, and `googleapis` are optional peers (install only the provider you use).
 
 Supported runtimes: Bun >= 1.0.0, or Node.js >= 20.0.0. Elysia >= 1.4.0 and React >= 18 are required.
 
@@ -77,7 +77,7 @@ All operations default to `true`. Turn any off with `operations: { create: false
 
 | Option | Purpose |
 |---|---|
-| `model` | `{ drizzle: { db, table } }` or `{ prisma: { client, model } }` |
+| `model` | `{ drizzle: { db, table } }`, `{ prisma: { client, model } }`, `{ exceljs: { file/workbook, worksheet } }`, or `{ googleSheets: { auth, spreadsheetId, worksheet } }` |
 | `validation` | TypeBox schemas for `create`, `replace`, `update`, `params`, `query` |
 | `authorization` | Per-operation rule: `true`/`false`/permission string/function |
 | `query` | `searchable`, `filterable`, `sortable`, `defaultSort`, `pagination` |
@@ -150,10 +150,12 @@ Replays with the same key return the stored `201` with an `Idempotent-Replayed: 
 
 `settings: { softDelete: true }` writes a timestamp to `deletedAt` (override `deletedAtField`) instead of removing rows, and reads skip soft-deleted rows. The panel adds a `Show deleted` toggle and a `Restore` button (`PATCH` clearing `deletedAt`), available when `operations.update` is not disabled.
 
-## ORM adapters
+## Data adapters
 
-- **Drizzle** (Postgres, SQLite, …): `model: { drizzle: { db, table } }`. Requires `drizzle-orm` installed. Search uses SQL `ILIKE`, so it works on databases that support it (e.g. PostgreSQL) and fails on SQLite.
-- **Prisma**: `model: { prisma: { client, model: prisma.product } }`. No extra dependency. Prisma does not expose schema info at runtime, so panels fall back to row columns and a raw JSON form body.
+- **Drizzle** (Postgres, SQLite, …): `model: { drizzle: { db, table } }`. Requires `drizzle-orm`. Search uses SQL `ILIKE`, so it works on databases that support it (e.g. PostgreSQL) and fails on SQLite.
+- **Prisma**: `model: { prisma: { client, model: prisma.product } }`. No extra peer dependency. Prisma does not expose schema info at runtime, so panels fall back to row columns and a raw JSON form body.
+- **ExcelJS**: `model: { exceljs: { file, worksheet, primaryKey } }`. Requires `exceljs`. Uses local `.xlsx` files or in-memory workbooks. Reads/writes are process-local and serialized per workbook instance.
+- **Google Sheets**: `model: { googleSheets: { auth, spreadsheetId, worksheet, primaryKey } }`. Requires `googleapis`. Uses Google Sheets API v4 with batch reads/writes and metadata caching. See [docs/guides/google-sheets-integration.md](docs/guides/google-sheets-integration.md).
 
 ## Authorization
 

@@ -18,6 +18,8 @@ export namespace Rack {
 
   export type CrudDrizzleModel = models.CrudDrizzleModel;
   export type CrudPrismaModel = models.CrudPrismaModel;
+  export type CrudExcelJSModel = models.CrudExcelJSModel;
+  export type CrudGoogleSheetsModel = models.CrudGoogleSheetsModel;
   export type CrudModel = models.CrudModel;
 
   /**

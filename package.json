@@ -1,6 +1,6 @@
 {
   "name": "elysia-rack",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Model-driven CRUD rack for Elysia: REST + QUERY routes, validation, authorization, OpenAPI metadata, and React panel rendering.",
   "type": "module",
   "license": "MIT",
@@ -39,7 +39,15 @@
       "types": "./dist/react/index.d.ts",
       "default": "./dist/react/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./exceljs": {
+      "types": "./dist/rack/exceljs.d.ts",
+      "default": "./dist/rack/exceljs.js"
+    },
+    "./google-sheets": {
+      "types": "./dist/rack/google-sheets.d.ts",
+      "default": "./dist/rack/google-sheets.js"
+    }
   },
   "files": [
     "dist",
@@ -57,7 +65,7 @@
     "clean": "rm -rf dist",
     "build": "bun run clean && bun run build:css && bun run build:js && bun run build:dts && bun run build:client",
     "build:css": "tailwindcss -i src/react/page/panel.css -o dist/panel.css --minify",
-    "build:js": "bun build ./src/rack/index.ts ./src/react/index.ts --outdir ./dist --target node --format esm --splitting --external elysia --external react --external react-dom --external lucide-react",
+    "build:js": "bun build ./src/rack/index.ts ./src/rack/exceljs.ts ./src/rack/google-sheets.ts ./src/react/index.ts --outdir ./dist --target node --format esm --splitting --external elysia --external react --external react-dom --external lucide-react --external exceljs --external googleapis --external drizzle-orm",
     "build:client": "bun build src/react/page/client/panel.ts --outfile dist/panel-app.js --target browser --format esm && bun build src/react/page/client/theme.ts --outfile dist/panel-theme.js --target browser --format esm && mkdir -p dist && cp src/react/app.html dist/app.html 2>/dev/null || true",
     "build:dts": "tsc -p tsconfig.build.json",
     "prepublishOnly": "bun run typecheck && bun run build",
@@ -67,10 +75,18 @@
     "elysia": "^1.4.0",
     "react": ">=18",
     "react-dom": ">=18",
-    "drizzle-orm": "^0.45.0"
+    "drizzle-orm": "^0.45.0",
+    "exceljs": "^4.4.0",
+    "googleapis": "^140.0.0"
   },
   "peerDependenciesMeta": {
     "drizzle-orm": {
+      "optional": true
+    },
+    "exceljs": {
+      "optional": true
+    },
+    "googleapis": {
       "optional": true
     }
   },
@@ -85,7 +101,9 @@
     "elysia": "^1.4.30",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "typescript": "^5"
+    "typescript": "^5",
+    "exceljs": "^4.4.0",
+    "googleapis": "^171.0.0"
   },
   "funding": {
     "type": "ko-fi",

@@ -11,6 +11,8 @@ import {
 } from "./adapters/index.ts";
 import { drizzleAdapter } from "./adapters/drizzle.ts";
 import { prismaAdapter } from "./adapters/prisma.ts";
+import { exceljsAdapter } from "./adapters/exceljs.ts";
+import { googleSheetsAdapter } from "./adapters/google-sheets.ts";
 import { authorize, type AuthCheck } from "./authorization.ts";
 import { isJsonRecord, isJsonValue, type JsonValue, type RowData } from "./json.ts";
 import { createMemoryIdempotencyStore } from "./idempotency.ts";
@@ -45,6 +47,8 @@ export {
   getAdapter,
   drizzleAdapter,
   prismaAdapter,
+  exceljsAdapter,
+  googleSheetsAdapter,
   type AdapterOptions,
   type CrudAdapter,
   type FieldDescriptor,
@@ -177,7 +181,7 @@ export function rack<TModel extends Rack.CrudModel>(
           primaryKey,
           params: { ...(context.query ?? {}) },
           queryUrl: `${path.replace(/\/$/, "")}/data`,
-          fields: dataAdapter.describe(options.model),
+          fields: await dataAdapter.describe(options.model),
           softDelete: options.settings?.softDelete ?? false,
           deletedAtField: options.settings?.deletedAtField ?? "deletedAt",
           load: (input) =>

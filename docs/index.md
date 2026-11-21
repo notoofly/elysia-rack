@@ -2,7 +2,7 @@
 
 elysia-rack is a library for the [Elysia](https://elysiajs.com) web framework. It turns a database model into a complete admin resource: a JSON API, search and filtering, validation, authorization, and a browser panel for creating, editing, and deleting records.
 
-The documentation describes version `0.7.0` of the published package.
+The documentation describes version `0.7.1` of the published package.
 
 ## What it does
 
@@ -22,7 +22,7 @@ You describe one database table once. elysia-rack then provides:
 Use elysia-rack if you already have:
 
 - A Bun or Node.js application built with Elysia.
-- A database accessed through Drizzle ORM or Prisma.
+- A data source: Drizzle ORM, Prisma, ExcelJS workbook, or Google Sheets.
 - A need for an internal admin API or a small back-office panel.
 
 You do not need to build routes, table pages, or forms by hand. You do need to write a small amount of TypeScript configuration in your application.
@@ -32,7 +32,7 @@ You do not need to build routes, table pages, or forms by hand. You do need to w
 - Bun 1.0.0 or newer, or Node.js 20.0.0 or newer.
 - Elysia 1.4.0 or newer.
 - React and React DOM 18 or newer if you use the panel.
-- Drizzle ORM 0.45.0 or newer if you use the Drizzle adapter. Prisma needs no extra package.
+- Install only the provider package you use: `drizzle-orm`, `exceljs`, or `googleapis`.
 - A database and a table or model that already exist.
 
 ## Important limitations
@@ -45,6 +45,7 @@ You do not need to build routes, table pages, or forms by hand. You do need to w
 - The default idempotency store is held in memory and is not shared between processes.
 - String permission rules fail closed: when no server-trusted permission source is configured, the request is denied. Configure a permission source before relying on them.
 - Search with the Drizzle adapter may fail on SQLite because the adapter uses the PostgreSQL `ILIKE` operator. See [Common issues](troubleshooting/common-issues.md).
+- Spreadsheet adapters run query filtering/sorting/pagination in memory and have no database transactions.
 - Prisma does not expose schema information at runtime, so Prisma-backed panels fall back to row columns and a raw JSON form.
 
 ## Documentation map
@@ -59,6 +60,8 @@ You do not need to build routes, table pages, or forms by hand. You do need to w
 | [Basic usage](guides/basic-usage.md) | Use the panel, API, and dashboard day to day |
 | [Common workflows](guides/common-workflows.md) | Read-only resources, soft delete, navigation, protection, and theming |
 | [Advanced usage](guides/advanced-usage.md) | Custom pages, registry helpers, shared stores, and production setup |
+| [ExcelJS integration](guides/exceljs-integration.md) | Use local `.xlsx` files/workbooks as data sources |
+| [Google Sheets integration](guides/google-sheets-integration.md) | Use Google Sheets as a remote data source |
 | [Common issues](troubleshooting/common-issues.md) | Diagnose installation, configuration, and runtime problems |
 | [FAQ](faq.md) | Short answers about compatibility, usage, and limitations |
 

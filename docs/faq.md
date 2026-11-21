@@ -28,13 +28,17 @@ Yes. Node.js 20.0.0 and newer is supported. The examples use Bun for convenience
 
 Elysia 1.4.0 or newer. React and React DOM 18 or newer if you use the panel or dashboard.
 
-### Do I need Drizzle ORM if I use Prisma?
+### Do I need Drizzle ORM if I use Prisma/Excel/Sheets?
 
-No. Drizzle ORM is optional and only needed for the Drizzle adapter.
+No. Install only the provider package you use: `drizzle-orm`, `exceljs`, or `googleapis`.
+
+### Can I use Excel files or Google Sheets?
+
+Yes. Configure `model.exceljs` for `.xlsx` workbooks/files or `model.googleSheets` for Google Sheets API v4. Install `exceljs` or `googleapis` respectively.
 
 ### Can I use another ORM?
 
-The supported adapters are Drizzle and Prisma. Other ORMs are not supported unless they expose a compatible Drizzle or Prisma model shape.
+Supported adapters are Drizzle, Prisma, ExcelJS, and Google Sheets. Other sources need a compatible adapter implementation.
 
 ### Does it work with pnpm or Yarn?
 

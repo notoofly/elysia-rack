@@ -6,18 +6,15 @@ import {
 } from "../../src/rack/adapters/index.ts";
 
 describe("getAdapter", () => {
-  it("resolves drizzle and prisma", async () => {
+  it("resolves adapters", async () => {
     const { drizzleAdapter } = await import("../../src/rack/adapters/drizzle.ts");
     const { prismaAdapter } = await import("../../src/rack/adapters/prisma.ts");
-    expect(
-      getAdapter({ drizzle: { db: {}, table: {} } } as any).name,
-    ).toBe("drizzle");
-    expect(
-      getAdapter({ drizzle: { db: {}, table: {} } } as any),
-    ).toBe(drizzleAdapter);
-    expect(
-      getAdapter({ prisma: { client: {}, model: {} } } as any),
-    ).toBe(prismaAdapter);
+    const { exceljsAdapter } = await import("../../src/rack/adapters/exceljs.ts");
+    const { googleSheetsAdapter } = await import("../../src/rack/adapters/google-sheets.ts");
+    expect(getAdapter({ drizzle: { db: {}, table: {} } } as any)).toBe(drizzleAdapter);
+    expect(getAdapter({ prisma: { client: {}, model: {} } } as any)).toBe(prismaAdapter);
+    expect(getAdapter({ exceljs: { worksheet: "Sheet1" } } as any)).toBe(exceljsAdapter);
+    expect(getAdapter({ googleSheets: { auth: {}, spreadsheetId: "s", worksheet: "Sheet1" } } as any)).toBe(googleSheetsAdapter);
   });
 });
 

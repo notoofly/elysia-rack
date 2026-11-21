@@ -1,3 +1,12 @@
+## [0.7.1] — 2026-11-21
+
+### Spreadsheet data source adapters
+- Added ExcelJS adapter (`model.exceljs`) for local `.xlsx` files and in-memory workbooks. Supports worksheet selection, header mapping, primary-key CRUD, in-memory query processing, atomic file persistence, and per-workbook write serialization.
+- Added Google Sheets adapter (`model.googleSheets`) for Google Sheets API v4. Supports GoogleAuth/OAuth2/pre-authenticated clients, worksheet metadata resolution, header mapping, primary-key CRUD, batch reads/writes, metadata caching, and normalized API errors.
+- Added optional peer dependencies `exceljs` and `googleapis`, plus subpath exports `elysia-rack/exceljs` and `elysia-rack/google-sheets`.
+- Extended adapter resolution/types to `exceljs` and `google-sheets`; `CrudAdapter.describe` may be async for data-source introspection.
+- Added spreadsheet integration guides and updated configuration/installation/troubleshooting docs.
+
 # Changelog
 
 ## [0.7.0] — 2026-11-19

@@ -8,7 +8,7 @@ This page lists every user-facing option. All options are passed in TypeScript c
 
 | Option | Type | Default | Purpose |
 |---|---|---|---|
-| `model` | Drizzle or Prisma model object | Required | Selects the adapter and the table or model |
+| `model` | Drizzle, Prisma, ExcelJS, or Google Sheets model object | Required | Selects the adapter and data source |
 | `settings` | object | See below | Primary key, soft delete, and response data |
 | `operations` | object | All enabled | Turns individual routes on or off |
 | `validation` | object | None | Elysia or TypeBox schemas per operation |
@@ -21,7 +21,7 @@ This page lists every user-facing option. All options are passed in TypeScript c
 
 ## `model`
 
-The two shapes are mutually exclusive.
+Model shapes are mutually exclusive.
 
 Drizzle:
 
@@ -45,7 +45,38 @@ model: {
 }
 ```
 
-The Drizzle adapter inspects the table columns to build panel forms. The Prisma adapter cannot inspect its schema at runtime, so Prisma forms fall back to the columns in existing rows or a raw JSON field for an empty table.
+ExcelJS:
+
+```ts
+model: {
+  exceljs: {
+    file: "./data/products.xlsx", // or workbook
+    workbook,                      // in-memory Workbook instance
+    worksheet: "Products",
+    primaryKey: "id",              // optional, defaults to settings.primaryKey/"id"
+    headerRow: 1,                  // optional
+    persist: true,                 // optional, default true when file is set
+    createWorksheet: false,        // optional
+  },
+}
+```
+
+Google Sheets:
+
+```ts
+model: {
+  googleSheets: {
+    auth,                          // GoogleAuth/OAuth2Client/pre-authed client
+    spreadsheetId: "...",
+    worksheet: "Products",
+    primaryKey: "id",              // optional
+    headerRow: 1,                  // optional
+    metadataCacheTtl: 30_000,      // optional ms, 0 disables cache
+  },
+}
+```
+
+The Drizzle adapter inspects table columns to build panel forms. Prisma does not expose schema at runtime. Spreadsheet adapters infer fields from headers/sample rows when possible; use `metadata.fields` for explicit labels/formats.
 
 ## `settings`
 
@@ -497,16 +528,18 @@ The registry lives in memory and is filled when `rack()` runs during startup. It
 
 These helpers are exported from `elysia-rack` and are useful when you need direct access to the adapter layer or the idempotency store.
 
-### ORM adapters
+### Data adapters
 
 | Export | Source | Purpose |
 |---|---|---|
 | `drizzleAdapter` | `elysia-rack` | Drizzle ORM adapter (Postgres, SQLite, …) |
 | `prismaAdapter` | `elysia-rack` | Prisma adapter |
+| `exceljsAdapter` | `elysia-rack` / `elysia-rack/exceljs` | ExcelJS workbook/file adapter |
+| `googleSheetsAdapter` | `elysia-rack` / `elysia-rack/google-sheets` | Google Sheets API adapter |
 | `getAdapter(model)` | `elysia-rack` | Returns the `CrudAdapter` for a model |
-| `resolveAdapter(model)` | `elysia-rack` | Returns `"drizzle"` or `"prisma"` for a model |
+| `resolveAdapter(model)` | `elysia-rack` | Returns adapter name for a model |
 
-Each adapter implements the `CrudAdapter` contract: `describe`, `list`, `detail`, `create`, `replace`, `update`, and `remove`. The `rack()` function selects the adapter automatically based on the `model` shape (`{ drizzle }` or `{ prisma }`).
+Each adapter implements the `CrudAdapter` contract: `describe`, `list`, `detail`, `create`, `replace`, `update`, and `remove`. The `rack()` function selects the adapter automatically based on the `model` shape.
 
 ### Idempotency store
 

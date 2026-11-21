@@ -22,23 +22,23 @@ elysia-rack requires these packages in your application:
 | `react` | 18 or newer | Yes if you use the panel, dashboard, or any React page |
 | `react-dom` | 18 or newer | Yes if you use the panel, dashboard, or any React page |
 | `drizzle-orm` | 0.45.0 or newer | Yes only when you use the Drizzle adapter |
+| `exceljs` | 4.x | Yes only when you use the ExcelJS adapter |
+| `googleapis` | supported by your runtime | Yes only when you use the Google Sheets adapter |
 
-Prisma users do not need the `drizzle-orm` package. `lucide-react` is installed automatically as a dependency of elysia-rack.
+Prisma needs no extra provider package. Install only providers you configure. `lucide-react` is installed automatically as a dependency of elysia-rack.
 
 The published package includes the built panel stylesheet and browser scripts. You do not need a separate build step after installing from a package registry.
 
-## Database requirements
+## Data source requirements
 
-elysia-rack does not include a database and does not create tables or run migrations. You need:
+elysia-rack does not create tables/sheets or run migrations. You need an existing data source:
 
-- A database server or file-based database supported by your ORM.
-- An existing table or model with at least one primary key column.
-- A configured Drizzle database instance and table object, or a Prisma client and model delegate.
+- **Drizzle**: database + Drizzle table object.
+- **Prisma**: Prisma client + model delegate.
+- **ExcelJS**: readable `.xlsx` file or in-memory workbook, with a worksheet and header row.
+- **Google Sheets**: Google Cloud project, Sheets API enabled, credentials/auth client, spreadsheet shared with the caller as needed.
 
-The library supports two adapter shapes:
-
-- Drizzle, using `drizzle-orm`.
-- Prisma, using any Prisma model delegate such as `prisma.product`.
+Spreadsheet adapters are not transactional databases; plan for concurrency/quota/file-lock limits.
 
 ## Network requirements
 

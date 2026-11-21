@@ -1,11 +1,16 @@
 import type { JsonValue, RowData } from "../json.ts";
 import type { ParsedListQuery } from "../query.ts";
 import type { Rack } from "../types/index.ts";
+import { resolveAdapter } from "../adapter.ts";
 import { drizzleAdapter } from "./drizzle.ts";
 import { prismaAdapter } from "./prisma.ts";
+import { exceljsAdapter } from "./exceljs.ts";
+import { googleSheetsAdapter } from "./google-sheets.ts";
 
 export { drizzleAdapter } from "./drizzle.ts";
 export { prismaAdapter } from "./prisma.ts";
+export { exceljsAdapter } from "./exceljs.ts";
+export { googleSheetsAdapter } from "./google-sheets.ts";
 
 /** A parsed request body: JSON value, or `undefined` when absent. */
 export type JsonBody = JsonValue | undefined;
@@ -41,19 +46,18 @@ export interface FieldDescriptor {
 }
 
 /**
- * ORM adapter contract. Each method returns `null` when the target
+ * Data adapter contract. Each method returns `null` when the target
  * row does not exist (handlers map it to 404), or `undefined` data
  * when `returning` is disabled.
  */
 export interface CrudAdapter {
-  readonly name: "drizzle" | "prisma";
+  readonly name: "drizzle" | "prisma" | "exceljs" | "google-sheets";
 
   /**
    * Introspect writable fields for smart forms.
-   * Returns `[]` when the ORM exposes no schema (e.g. Prisma delegates);
-   * callers then fall back to text inputs derived from row data.
+   * Returns `[]` when schema is unavailable.
    */
-  describe(model: Rack.CrudModel): FieldDescriptor[];
+  describe(model: Rack.CrudModel): FieldDescriptor[] | Promise<FieldDescriptor[]>;
 
   list(
     model: Rack.CrudModel,
@@ -95,15 +99,22 @@ export interface CrudAdapter {
 }
 
 export function getAdapter(model: Rack.CrudModel): CrudAdapter {
-  return "drizzle" in model && model.drizzle !== undefined
-    ? drizzleAdapter
-    : prismaAdapter;
+  switch (resolveAdapter(model)) {
+    case "drizzle":
+      return drizzleAdapter;
+    case "prisma":
+      return prismaAdapter;
+    case "exceljs":
+      return exceljsAdapter;
+    case "google-sheets":
+      return googleSheetsAdapter;
+  }
 }
 
 /**
  * Whether a column type holds integers.
  *
- * Unknown columns (e.g. Prisma delegates) are treated as numeric-friendly.
+ * Unknown columns are treated as numeric-friendly.
  */
 export function isNumericColumn(columnType?: string): boolean {
   return (
@@ -114,9 +125,6 @@ export function isNumericColumn(columnType?: string): boolean {
 
 /**
  * Coerce a string route id to the column type.
- *
- * Integer-like columns (or unknown columns, e.g. Prisma delegates)
- * turn numeric strings into numbers; everything else passes through.
  */
 export function coerceIdValue(id: string, columnType?: string): string | number {
   if (!isNumericColumn(columnType)) return id;

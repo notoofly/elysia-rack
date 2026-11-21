@@ -156,7 +156,13 @@ The panel hides the search box when `searchable` is empty, so users are not offe
 
 **Problem:** the `New record` dialog shows a JSON text area instead of individual inputs.
 
-**Possible cause:** the adapter did not return field information. This is expected with Prisma, which does not expose its schema at runtime, or when the table has no known columns.
+**Possible cause:** the adapter did not return field information. This is expected with Prisma, which does not expose its schema at runtime, or when a spreadsheet has no readable headers/sample data.
+
+**Solution:**
+
+- Ensure spreadsheet header row is present and configured by `headerRow`.
+- Add `metadata.fields` to define labels/formats explicitly.
+- For Prisma, seed at least one row or use raw JSON intentionally.
 
 **Solution:**
 
@@ -272,3 +278,44 @@ The panel hides the search box when `searchable` is empty, so users are not offe
 - [FAQ](../faq.md)
 - [Configuration reference](../configuration/configuration-reference.md)
 - [Common workflows](../guides/common-workflows.md)
+
+
+## ExcelJS: file not found / worksheet missing
+
+**Problem:** requests fail with `FILE_NOT_FOUND` or `MISSING_WORKSHEET`.
+
+**Possible cause:** the configured `file` path is wrong, or the workbook has no worksheet with the configured name.
+
+**Solution:** verify `file`, `worksheet`, and `headerRow`. Set `createWorksheet: true` only when creating a new worksheet intentionally.
+
+**Verification:** list endpoint returns records or an empty list.
+
+## ExcelJS: persistence failed or concurrent writes
+
+**Problem:** mutations fail with `PERSISTENCE_FAILED`, or concurrent writes overwrite data.
+
+**Possible cause:** file permissions/disk errors, or multiple processes writing the same `.xlsx` file.
+
+**Solution:** ensure the process can write the target directory. Use a single writer process for file-backed workbooks; ExcelJS is not a multi-process transactional store.
+
+**Verification:** repeat the mutation and confirm the `.xlsx` file opens and contains the expected row.
+
+## Google Sheets: auth or permission error
+
+**Problem:** requests fail with `AUTH_FAILURE`.
+
+**Possible cause:** invalid credentials, wrong scopes, spreadsheet not shared with service account, or expired OAuth token.
+
+**Solution:** verify Google Sheets API is enabled, credentials are valid, and the spreadsheet is shared with the caller. Use `spreadsheets.readonly` for read-only resources and `spreadsheets` for CRUD.
+
+**Verification:** `QUERY /data` returns rows.
+
+## Google Sheets: quota or timeout
+
+**Problem:** requests fail with `API_QUOTA` or `NETWORK_TIMEOUT`.
+
+**Possible cause:** Google API quota limits, large sheets, or network instability.
+
+**Solution:** reduce request frequency, keep sheets reasonably sized, cache at app level where appropriate, and avoid unnecessary writes. Spreadsheet adapters already batch reads/writes and cache metadata briefly.
+
+**Verification:** retry with lower load; successful response includes data.

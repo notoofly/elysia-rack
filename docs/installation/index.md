@@ -18,13 +18,20 @@ This command does three things:
 - Installs the required Elysia, React, and React DOM peer packages.
 - Updates your lockfile.
 
-If you use the Drizzle adapter, also install Drizzle ORM:
+Install only the data provider you use:
 
 ```bash
+# Drizzle
 bun add drizzle-orm
+
+# ExcelJS (.xlsx)
+bun add exceljs
+
+# Google Sheets
+bun add googleapis
 ```
 
-Prisma users do not need to install `drizzle-orm`.
+Prisma needs no extra provider package. All provider packages are optional peer dependencies.
 
 ## Install with npm
 
