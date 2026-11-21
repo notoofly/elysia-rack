@@ -177,6 +177,26 @@ function cleanErrorText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function formatValidationError(value: unknown, depth = 0): string | undefined {
+  if (depth > 3 || !isJsonRecord(value)) return undefined;
+  if (value["type"] === "validation") {
+    const propRaw = typeof value["property"] === "string" ? value["property"] : "";
+    const prop = propRaw.replace(/^\//, "").replace(/\//g, ".").trim();
+    const msg =
+      messageFromUnknown(value["summary"], depth + 1) ??
+      messageFromUnknown(value["message"], depth + 1) ??
+      messageFromUnknown(value["error"], depth + 1);
+    if (msg) return prop ? `${prop}: ${msg}` : msg;
+  }
+  if (Array.isArray(value["errors"])) {
+    for (const item of value["errors"] as unknown[]) {
+      const msg = formatValidationError(item, depth + 1);
+      if (msg) return msg;
+    }
+  }
+  return undefined;
+}
+
 function messageFromUnknown(value: unknown, depth = 0): string | undefined {
   if (depth > 3 || value == null) return undefined;
   if (typeof value === "string") {
@@ -192,7 +212,9 @@ function messageFromUnknown(value: unknown, depth = 0): string | undefined {
     return undefined;
   }
   if (isJsonRecord(value)) {
-    for (const key of ["message", "error", "detail", "description", "msg", "reason"]) {
+    const validation = formatValidationError(value, depth + 1);
+    if (validation) return validation;
+    for (const key of ["message", "error", "detail", "description", "msg", "reason", "summary"]) {
       const msg = messageFromUnknown(value[key], depth + 1);
       if (msg) return msg;
     }
