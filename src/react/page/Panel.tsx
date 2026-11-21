@@ -41,7 +41,7 @@ function FieldInput({ field, required }: { field: PanelField; required?: boolean
       return (
         <label className={fieldLabelClass}>
           {field.label}
-          <select name={field.name} required={required} defaultValue="" className={inputClass}>
+          <select name={field.name} data-kind={field.kind} required={required} defaultValue="" className={inputClass}>
             <option value="">Select</option>
             {(field.enumValues ?? []).map((v) => (
               <option key={v} value={v}>
@@ -54,7 +54,7 @@ function FieldInput({ field, required }: { field: PanelField; required?: boolean
     case "boolean":
       return (
         <label className={`${fieldLabelClass} flex-row items-center gap-2`}>
-          <input type="checkbox" name={field.name} value="true" className="accent-primary size-4" />
+          <input type="checkbox" name={field.name} data-kind="boolean" value="true" className="accent-primary size-4" />
           {field.label}
         </label>
       );
@@ -67,6 +67,7 @@ function FieldInput({ field, required }: { field: PanelField; required?: boolean
             type="number"
             step={field.kind === "number" ? "any" : "1"}
             name={field.name}
+            data-kind={field.kind}
             required={required}
             className={inputClass}
           />
@@ -79,6 +80,7 @@ function FieldInput({ field, required }: { field: PanelField; required?: boolean
           <input
             type="datetime-local"
             name={field.name}
+            data-kind={field.kind}
             required={required}
             className={inputClass}
           />
@@ -91,6 +93,7 @@ function FieldInput({ field, required }: { field: PanelField; required?: boolean
           <textarea
             name={field.name}
             data-json
+            data-kind="json"
             rows={3}
             placeholder="{}"
             className={`${inputClass} font-mono`}

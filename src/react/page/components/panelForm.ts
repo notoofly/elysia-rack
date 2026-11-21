@@ -29,11 +29,26 @@ export function collectFormBody(form: HTMLFormElement): {
     }
     if (el.value === "") continue;
     if (el.hasAttribute("data-json")) {
-      const parsed: JsonValue = JSON.parse(el.value);
-      if (!isJsonRecord(parsed)) {
+      let parsed: JsonValue;
+      try {
+        parsed = JSON.parse(el.value);
+      } catch {
         return { error: `Invalid JSON in ${el.name}` };
       }
       body[el.name] = parsed;
+      continue;
+    }
+    const kind = el.dataset.kind;
+    if (kind === "integer" || kind === "number") {
+      const n = Number(el.value);
+      if (Number.isNaN(n)) return { error: `Invalid number in ${el.name}` };
+      body[el.name] = n;
+      continue;
+    }
+    if (kind === "boolean") {
+      if (el.value === "true" || el.value === "1") body[el.name] = true;
+      else if (el.value === "false" || el.value === "0") body[el.name] = false;
+      else body[el.name] = el.value;
       continue;
     }
     body[el.name] = el.value;
