@@ -13,6 +13,7 @@
     "src"
   ],
   "exclude": [
-    "src/playground.ts"
+    "src/playground.ts",
+    "playground"
   ]
 }

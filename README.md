@@ -256,7 +256,9 @@ Dark mode follows `localStorage` or `prefers-color-scheme`, with a theme toggle 
 
 ```bash
 bun install        # install dependencies
-bun run dev        # run src/playground.ts
+bun run dev        # run playground/basic.ts
+bun run dev:exceljs
+bun run dev:google-sheets
 bun test           # unit tests (bun:test)
 bun run typecheck  # tsc --noEmit
 bun run build      # dist/ (js via bun build + .d.ts via tsc)
