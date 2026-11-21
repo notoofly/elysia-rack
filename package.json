@@ -51,7 +51,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "dev": "bun run src/playground.ts",
+    "dev": "bun run playground/basic.ts",
     "test": "bun test --coverage",
     "typecheck": "tsc --noEmit",
     "build": "bun run build:css && bun run build:js && bun run build:dts && bun run build:client",
@@ -63,7 +63,9 @@
     "docs:build": "vitepress build docs",
     "docs:dev": "vitepress dev docs",
     "site:build": "test -f site/index.html && echo \"site: static build complete\"",
-    "site:preview": "python3 -m http.server 8080 --directory site"
+    "site:preview": "python3 -m http.server 8080 --directory site",
+    "dev:exceljs": "bun run playground/exceljs.ts",
+    "dev:google-sheets": "bun run playground/google-spreadsheets.ts"
   },
   "peerDependencies": {
     "elysia": "^1.4.0",

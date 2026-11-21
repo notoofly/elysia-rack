@@ -37,3 +37,6 @@ logs/
 *~
 .DS_Store
 Thumbs.db
+
+# playground artifacts
+playground/*.xlsx
