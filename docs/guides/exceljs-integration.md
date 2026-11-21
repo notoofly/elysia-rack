@@ -69,15 +69,35 @@ In-memory workbooks are not persisted to disk unless you also provide `file` and
 | `headerRow` | number | `1` | 1-based row containing headers. |
 | `persist` | boolean | `true` when `file` is set | Write workbook changes back to `file`. |
 | `createWorksheet` | boolean | `false` | Create worksheet when missing. |
+| `schema` | TypeBox `t.Object(...)` | none | Optional record schema for typed fields and introspection. |
 
-## Headers and field mapping
+## Record schema / field mapping
 
 - The adapter reads column headers from `headerRow`.
 - Header names become record field names.
-- `describe()` infers field kinds from sample values for panel forms.
+- Add optional `schema` (TypeBox, same style as `validation`) to declare record field names/types. This gives typed `query/metadata/settings` field names and better panel field introspection.
+- Without `schema`, `describe()` infers kinds from sample values.
 - If the configured primary key column is missing, reads fail with `MISSING_PRIMARY_KEY`. Create can add it when building a new row.
 
 Use `metadata.fields` for labels, formats, visibility, and relations as with other adapters.
+
+```ts
+import { t } from "elysia";
+
+model: {
+  exceljs: {
+    file: "./data/products.xlsx",
+    worksheet: "Products",
+    primaryKey: "id",
+    schema: t.Object({
+      id: t.Integer(),
+      name: t.String(),
+      status: t.Union([t.Literal("active"), t.Literal("archived")]),
+      price: t.Number(),
+    }),
+  },
+}
+```
 
 ## CRUD behavior
 

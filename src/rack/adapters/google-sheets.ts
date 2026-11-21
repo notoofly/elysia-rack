@@ -52,6 +52,7 @@ type GoogleSheetsConfig = {
   primaryKey?: string;
   headerRow?: number;
   metadataCacheTtl?: number;
+  schema?: unknown;
   /** @internal test/advanced override */
   sheetsApi?: SheetsApi;
 };
@@ -299,8 +300,9 @@ export const googleSheetsAdapter: CrudAdapter = {
     try {
       const api = await getSheetsApi(config);
       const { headers, records } = await readRecords(config, api, o);
-      return describeHeaders(headers, records.map((r) => r.data), o.primaryKey);
+      return describeHeaders(headers, records.map((r) => r.data), o.primaryKey, config.schema);
     } catch {
+      if (config.schema) return describeHeaders([], [], o.primaryKey, config.schema);
       return [];
     }
   },

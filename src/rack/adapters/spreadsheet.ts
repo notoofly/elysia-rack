@@ -39,11 +39,86 @@ export function inferFieldKind(value: Cell | undefined): FieldKind {
   return "text";
 }
 
+interface SchemaLike {
+  properties?: Record<string, unknown>;
+  required?: string[];
+}
+
+function schemaProperty(schema: unknown): SchemaLike | null {
+  return isJsonRecord(schema) ? (schema as SchemaLike) : null;
+}
+
+function unwrapSchema(schema: unknown): unknown[] {
+  if (!isJsonRecord(schema)) return [schema];
+  const variants = [schema.anyOf, schema.oneOf, schema.allOf].find(Array.isArray);
+  if (variants) return variants.flatMap(unwrapSchema);
+  return [schema];
+}
+
+function kindFromSchema(schema: unknown): FieldKind | undefined {
+  const variants = unwrapSchema(schema).filter((v) => isJsonRecord(v)) as Record<string, unknown>[];
+  if (variants.length === 0) return undefined;
+  const kinds = new Set<FieldKind>();
+  for (const v of variants) {
+    if ("const" in v && typeof v.const === "string") kinds.add("enum");
+    const type = v.type;
+    const format = v.format;
+    if (type === "boolean") kinds.add("boolean");
+    else if (type === "integer") kinds.add("integer");
+    else if (type === "number") kinds.add("number");
+    else if (type === "string") {
+      if (format === "date" || format === "date-time") kinds.add("date");
+      else kinds.add("text");
+    } else if (type === "object" || type === "array") kinds.add("json");
+    else if (format === "date" || format === "date-time") kinds.add("date");
+  }
+  if (kinds.size === 1) return [...kinds][0];
+  if (kinds.has("enum") && kinds.size > 1) return "enum";
+  if (kinds.has("text")) return "text";
+  return [...kinds][0];
+}
+
+function enumValuesFromSchema(schema: unknown): readonly string[] | undefined {
+  const values = unwrapSchema(schema)
+    .filter((v) => isJsonRecord(v) && typeof v.const === "string")
+    .map((v) => (v as { const: string }).const);
+  return values.length > 0 ? [...new Set(values)] : undefined;
+}
+
+export function describeSchema(
+  schema: unknown,
+  primaryKey: string,
+): FieldDescriptor[] {
+  const s = schemaProperty(schema);
+  const props = s?.properties;
+  if (!props) return [];
+  const required = new Set(s?.required ?? []);
+  return Object.entries(props).map(([name, prop]) => ({
+    name,
+    kind: kindFromSchema(prop) ?? "text",
+    primary: name === primaryKey,
+    autoIncrement: false,
+    nullable: name !== primaryKey && !required.has(name),
+    enumValues: enumValuesFromSchema(prop),
+  }));
+}
+
 export function describeHeaders(
   headers: string[],
   rows: RowData[],
   primaryKey: string,
+  schema?: unknown,
 ): FieldDescriptor[] {
+  const fromSchema = describeSchema(schema, primaryKey);
+  if (fromSchema.length > 0) {
+    const known = new Set(fromSchema.map((f) => f.name));
+    for (const h of headers) {
+      if (known.has(h)) continue;
+      const sample = rows.find((r) => r[h] !== undefined && r[h] !== null)?.[h];
+      fromSchema.push({ name: h, kind: inferFieldKind(sample), primary: h === primaryKey, autoIncrement: false, nullable: h !== primaryKey });
+    }
+    return fromSchema;
+  }
   return headers.map((name) => {
     const sample = rows.find((r) => r[name] !== undefined && r[name] !== null)?.[name];
     return {

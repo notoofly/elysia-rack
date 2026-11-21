@@ -87,6 +87,31 @@ Your application owns OAuth consent/token lifecycle. Do not expose tokens throug
 | `primaryKey` | string | rack `settings.primaryKey` or `"id"` | Column used as record identity. |
 | `headerRow` | number | `1` | 1-based row containing headers. |
 | `metadataCacheTtl` | number (ms) | `30000` | Cache sheet metadata/headers. `0` disables cache. |
+| `schema` | TypeBox `t.Object(...)` | none | Optional record schema for typed fields and introspection. |
+
+## Record schema / field mapping
+
+- Headers are read from `headerRow`; header names become record field names.
+- Add optional `schema` (TypeBox) to declare record field names/types. This gives typed `query/metadata/settings` field names and better panel field introspection.
+- Without `schema`, `describe()` infers kinds from sample row values.
+
+```ts
+import { t } from "elysia";
+
+model: {
+  googleSheets: {
+    auth,
+    spreadsheetId: "1abc...",
+    worksheet: "Products",
+    primaryKey: "id",
+    schema: t.Object({
+      id: t.Integer(),
+      name: t.String(),
+      status: t.Union([t.Literal("active"), t.Literal("archived")]),
+    }),
+  },
+}
+```
 
 ## CRUD behavior
 

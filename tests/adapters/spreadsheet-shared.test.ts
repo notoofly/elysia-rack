@@ -20,6 +20,13 @@ describe("spreadsheet shared helpers", () => {
     ]);
   });
 
+  it("prefers TypeBox schema when provided", async () => {
+    const { t } = await import("elysia");
+    const schema = t.Object({ id: t.Integer(), status: t.Union([t.Literal("active"), t.Literal("archived")]) });
+    const fields = describeHeaders(["id", "status"], [{ id: 1, status: "active" }], "id", schema);
+    expect(fields.find((f) => f.name === "status")).toMatchObject({ kind: "enum", enumValues: ["active", "archived"] });
+  });
+
   it("filters, searches, sorts and paginates", () => {
     const rows = [
       { id: 1, name: "Phone", status: "active", price: 500 },

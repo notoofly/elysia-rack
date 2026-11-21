@@ -8,6 +8,10 @@ import type { CrudPrismaModel } from "./prisma.ts";
 import type { CrudExcelJSModel } from "./exceljs.ts";
 import type { CrudGoogleSheetsModel } from "./google-sheets.ts";
 
+type SchemaFieldName<TSchema> = TSchema extends { properties: Record<infer K, unknown> }
+  ? K & string
+  : string;
+
 /**
  * ORM/model/resource configuration.
  *
@@ -43,11 +47,16 @@ export type CrudModel =
 /**
  * Field names inherited from the bound model.
  *
- * Drizzle tables carry column types. Other providers expose no static
- * field-name types, so they fall back to `string`.
+ * Drizzle tables carry column types. Spreadsheet providers infer field
+ * names from a TypeBox `schema` when provided; otherwise they fall back
+ * to `string`.
  */
 export type CrudFieldName<TModel> = TModel extends {
   drizzle: { table: infer TTable };
 }
   ? CrudDrizzleFieldNames<TTable>
-  : string;
+  : TModel extends { exceljs: { schema: infer TSchema } }
+    ? SchemaFieldName<TSchema>
+    : TModel extends { googleSheets: { schema: infer TSchema } }
+      ? SchemaFieldName<TSchema>
+      : string;

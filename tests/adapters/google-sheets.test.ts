@@ -122,4 +122,13 @@ describe("googleSheetsAdapter", () => {
     const m = { googleSheets: { auth: {}, spreadsheetId: "sheet-1", worksheet: "Products", primaryKey: "id", sheetsApi: api } } as unknown as Rack.CrudModel;
     await expect(googleSheetsAdapter.list(m, baseQuery(), { primaryKey: "id" })).rejects.toMatchObject({ code: "MISSING_WORKSHEET" });
   });
+
+  it("uses TypeBox schema for field names/types when provided", async () => {
+    const { t } = await import("elysia");
+    const state = { sheetId: 7, title: "Products", headers: ["id", "name"], rows: [[1, "A"]], calls: [] as any[] };
+    const api = makeApi(state);
+    const m = { googleSheets: { auth: {}, spreadsheetId: "sheet-1", worksheet: "Products", primaryKey: "id", sheetsApi: api, schema: t.Object({ id: t.Integer(), name: t.String(), status: t.Union([t.Literal("active"), t.Literal("archived")]) }) } } as unknown as Rack.CrudModel;
+    const fields = await googleSheetsAdapter.describe(m);
+    expect(fields.find((f) => f.name === "status")).toMatchObject({ kind: "enum" });
+  });
 });

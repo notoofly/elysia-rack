@@ -55,6 +55,19 @@ describe("exceljsAdapter", () => {
     expect(fields.find((f) => f.name === "active")).toMatchObject({ kind: "boolean" });
   });
 
+  it("uses TypeBox schema for field names/types when provided", async () => {
+    const { t } = await import("elysia");
+    const fields = await exceljsAdapter.describe(model({
+      schema: t.Object({
+        id: t.Integer(),
+        name: t.String(),
+        status: t.Union([t.Literal("active"), t.Literal("archived")]),
+      }),
+    }));
+    expect(fields.find((f) => f.name === "status")).toMatchObject({ kind: "enum" });
+    expect(fields.map((f) => f.name)).toContain("status");
+  });
+
   it("lists, filters, searches, sorts and paginates", async () => {
     const listed = await exceljsAdapter.list(model(), baseQuery(), { primaryKey: "id" });
     expect(listed.total).toBe(3);

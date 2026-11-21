@@ -71,6 +71,7 @@ type ExcelConfig = {
   headerRow?: number;
   persist?: boolean;
   createWorksheet?: boolean;
+  schema?: unknown;
 };
 
 function configOf(model: Rack.CrudModel): ExcelConfig {
@@ -274,8 +275,9 @@ export const exceljsAdapter: CrudAdapter = {
     const o = withPrimaryKey({ primaryKey: config.primaryKey ?? "id" }, config);
     try {
       const { headers, rows } = await readState(model, o);
-      return describeHeaders(headers, rows, o.primaryKey);
+      return describeHeaders(headers, rows, o.primaryKey, config.schema);
     } catch {
+      if (config.schema) return describeHeaders([], [], o.primaryKey, config.schema);
       return [];
     }
   },
