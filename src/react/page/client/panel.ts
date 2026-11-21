@@ -173,6 +173,56 @@ function toast(root: Element, message: string, error = false): void {
   window.setTimeout(() => el.remove(), 4000);
 }
 
+function cleanErrorText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function messageFromUnknown(value: unknown, depth = 0): string | undefined {
+  if (depth > 3 || value == null) return undefined;
+  if (typeof value === "string") {
+    const text = cleanErrorText(value);
+    return text || undefined;
+  }
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const msg = messageFromUnknown(item, depth + 1);
+      if (msg) return msg;
+    }
+    return undefined;
+  }
+  if (isJsonRecord(value)) {
+    for (const key of ["message", "error", "detail", "description", "msg", "reason"]) {
+      const msg = messageFromUnknown(value[key], depth + 1);
+      if (msg) return msg;
+    }
+    return messageFromUnknown(value["errors"], depth + 1);
+  }
+  return undefined;
+}
+
+async function readErrorMessage(res: Response): Promise<string> {
+  const fallback = `Request failed (${res.status})`;
+  let text = "";
+  try {
+    text = await res.text();
+  } catch {
+    return fallback;
+  }
+  const trimmed = text.trim();
+  if (!trimmed) return fallback;
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    const msg = messageFromUnknown(parsed);
+    if (msg) return msg.slice(0, 200);
+  } catch {
+    // not JSON
+  }
+  const firstLine = trimmed.split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? fallback;
+  if (firstLine.startsWith("{") || firstLine.startsWith("[")) return fallback;
+  return cleanErrorText(firstLine).slice(0, 200) || fallback;
+}
+
 function refresh(root: Element): void {
   void run(root, new URLSearchParams(window.location.search));
 }
@@ -557,7 +607,7 @@ async function createRecord(root: Element, form: HTMLFormElement): Promise<void>
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      const message = `Error ${res.status}: ${(await res.text()).slice(0, 200)}`;
+      const message = await readErrorMessage(res);
       setErr(form, message);
       toast(root, message, true);
       return;
@@ -593,7 +643,7 @@ async function updateRecord(root: Element, form: HTMLFormElement): Promise<void>
       body: JSON.stringify(collected.body),
     });
     if (!res.ok) {
-      const message = `Error ${res.status}: ${(await res.text()).slice(0, 200)}`;
+      const message = await readErrorMessage(res);
       setErr(form, message);
       toast(root, message, true);
       return;
@@ -697,7 +747,7 @@ async function deleteOne(root: Element, id: string): Promise<void> {
     refresh(root);
     return;
   }
-  toast(root, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`, true);
+  toast(root, await readErrorMessage(res), true);
 }
 
 async function restoreOne(root: Element, id: string): Promise<void> {
@@ -712,7 +762,7 @@ async function restoreOne(root: Element, id: string): Promise<void> {
     refresh(root);
     return;
   }
-  toast(root, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`, true);
+  toast(root, await readErrorMessage(res), true);
 }
 
 async function bulkDelete(root: Element): Promise<void> {
@@ -768,7 +818,7 @@ async function runCustomAction(root: Element, el: Element): Promise<void> {
     method: el.getAttribute("data-rack-method") || "GET",
   });
   if (res.ok) refresh(root);
-  else toast(root, `Error ${res.status}: ${(await res.text()).slice(0, 200)}`, true);
+  else toast(root, await readErrorMessage(res), true);
 }
 
 document.addEventListener("click", (e: MouseEvent) => {
