@@ -71,7 +71,8 @@
     "prepublishOnly": "bun run typecheck && bun run build",
     "docs:build": "vitepress build docs",
     "dev:exceljs": "bun run playground/exceljs.ts",
-    "dev:google-sheets": "bun run playground/google-spreadsheets.ts"
+    "dev:google-sheets": "bun run playground/google-spreadsheets.ts",
+    "example:exceljs-sales": "bun run examples/exceljs-sales.ts"
   },
   "peerDependencies": {
     "elysia": "^1.4.0",
